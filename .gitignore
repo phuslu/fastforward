@@ -1,0 +1,15 @@
+certs/*
+pki/*
+.env
+liner
+auth.csv
+production*.toml
+debug.toml
+go.mod
+go.sum
+CHANGELOG.*
+*.log
+*.pem
+*.mmdb
+*.exe
+*.exe~

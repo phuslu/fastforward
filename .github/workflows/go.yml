@@ -1,0 +1,15 @@
+name: Go
+on: [push]
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: ./build.bash setup
+      - run: ./build.bash build
+      - run: ./build.bash packaging_macos
+      - run: ./build.bash packaging_windows
+      - run: ./build.bash release
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}

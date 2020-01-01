@@ -1,0 +1,17 @@
+[Unit]
+Wants=network-online.target
+After=network.target network-online.target
+Description=liner
+
+[Service]
+Type=forking
+KillMode=process
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+User=phuslu
+WorkingDirectory=/home/phuslu/liner
+ExecStart=/home/phuslu/liner/liner.sh start
+ExecStop=/home/phuslu/liner/liner.sh stop
+ExecReload=/home/phuslu/liner/liner.sh reload
+
+[Install]
+WantedBy=multi-user.target
