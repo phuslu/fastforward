@@ -19,7 +19,7 @@ echo >/dev/tcp/127.0.0.1/80 || (
 
 ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
-filename=$(curl https://liner.ml | egrep -o 'liner_linux_amd64-r....tar.gz'  | head -1)
+filename=$(curl liner.website | egrep -o 'liner_linux_amd64-r[0-9]+.tar.gz'  | head -1)
 pacfile=$(head -c 6 /dev/urandom | base64 | tr -d =/+).pac
 
 if test -d liner; then
@@ -30,7 +30,7 @@ else
 	mkdir liner && cd liner
 fi
 
-curl https://liner.ml/$filename | tar xvz
+curl liner.website/$filename | tar xvz
 
 if test -f production.toml; then
 	exit 0
