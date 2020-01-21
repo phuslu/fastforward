@@ -60,6 +60,7 @@ type DNSConfig struct {
 }
 
 type Config struct {
+	raw []byte
 	Log struct {
 		Level     string
 		Backups   int
@@ -76,7 +77,6 @@ type Config struct {
 		IdleConnTimeout int
 		MaxIdleConns    int
 		GracefulTimeout int
-		DisableGeoIp    bool
 	}
 	Cron []struct {
 		Spec    string
@@ -120,8 +120,10 @@ func NewConfig(filename string) (*Config, error) {
 	}
 
 	if filename == "development.toml" {
-		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:97 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
+		fmt.Fprintf(os.Stderr, "%s WAN config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
 	}
+
+	c.raw = tomlData
 
 	return c, nil
 }

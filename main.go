@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -109,7 +110,9 @@ func main() {
 		Resolver: resolver,
 	}
 
-	if !config.Global.DisableGeoIp {
+	var requireGeoip, _ = regexp.Match(`\(geoip `, config.raw)
+	if requireGeoip {
+		log.Info().Bool("require_geoip", requireGeoip).Msg("try load maxmind geoip2 database")
 		for _, filename := range []string{
 			"GeoIP2-Enterprise.mmdb",
 			"GeoIP2-City.mmdb",
@@ -128,7 +131,7 @@ func main() {
 			case os.IsNotExist(err):
 				continue
 			case err != nil:
-				log.Fatal().Err(err).Str("geoip2_city_database", filename).Msg("load geoip2_city_database error")
+				log.Fatal().Err(err).Str("geoip2_database", filename).Msg("load geoip2_city_database error")
 			}
 			regionResolver.MaxmindReader = reader
 			break
