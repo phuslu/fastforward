@@ -110,9 +110,8 @@ func main() {
 		Resolver: resolver,
 	}
 
-	var requireGeoip, _ = regexp.Match(`\(geoip `, config.raw)
-	if requireGeoip {
-		log.Info().Bool("require_geoip", requireGeoip).Msg("try load maxmind geoip2 database")
+	if ok, _ := regexp.Match(`\((geoip|region|city) `, config.raw); ok {
+		log.Info().Msg("try load maxmind geoip2 database")
 		for _, filename := range []string{
 			"GeoIP2-Enterprise.mmdb",
 			"GeoIP2-City.mmdb",

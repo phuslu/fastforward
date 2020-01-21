@@ -102,7 +102,9 @@ listen = ['127.0.0.1:1081']
 forward_policy = '''
 	{{if regexMatch `^(153.3.130.101|153.3.130.102):` .Request.RemoteAddr}}
 		bypass_auth
-	{{else if has (geoip .Request.RemoteAddr).Region (list "Jiangsu" "Zhejiang" "Shanghai")}}
+	{{else if has (region .Request.RemoteAddr) (list "Jiangsu" "Zhejiang" "Shanghai")}}
+		bypass_auth
+	{{else if has (city .Request.RemoteAddr) (list "Nanjing" "Shanghai")}}
 		bypass_auth
 	{{else if eq .Request.Version 5}}
 		require_auth

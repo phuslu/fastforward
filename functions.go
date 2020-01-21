@@ -20,9 +20,11 @@ func (f *Functions) FuncMap() template.FuncMap {
 
 	m["all"] = f.all
 	m["any"] = f.any
+	m["city"] = f.city
 	m["country"] = f.country
 	m["geoip"] = f.geoip
 	m["greased"] = f.greased
+	m["region"] = f.region
 
 	return m
 }
@@ -52,7 +54,13 @@ func (f *Functions) country(ip string) string {
 	return string(geoip.Country(net.ParseIP(ip)))
 }
 
-func (f *Functions) geoip(ip string) map[string]string {
+type GeoipInfo struct {
+	Country string
+	Region  string
+	City    string
+}
+
+func (f *Functions) geoip(ip string) GeoipInfo {
 	if s, _, err := net.SplitHostPort(ip); err == nil {
 		ip = s
 	}
@@ -60,7 +68,7 @@ func (f *Functions) geoip(ip string) map[string]string {
 	if net.ParseIP(ip) == nil {
 		ips, _ := f.RegionResolver.Resolver.LookupIP(context.Background(), ip)
 		if len(ips) == 0 {
-			return map[string]string{"Country": "ZZ", "Region": "", "City": ""}
+			return GeoipInfo{Country: "ZZ"}
 		}
 		ip = ips[0].String()
 	}
@@ -73,16 +81,24 @@ func (f *Functions) geoip(ip string) map[string]string {
 	}
 
 	if country == "CN" && IsBogusChinaIP(net.ParseIP(ip)) {
-		return map[string]string{"Country": "ZZ", "Region": "", "City": ""}
+		return GeoipInfo{Country: "ZZ"}
 	}
 
 	log.Debug().Str("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
 
-	return map[string]string{
-		"Country": country,
-		"Region":  region,
-		"City":    city,
+	return GeoipInfo{
+		Country: country,
+		Region:  region,
+		City:    city,
 	}
+}
+
+func (f *Functions) region(ip string) string {
+	return f.geoip(ip).Region
+}
+
+func (f *Functions) city(ip string) string {
+	return f.geoip(ip).City
 }
 
 func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
