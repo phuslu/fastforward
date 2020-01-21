@@ -34,7 +34,7 @@ forward_policy = '''
 	{{end}}
 '''
 forward_auth = 'python auth.py {{.Request.Header.Get "proxy-authorization"}} {{.Request.RemoteAddr}}'
-forward_upstream = '{{if ne (geoip .Request.Host).Country "CN"}}example_org{{end}}'
+forward_upstream = '{{if ne (country .Request.Host) "CN"}}example_org{{end}}'
 pprof_enabled = true
 pac_enabled = true
 pac_iplist = 'https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt'

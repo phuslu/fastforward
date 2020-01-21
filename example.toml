@@ -89,7 +89,7 @@ forward_auth = 'python auth.py {{.Request.Header.Get "proxy-authorization"}} {{.
 forward_upstream = '''
 	{{if hasPrefix "scholar.google.com" .Request.Host}}
 		proxy1_example_org
-	{{else if ne (geoip .Request.Host).Country "CN"}}
+	{{else if ne (country .Request.Host) "CN"}}
 		proxy2_example_com
 	{{end}}
 '''

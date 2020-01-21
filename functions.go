@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
+	"github.com/phuslu/geoip"
 	"github.com/phuslu/log"
 )
 
@@ -19,6 +20,7 @@ func (f *Functions) FuncMap() template.FuncMap {
 
 	m["all"] = f.all
 	m["any"] = f.any
+	m["country"] = f.country
 	m["geoip"] = f.geoip
 	m["greased"] = f.greased
 
@@ -41,6 +43,13 @@ func (f *Functions) any(b ...interface{}) bool {
 		}
 	}
 	return false
+}
+
+func (f *Functions) country(ip string) string {
+	if s, _, err := net.SplitHostPort(ip); err == nil {
+		ip = s
+	}
+	return string(geoip.Country(net.ParseIP(ip)))
 }
 
 func (f *Functions) geoip(ip string) map[string]string {
