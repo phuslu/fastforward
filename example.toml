@@ -115,6 +115,20 @@ forward_policy = '''
 forward_auth = 'python auth.py socks "{{.Request.Username}}" "{{.Request.Password}}" {{.Request.RemoteAddr}}'
 forward_deny_domains = ['facebook.com', 'nytimes.com']
 
+[[socks]]
+listen = ['127.0.0.1:1082']
+forward_policy = '''
+	{{if eq (city .Request.RemoteAddr) "Nanjing"}}
+		bypass_auth
+	{{else if not .Request.Host}}
+		bypass_auth
+	{{else if regexMatch `^(149|91)\.` .Request.Host}}
+		bypass_auth
+	{{else}}
+		reject
+	{{end}}
+'''
+
 [[relay]]
 listen = [':443']
 relay_to = 'github.com:443'
