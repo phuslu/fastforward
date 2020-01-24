@@ -39,9 +39,6 @@ func main() {
 		return
 	}
 
-	// opt-in tls 1.3
-	os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1")
-
 	StartSupervisor()
 
 	rand.Seed(timeNow().UnixNano())

@@ -131,5 +131,5 @@ forward_policy = '''
 
 [[relay]]
 listen = [':443']
-relay_to = 'github.com:443'
+relay_to = 'a-mtproxy.org:443'
 forward_upstream = 'proxy1_example_org'
