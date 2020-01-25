@@ -51,6 +51,15 @@ func (f *Functions) country(ip string) string {
 	if s, _, err := net.SplitHostPort(ip); err == nil {
 		ip = s
 	}
+
+	if net.ParseIP(ip) == nil {
+		ips, _ := f.RegionResolver.Resolver.LookupIP(context.Background(), ip)
+		if len(ips) == 0 {
+			return "ZZ"
+		}
+		ip = ips[0].String()
+	}
+
 	return string(geoip.Country(net.ParseIP(ip)))
 }
 
