@@ -314,6 +314,7 @@ func (h *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		go io.Copy(conn, r)
 		transmitBytes, err = io.Copy(w, NewLimiterReader(conn, ui.SpeedLimit))
+		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
 			http.NotFound(rw, req)
@@ -366,6 +367,7 @@ func (h *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		defer resp.Body.Close()
 
 		transmitBytes, err = io.Copy(rw, NewLimiterReader(resp.Body, ui.SpeedLimit))
+		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 
 	if h.Config.ForwardLog {
