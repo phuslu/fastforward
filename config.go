@@ -20,6 +20,7 @@ type HTTPConfig struct {
 	ForwardUpstream     string
 	ForwardAllowDomains []string
 	ForwardDenyDomains  []string
+	ForwardSpeedLimit   int64
 	ForwardOutboundIp   string
 	ForwardLog          bool
 
@@ -41,6 +42,7 @@ type SocksConfig struct {
 	ForwardUpstream     string
 	ForwardAllowDomains []string
 	ForwardDenyDomains  []string
+	ForwardSpeedLimit   int64
 	ForwardOutboundIp   string
 	ForwardLog          bool
 }

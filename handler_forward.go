@@ -230,6 +230,9 @@ func (h *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				return
 			}
 		}
+		if ui.SpeedLimit == 0 && h.Config.ForwardSpeedLimit > 0 {
+			ui.SpeedLimit = h.Config.ForwardSpeedLimit
+		}
 	}
 
 	transport := h.Transport

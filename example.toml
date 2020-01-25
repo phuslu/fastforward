@@ -49,6 +49,7 @@ forward_policy = '''
 forward_auth = 'python auth.py {{.Request.Header.Get "proxy-authorization"}} {{.Request.RemoteAddr}}'
 forward_upstream = '{{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}'
 forward_deny_domains = ['facebook.com', 'nytimes.com']
+forward_speed_limit = 10_000_000
 #forward_outbound_ip = '45.89.11.190'
 pprof_enabled = true
 pac_enabled = true

@@ -222,6 +222,9 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 				}
 			}
 		}
+		if ai.SpeedLimit == 0 && h.Config.ForwardSpeedLimit > 0 {
+			ai.SpeedLimit = h.Config.ForwardSpeedLimit
+		}
 	}
 
 	if h.PolicyTemplate != nil {
