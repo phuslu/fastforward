@@ -21,7 +21,7 @@ require (
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.6.0
 	github.com/phuslu/geoip v0.0.0-20200119134124-e98acab88c92
-	github.com/phuslu/log v0.0.0-20200120145547-83c1b451aa3c
+	github.com/phuslu/log v0.0.0-20200126140536-ecc0f628ae03
 	github.com/phuslu/quic-go v0.0.0-20200125180823-9d825087b8b9
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tidwall/lotsa v0.0.0-20190911211615-e96c7fea75f1 // indirect

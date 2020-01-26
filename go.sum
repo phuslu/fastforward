@@ -64,6 +64,8 @@ github.com/phuslu/geoip v0.0.0-20200119134124-e98acab88c92 h1:dvQSGZpqNgxt+R8Psf
 github.com/phuslu/geoip v0.0.0-20200119134124-e98acab88c92/go.mod h1:2z3izHYc+bwW7j5pyvtXG8N+I9Q87XnZfULO6lN9NhA=
 github.com/phuslu/log v0.0.0-20200120145547-83c1b451aa3c h1:v0ltUo23rh76eVIlsmqM8yZrPOSd0Zer1My3NRwiH9E=
 github.com/phuslu/log v0.0.0-20200120145547-83c1b451aa3c/go.mod h1:kzJN3LRifrepxThMjufQwS7S35yFAB+jAV1qgA7eBW4=
+github.com/phuslu/log v0.0.0-20200126140536-ecc0f628ae03 h1:DsWnrNKbXi0uSlULt85vNX/hVXlBpcD5elNlkSe0xT4=
+github.com/phuslu/log v0.0.0-20200126140536-ecc0f628ae03/go.mod h1:kzJN3LRifrepxThMjufQwS7S35yFAB+jAV1qgA7eBW4=
 github.com/phuslu/quic-go v0.0.0-20200125180823-9d825087b8b9 h1:B2CH1qJmZGvXQBo/fVRkrwOSbUryRePjTdwyIczOPos=
 github.com/phuslu/quic-go v0.0.0-20200125180823-9d825087b8b9/go.mod h1:Nnp4tBF+3yZRWMDQxMLkuiueYxPWeUbDsJ0TZ3xQYfw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

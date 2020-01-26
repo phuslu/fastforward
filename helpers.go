@@ -486,7 +486,7 @@ type LimiterReader struct {
 
 func (r *LimiterReader) Read(buf []byte) (int, error) {
 	n, err := r.r.Read(buf)
-	if n <= 0 {
+	if err != nil || n <= 0 {
 		return n, err
 	}
 	if r.limiter != nil {
