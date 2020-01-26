@@ -50,9 +50,10 @@ type SocksConfig struct {
 type RelayConfig struct {
 	Listen []string
 
-	RelayTo         string
-	ForwardUpstream string
-	ForwardLog      bool
+	RelayTo           string
+	ForwardUpstream   string
+	ForwardSpeedLimit int64
+	ForwardLog        bool
 }
 
 type DNSConfig struct {
