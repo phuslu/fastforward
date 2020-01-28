@@ -17,7 +17,7 @@ import (
 	"github.com/phuslu/quic-go/http3"
 )
 
-const nextProtoH3 = "h3-22"
+const nextProtoH3 = "h3-24"
 
 type HTTP3Dialer struct {
 	Username  string

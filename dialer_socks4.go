@@ -19,7 +19,7 @@ type Socks4Dialer struct {
 
 func (d *Socks4Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	switch network {
-	case "tcp", "tcp4":
+	case "tcp", "tcp4", "tcp6":
 	default:
 		return nil, errors.New("proxy: no support for SOCKS4 proxy connections of type " + network)
 	}

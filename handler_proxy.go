@@ -125,9 +125,9 @@ func (h *ProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		resp.Header.Del("keep-alive")
 	}
 
-	if req.ProtoMajor == 2 && req.TLS != nil && req.TLS.Version == tls.VersionTLS13 {
+	if req.ProtoMajor != 2 && req.TLS != nil && req.TLS.Version == tls.VersionTLS13 {
 		_, port, _ := net.SplitHostPort(ri.ServerAddr)
-		resp.Header.Add("Alt-Svc", fmt.Sprintf(`%s=":%s"; ma=86400`, nextProtoH3, port))
+		resp.Header.Set("Alt-Svc", fmt.Sprintf(`%s=":%s"; ma=86400`, nextProtoH3, port))
 	}
 
 	if h.Config.ProxyDumpFailure && resp.StatusCode >= http.StatusBadRequest {
