@@ -28,6 +28,7 @@ type DTLSRequest struct {
 	ServerAddr string
 	Username   string
 	Password   string
+	Network    string
 	Host       string
 	Port       int
 }
@@ -133,18 +134,20 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 	}
 
 	lines := bytes.Split(b[:i], []byte{'\n'})
-	if len(lines) < 2 {
+	if len(lines) < 3 {
 		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("dtls split lf error")
 		return
 	}
 
-	host, port, err := net.SplitHostPort(string(lines[0]))
-	parts := strings.SplitN(string(lines[1]), ":", 2)
+	network := string(lines[0])
+	host, port, err := net.SplitHostPort(string(lines[1]))
+	parts := strings.SplitN(string(lines[2]), ":", 2)
 	if err != nil || len(parts) != 2 {
 		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("dtls split host port error")
 		return
 	}
 
+	req.Network = network
 	req.Host = host
 	req.Port, _ = strconv.Atoi(port)
 	req.Username = parts[0]
@@ -224,7 +227,7 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 
 	log.Info().Str("server_addr", req.ServerAddr).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("dtls_host", req.Host).Int("dtls_port", req.Port).Str("forward_upsteam", upstream).Msg("forward dtls request")
 
-	rconn, err := dail(context.Background(), "tcp", net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
+	rconn, err := dail(context.Background(), network, net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
 	if err != nil {
 		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Str("dtls_host", req.Host).Int("dtls_port", req.Port).Str("forward_upsteam", upstream).Msg("connect remote host failed")
 		return

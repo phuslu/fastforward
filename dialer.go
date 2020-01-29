@@ -39,6 +39,13 @@ func (d *Dialer) DialContext(ctx context.Context, network, address string) (net.
 }
 
 func (d *Dialer) dialContext(ctx context.Context, network, address string, tlsConfig *tls.Config) (net.Conn, error) {
+	switch network {
+	case "tcp", "tcp6", "tcp4":
+		break
+	default:
+		return (&net.Dialer{}).DialContext(ctx, network, address)
+	}
+
 	host, portStr, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, err

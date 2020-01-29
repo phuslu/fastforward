@@ -23,7 +23,6 @@ import (
 
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
-	"github.com/phuslu/quic-go/http3"
 	"github.com/pion/dtls"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
@@ -427,15 +426,14 @@ func main() {
 			WriteBufferSize: 32 * 1024,
 		}, server.TLSConfig))
 
-		uln, err := lc.ListenPacket(context.Background(), "udp", addr)
-		if err != nil {
-			log.Fatal().Err(err).Str("address", addr).Msg("net.ListenPacket error")
-		}
-
-		go (&http3.Server{
-			Server:     server,
-			QuicConfig: nil,
-		}).Serve(uln)
+		// uln, err := lc.ListenPacket(context.Background(), "udp", addr)
+		// if err != nil {
+		// 	log.Fatal().Err(err).Str("address", addr).Msg("net.ListenPacket error")
+		// }
+		// go (&http3.Server{
+		// 	Server:     server,
+		// 	QuicConfig: nil,
+		// }).Serve(uln)
 
 		servers = append(servers, server)
 	}
@@ -536,9 +534,9 @@ func main() {
 
 			ln, err = dtls.Listen("udp", laddr, &dtls.Config{
 				PSK: func(hint []byte) ([]byte, error) {
-					return []byte{0xAB, 0xC1, 0x23}, nil
+					return []byte(dtlsConfig.PSK), nil
 				},
-				PSKIdentityHint:      []byte("Pion DTLS Client"),
+				PSKIdentityHint:      []byte(""),
 				CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_CCM_8},
 				ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
 				ConnectTimeout:       dtls.ConnectTimeoutOption(30 * time.Second),
@@ -553,6 +551,7 @@ func main() {
 				Config:         dtlsConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
+				Dialer:         dialer,
 				Upstreams:      upstreams,
 				Functions:      functions,
 			}

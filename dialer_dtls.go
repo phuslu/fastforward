@@ -18,29 +18,22 @@ type DTLSDialer struct {
 }
 
 func (d *DTLSDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	switch network {
-	case "tcp", "tcp6", "tcp4":
-	default:
-		return nil, errors.New("proxy: no support for DTLS proxy connections of type " + network)
-	}
-
-	raddr, err := net.ResolveUDPAddr(network, net.JoinHostPort(d.Host, d.Port))
+	raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(d.Host, d.Port))
 	if err != nil {
 		return nil, err
 	}
 
 	config := &dtls.Config{
 		PSK: func(hint []byte) ([]byte, error) {
-			println("Server's hint:", hint)
-			return []byte{0xAB, 0xC1, 0x23}, nil
+			return []byte(d.PSK), nil
 		},
-		PSKIdentityHint:      []byte("Pion DTLS Server"),
+		PSKIdentityHint:      []byte(""),
 		CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_CCM_8},
 		ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
 		ConnectTimeout:       dtls.ConnectTimeoutOption(30 * time.Second),
 	}
 
-	conn, err := dtls.Dial(network, raddr, config)
+	conn, err := dtls.Dial("udp", raddr, config)
 	if err != nil {
 		return nil, err
 	}
@@ -51,9 +44,10 @@ func (d *DTLSDialer) DialContext(ctx context.Context, network, addr string) (net
 		}
 	}()
 
-	// the size here is just an estimate
-	buf := make([]byte, 0, len(addr)+1+len(d.Username)+1+len(d.Password)+1+1)
+	buf := make([]byte, 0, len(network)+1+len(addr)+1+len(d.Username)+1+len(d.Password)+1+1)
 
+	buf = append(buf, network...)
+	buf = append(buf, '\n')
 	buf = append(buf, addr...)
 	buf = append(buf, '\n')
 	buf = append(buf, d.Username...)

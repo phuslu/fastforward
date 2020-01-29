@@ -13,34 +13,12 @@ prefer_ipv6 = false
 [upstream]
 example_org = {scheme='https', username='phuslu', password='123456', host='example.org', port=443}
 
-[[https]]
-listen = [':443']
-server_name = ['lab.phus.lu']
-forward_policy = '''
-	{{if regexMatch `^192\.168\.` .Request.RemoteAddr}}
-		bypass_auth
-	{{else if regexMatch `\.google|ggpht\.com|gstatic\.com|github` .Request.Host}}
-		bypass_auth
-	{{else if contains " YaBrowser/" .Request.UserAgent}}
-		bypass_auth
-	{{else if .Request.Header.Get "proxy-authorization"}}
-		verify_auth
-	{{else if all (.Request.ProtoAtLeast 2 0) (eq .Request.TLS.Version 0x0304) (greased .ClientHelloInfo)}}
-		require_proxy_auth
-	{{else if contains " Chrome/68.0.3440" .Request.UserAgent}}
-		require_proxy_auth
-	{{else}}
-		proxy_pass
-	{{end}}
-'''
-forward_auth = 'python auth.py {{.Request.Header.Get "proxy-authorization"}} {{.Request.RemoteAddr}}'
-forward_upstream = '{{if ne (country .Request.Host) "CN"}}example_org{{end}}'
-pprof_enabled = true
-pac_enabled = true
-pac_iplist = 'https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt'
-proxy_pass = 'http://127.0.0.1:80'
-
 [[http]]
 listen = [':80']
 pac_enabled = true
 proxy_pass = 'file:///C:/Users/phuslu/Desktop'
+
+[[dtls]]
+listen = [':443']
+psk = 'leader.one'
+forward_policy = 'bypass_auth'

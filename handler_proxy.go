@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -125,10 +124,10 @@ func (h *ProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		resp.Header.Del("keep-alive")
 	}
 
-	if req.ProtoMajor != 2 && req.TLS != nil && req.TLS.Version == tls.VersionTLS13 {
-		_, port, _ := net.SplitHostPort(ri.ServerAddr)
-		resp.Header.Set("Alt-Svc", fmt.Sprintf(`%s=":%s"; ma=86400`, nextProtoH3, port))
-	}
+	// if req.ProtoMajor != 2 && req.TLS != nil && req.TLS.Version == tls.VersionTLS13 {
+	// 	_, port, _ := net.SplitHostPort(ri.ServerAddr)
+	// 	resp.Header.Set("alt-svc", fmt.Sprintf(`%s=":%s"; ma=86400`, nextProtoH3, port))
+	// }
 
 	if h.Config.ProxyDumpFailure && resp.StatusCode >= http.StatusBadRequest {
 		data, err := httputil.DumpResponse(resp, true)
