@@ -24,6 +24,7 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/phuslu/quic-go/http3"
+	"github.com/pion/dtls"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
 )
@@ -256,6 +257,14 @@ func main() {
 				Host:      upstream.Host,
 				Port:      strconv.Itoa(upstream.Port),
 				UserAgent: upstream.UserAgent,
+			}).DialContext
+		case "dtls":
+			dialContext = (&DTLSDialer{
+				PSK:      upstream.PSK,
+				Username: upstream.Username,
+				Password: upstream.Password,
+				Host:     upstream.Host,
+				Port:     strconv.Itoa(upstream.Port),
 			}).DialContext
 		case "socks", "socks5", "socks5h":
 			dialContext = (&Socks5Dialer{
@@ -515,6 +524,56 @@ func main() {
 		servers = append(servers, server)
 	}
 
+	// dtls handler
+	for _, dtlsConfig := range config.Dtls {
+		for _, addr := range dtlsConfig.Listen {
+			var ln *dtls.Listener
+
+			laddr, err := net.ResolveUDPAddr("udp", addr)
+			if err != nil {
+				log.Fatal().Err(err).Str("address", addr).Msg("dtls hanlder load error")
+			}
+
+			ln, err = dtls.Listen("udp", laddr, &dtls.Config{
+				PSK: func(hint []byte) ([]byte, error) {
+					return []byte{0xAB, 0xC1, 0x23}, nil
+				},
+				PSKIdentityHint:      []byte("Pion DTLS Client"),
+				CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_CCM_8},
+				ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
+				ConnectTimeout:       dtls.ConnectTimeoutOption(30 * time.Second),
+			})
+			if err != nil {
+				log.Fatal().Err(err).Str("address", addr).Msg("dtls.Listen error")
+			}
+
+			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and serve dtls")
+
+			h := &DTLSHandler{
+				Config:         dtlsConfig,
+				ForwardLogger:  forwardLogger,
+				RegionResolver: regionResolver,
+				Upstreams:      upstreams,
+				Functions:      functions,
+			}
+
+			if err = h.Load(); err != nil {
+				log.Fatal().Err(err).Str("address", addr).Msg("dtls hanlder load error")
+			}
+
+			go func(ln *dtls.Listener, h *DTLSHandler) {
+				for {
+					conn, err := ln.Accept()
+					if err != nil {
+						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept dtls connection error")
+						time.Sleep(10 * time.Millisecond)
+					}
+					go h.ServeConn(conn.(*dtls.Conn))
+				}
+			}(ln, h)
+		}
+	}
+
 	// socks handler
 	for _, socksConfig := range config.Socks {
 		for _, addr := range socksConfig.Listen {
@@ -552,7 +611,7 @@ func main() {
 		}
 	}
 
-	// port handler
+	// relay handler
 	for _, relayConfig := range config.Relay {
 		for _, addr := range relayConfig.Listen {
 			var ln net.Listener
