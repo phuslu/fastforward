@@ -50,7 +50,7 @@ build () {
     env GOOS=${GOOS} \
         GOARCH=${GOARCH} \
         CGO_ENABLED=${CGO_ENABLED} \
-    go build -v -ldflags="${LDFLAGS}" -o ${BUILDDIR}/${PROJECT}${GOEXE} .
+    go build -v -trimpath -ldflags="${LDFLAGS}" -o ${BUILDDIR}/${PROJECT}${GOEXE} .
     # go test
     # go test -v .
     # cp files
