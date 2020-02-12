@@ -56,14 +56,7 @@ func (h *PacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(RequestInfo)
 
 	if req.TLS != nil {
-		var accept bool
-		switch {
-		case req.ProtoAtLeast(2, 0) && ri.TLSVersion == tls.VersionTLS13 && IsTLSGreaseCode(ri.ClientHelloInfo.CipherSuites[0]):
-			accept = true
-		case strings.Contains(req.UserAgent(), " Chrome/68.0.3440"):
-			accept = true
-		}
-		if !accept {
+		if !(req.ProtoAtLeast(2, 0) && ri.TLSVersion == tls.VersionTLS13 && IsTLSGreaseCode(ri.ClientHelloInfo.CipherSuites[0])) {
 			h.Next.ServeHTTP(rw, req)
 			return
 		}

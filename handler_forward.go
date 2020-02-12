@@ -122,6 +122,13 @@ func (h *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		host = h
 	}
 
+	// if h.ServerNames.Contains(host) || net.ParseIP(ri.RemoteIP).IsLoopback() {
+	if h.ServerNames.Contains(host) && req.Method != http.MethodConnect {
+		log.Debug().Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Interface("forward_server_names", h.ServerNames).Str("request_host", req.Host).Msg("fallback to next handler")
+		h.Next.ServeHTTP(rw, req)
+		return
+	}
+
 	var domain = host
 	if net.ParseIP(domain) == nil {
 		if s, err := publicsuffix.EffectiveTLDPlusOne(host); err == nil {
@@ -200,13 +207,6 @@ func (h *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		case "bypass_auth":
 			bypassAuth = true
 		}
-	}
-
-	// if h.ServerNames.Contains(host) || net.ParseIP(ri.RemoteIP).IsLoopback() {
-	if h.ServerNames.Contains(host) && req.Method != http.MethodConnect {
-		log.Debug().Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Interface("forward_server_names", h.ServerNames).Str("request_host", req.Host).Msg("fallback to next handler")
-		h.Next.ServeHTTP(rw, req)
-		return
 	}
 
 	var ui ForwardUserInfo
