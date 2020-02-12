@@ -313,11 +313,11 @@ func main() {
 	h2handlers := map[string]map[string]http.Handler{}
 	for _, server := range config.Https {
 		// requestinfo -> forward -> pac -> pprof -> proxy
-		handler := &Handler{
-			Next: &ForwardHandler{
-				Next: &PacHandler{
-					Next: &PprofHandler{
-						Next: &ProxyHandler{
+		handler := &HTTPHandler{
+			Next: &HTTPForwardHandler{
+				Next: &HTTPPacHandler{
+					Next: &HTTPPprofHandler{
+						Next: &HTTPProxyHandler{
 							Config:    server,
 							Transport: transport,
 						},
@@ -449,11 +449,11 @@ func main() {
 		if ip, err := GetPreferedLocalIP(); err == nil {
 			httpConfig.ServerName = append(httpConfig.ServerName, ip.String())
 		}
-		handler := &Handler{
-			Next: &ForwardHandler{
-				Next: &PacHandler{
-					Next: &PprofHandler{
-						Next: &ProxyHandler{
+		handler := &HTTPHandler{
+			Next: &HTTPForwardHandler{
+				Next: &HTTPPacHandler{
+					Next: &HTTPPprofHandler{
+						Next: &HTTPProxyHandler{
 							Config:    httpConfig,
 							Transport: transport,
 						},

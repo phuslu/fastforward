@@ -23,7 +23,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-type ForwardHandler struct {
+type HTTPForwardHandler struct {
 	Next           http.Handler
 	Config         HTTPConfig
 	ForwardLogger  log.Logger
@@ -42,7 +42,7 @@ type ForwardHandler struct {
 	AuthCache        *shardmap.Map
 }
 
-func (h *ForwardHandler) Load() error {
+func (h *HTTPForwardHandler) Load() error {
 	var err error
 
 	h.ServerNames = NewStringSet(h.Config.ServerName)
@@ -113,7 +113,7 @@ func (h *ForwardHandler) Load() error {
 	return nil
 }
 
-func (h *ForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(RequestInfo)
 
 	var err error
@@ -388,7 +388,7 @@ type ForwardUserInfo struct {
 	VIP        bool
 }
 
-func (h *ForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ui ForwardUserInfo, err error) {
+func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ui ForwardUserInfo, err error) {
 	var b bytes.Buffer
 
 	err = h.AuthTemplate.Execute(&b, struct {

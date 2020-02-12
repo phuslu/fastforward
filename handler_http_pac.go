@@ -22,7 +22,7 @@ const (
 	DefaultPacIPlist = "https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt"
 )
 
-type PacHandler struct {
+type HTTPPacHandler struct {
 	Next   http.Handler
 	Config HTTPConfig
 
@@ -36,7 +36,7 @@ type PacCacheItem struct {
 	Data     []byte
 }
 
-func (h *PacHandler) Load() error {
+func (h *HTTPPacHandler) Load() error {
 	if !h.Config.PacEnabled {
 		return nil
 	}
@@ -52,14 +52,12 @@ func (h *PacHandler) Load() error {
 	return nil
 }
 
-func (h *PacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(RequestInfo)
 
-	if req.TLS != nil {
-		if !(req.ProtoAtLeast(2, 0) && ri.TLSVersion == tls.VersionTLS13 && IsTLSGreaseCode(ri.ClientHelloInfo.CipherSuites[0])) {
-			h.Next.ServeHTTP(rw, req)
-			return
-		}
+	if req.TLS != nil && !(req.ProtoAtLeast(2, 0) && ri.TLSVersion == tls.VersionTLS13 && IsTLSGreaseCode(ri.ClientHelloInfo.CipherSuites[0])) {
+		h.Next.ServeHTTP(rw, req)
+		return
 	}
 
 	if !h.Config.PacEnabled || !strings.HasSuffix(req.URL.Path, ".pac") {
@@ -132,7 +130,7 @@ func (h *PacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Write(pac)
 }
 
-func (h *PacHandler) generatePac(req *http.Request, iplist []IPInt) ([]byte, error) {
+func (h *HTTPPacHandler) generatePac(req *http.Request, iplist []IPInt) ([]byte, error) {
 	data, err := ioutil.ReadFile(req.URL.Path[1:])
 	if err != nil {
 		return nil, err

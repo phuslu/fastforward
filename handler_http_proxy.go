@@ -17,14 +17,14 @@ const (
 	DefaultProxyPass = "http://127.0.0.1:80"
 )
 
-type ProxyHandler struct {
+type HTTPProxyHandler struct {
 	Config    HTTPConfig
 	Transport *http.Transport
 
 	Upstream *url.URL
 }
 
-func (h *ProxyHandler) Load() error {
+func (h *HTTPProxyHandler) Load() error {
 	var err error
 
 	var u = h.Config.ProxyPass
@@ -40,7 +40,7 @@ func (h *ProxyHandler) Load() error {
 	return nil
 }
 
-func (h *ProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(RequestInfo)
 
 	// if req.Method == http.MethodConnect {

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-type Handler struct {
+type HTTPHandler struct {
 	Next http.Handler
 
 	TLSConfigurator *TLSConfigurator
@@ -25,7 +25,7 @@ var RequestInfoContextKey = struct {
 	name string
 }{"request-info"}
 
-func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	var ri RequestInfo
 
 	ri.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
