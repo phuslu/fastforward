@@ -24,7 +24,6 @@ require (
 	github.com/phuslu/log v0.0.0-20200213102907-1d935d59159d
 	github.com/phuslu/quic-go v0.0.0-20200125180823-9d825087b8b9
 	github.com/phuslu/tlspsk v0.0.0-20200214142354-c63bf1f2217e
-	github.com/pion/dtls v1.5.4
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tidwall/lotsa v0.0.0-20190911211615-e96c7fea75f1 // indirect
 	github.com/tidwall/rhh v1.1.0 // indirect
