@@ -47,7 +47,7 @@ type SocksConfig struct {
 	ForwardLog          bool
 }
 
-type DTLSConfig struct {
+type TLSPSKConfig struct {
 	Listen []string
 	PSK    string
 
@@ -101,7 +101,7 @@ type Config struct {
 	}
 	Https    []HTTPConfig
 	Http     []HTTPConfig
-	Dtls     []DTLSConfig
+	TlsPsk   []TLSPSKConfig
 	Socks    []SocksConfig
 	Relay    []RelayConfig
 	Dns      []DNSConfig

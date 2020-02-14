@@ -98,7 +98,7 @@ pac_enabled = true
 pac_iplist = 'china_ip_list.txt'
 proxy_pass = 'file:///C:/Users/phuslu/Desktop'
 
-[[dtls]]
+[[tls_psk]]
 listen = [':443']
 psk = 'leader.one'
 forward_policy = '''
@@ -110,7 +110,7 @@ forward_policy = '''
 		require_auth
 	{{end}}
 '''
-forward_auth = 'python auth.py dtls "{{.Request.Username}}" "{{.Request.Password}}" {{.Request.RemoteAddr}}'
+forward_auth = 'python auth.py psk "{{.Request.Username}}" "{{.Request.Password}}" {{.Request.RemoteAddr}}'
 
 [[socks]]
 listen = ['127.0.0.1:1081']

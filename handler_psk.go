@@ -16,13 +16,13 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
-	"github.com/pion/dtls"
+	"github.com/phuslu/tlspsk"
 	"github.com/tidwall/shardmap"
 	"github.com/valyala/fastjson"
 	"golang.org/x/net/publicsuffix"
 )
 
-type DTLSRequest struct {
+type TLSPSKRequest struct {
 	RemoteAddr string
 	RemoteIP   string
 	ServerAddr string
@@ -33,8 +33,8 @@ type DTLSRequest struct {
 	Port       int
 }
 
-type DTLSHandler struct {
-	Config         DTLSConfig
+type TLSPSKHandler struct {
+	Config         TLSPSKConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	Dialer         *Dialer
@@ -49,7 +49,7 @@ type DTLSHandler struct {
 	AuthCache        *shardmap.Map
 }
 
-func (h *DTLSHandler) Load() error {
+func (h *TLSPSKHandler) Load() error {
 	var err error
 
 	expandDomains := func(domains []string) []string {
@@ -110,10 +110,10 @@ func (h *DTLSHandler) Load() error {
 	return nil
 }
 
-func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
+func (h *TLSPSKHandler) ServeConn(conn *tlspsk.Conn) {
 	defer conn.Close()
 
-	var req DTLSRequest
+	var req TLSPSKRequest
 	req.RemoteAddr = conn.RemoteAddr().String()
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
@@ -122,20 +122,20 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 
 	n, err := conn.Read(b)
 	if err != nil || n == 0 {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("dtls read handshake error")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk read handshake error")
 		return
 	}
 
 	b = b[:n]
 	var i = bytes.Index(b, []byte{'\n', '\n'})
 	if i <= 0 {
-		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("dtls read lflf error")
+		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk read lflf error")
 		return
 	}
 
 	lines := bytes.Split(b[:i], []byte{'\n'})
 	if len(lines) < 3 {
-		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("dtls split lf error")
+		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk split lf error")
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 	host, port, err := net.SplitHostPort(string(lines[1]))
 	parts := strings.SplitN(string(lines[2]), ":", 2)
 	if err != nil || len(parts) != 2 {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("dtls split host port error")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk split host port error")
 		return
 	}
 
@@ -159,7 +159,7 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 	if h.PolicyTemplate != nil {
 		sb.Reset()
 		err := h.PolicyTemplate.Execute(&sb, struct {
-			Request DTLSRequest
+			Request TLSPSKRequest
 		}{req})
 		if err != nil {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.ForwardPolicy).Msg("execute forward_policy error")
@@ -179,7 +179,7 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 		}
 	}
 
-	var ai DTLSAuthInfo
+	var ai TLSPSKAuthInfo
 	if h.AuthTemplate != nil && !bypassAuth {
 		ai, err = h.GetAuthInfo(req)
 		if err != nil {
@@ -201,14 +201,14 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 		}
 	}
 
-	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Str("username", req.Username).Str("dtls_host", req.Host).Msg("forward dtls request")
+	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Str("username", req.Username).Str("dtls_host", req.Host).Msg("forward psk request")
 
 	var upstream = ""
 	var dail DialFunc = h.Dialer.DialContext
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {
-			Request DTLSRequest
+			Request TLSPSKRequest
 		}{req})
 		if err != nil {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Msg("execute forward_upstream error")
@@ -225,7 +225,7 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 		}
 	}
 
-	log.Info().Str("server_addr", req.ServerAddr).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("dtls_host", req.Host).Int("dtls_port", req.Port).Str("forward_upsteam", upstream).Msg("forward dtls request")
+	log.Info().Str("server_addr", req.ServerAddr).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("dtls_host", req.Host).Int("dtls_port", req.Port).Str("forward_upsteam", upstream).Msg("forward psk request")
 
 	rconn, err := dail(context.Background(), network, net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
 	if err != nil {
@@ -245,24 +245,24 @@ func (h *DTLSHandler) ServeConn(conn *dtls.Conn) {
 		} else {
 			country, _ = h.RegionResolver.LookupCountry(context.Background(), req.RemoteIP)
 		}
-		h.ForwardLogger.Info().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Str("dtls_host", req.Host).Int("dtls_port", req.Port).Str("forward_upsteam", upstream).Msg("forward dtls request end")
+		h.ForwardLogger.Info().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Str("dtls_host", req.Host).Int("dtls_port", req.Port).Str("forward_upsteam", upstream).Msg("forward psk request end")
 	}
 
 	return
 }
 
-type DTLSAuthInfo struct {
+type TLSPSKAuthInfo struct {
 	Deadline   time.Time
 	Username   string
 	SpeedLimit int64
 	VIP        bool
 }
 
-func (h *DTLSHandler) GetAuthInfo(req DTLSRequest) (ai DTLSAuthInfo, err error) {
+func (h *TLSPSKHandler) GetAuthInfo(req TLSPSKRequest) (ai TLSPSKAuthInfo, err error) {
 	var b bytes.Buffer
 
 	err = h.AuthTemplate.Execute(&b, struct {
-		Request DTLSRequest
+		Request TLSPSKRequest
 	}{req})
 	if err != nil {
 		log.Error().Err(err).Str("forward_auth", h.Config.ForwardAuth).Msg("execute forward_auth error")
@@ -271,7 +271,7 @@ func (h *DTLSHandler) GetAuthInfo(req DTLSRequest) (ai DTLSAuthInfo, err error) 
 
 	commandLine := strings.TrimSpace(b.String())
 	if v, ok := h.AuthCache.Get(commandLine); ok {
-		ai = v.(DTLSAuthInfo)
+		ai = v.(TLSPSKAuthInfo)
 		if ai.Deadline.After(timeNow()) {
 			return
 		}

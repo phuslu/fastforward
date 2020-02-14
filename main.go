@@ -23,7 +23,7 @@ import (
 
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
-	"github.com/pion/dtls"
+	"github.com/phuslu/tlspsk"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
 )
@@ -55,6 +55,7 @@ func main() {
 	config, err := NewConfig(flag.Arg(0))
 	if err != nil {
 		log.Fatal().Err(err).Str("filename", flag.Arg(0)).Msg("NewConfig() error")
+		os.Exit(1)
 	}
 
 	// main logger
@@ -257,8 +258,8 @@ func main() {
 				Port:      strconv.Itoa(upstream.Port),
 				UserAgent: upstream.UserAgent,
 			}).DialContext
-		case "dtls":
-			dialContext = (&DTLSDialer{
+		case "tls-psk", "tls_psk", "tlspsk", "psk":
+			dialContext = (&TLSPSKDialer{
 				PSK:      upstream.PSK,
 				Username: upstream.Username,
 				Password: upstream.Password,
@@ -522,33 +523,24 @@ func main() {
 		servers = append(servers, server)
 	}
 
-	// dtls handler
-	for _, dtlsConfig := range config.Dtls {
-		for _, addr := range dtlsConfig.Listen {
-			var ln *dtls.Listener
-
-			laddr, err := net.ResolveUDPAddr("udp", addr)
-			if err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("dtls hanlder load error")
-			}
-
-			ln, err = dtls.Listen("udp", laddr, &dtls.Config{
-				PSK: func(hint []byte) ([]byte, error) {
-					return []byte(dtlsConfig.PSK), nil
+	// psk handler
+	for _, pskConfig := range config.TlsPsk {
+		for _, addr := range pskConfig.Listen {
+			ln, err := tlspsk.Listen("tcp", addr, &tlspsk.Config{
+				CipherSuites: []uint16{tlspsk.TLS_PSK_WITH_AES_128_CBC_SHA},
+				Certificates: []tlspsk.Certificate{tlspsk.Certificate{}},
+				Extra: tlspsk.PSKConfig{
+					GetKey: func(string) ([]byte, error) { return []byte(pskConfig.PSK), nil },
 				},
-				PSKIdentityHint:      []byte(""),
-				CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_CCM_8},
-				ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
-				ConnectTimeout:       dtls.ConnectTimeoutOption(30 * time.Second),
 			})
 			if err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("dtls.Listen error")
+				log.Fatal().Err(err).Str("address", addr).Msg("tlspsk.Listen error")
 			}
 
-			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and serve dtls")
+			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and serve psk")
 
-			h := &DTLSHandler{
-				Config:         dtlsConfig,
+			h := &TLSPSKHandler{
+				Config:         pskConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
 				Dialer:         dialer,
@@ -557,17 +549,17 @@ func main() {
 			}
 
 			if err = h.Load(); err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("dtls hanlder load error")
+				log.Fatal().Err(err).Str("address", addr).Msg("psk hanlder load error")
 			}
 
-			go func(ln *dtls.Listener, h *DTLSHandler) {
+			go func(ln net.Listener, h *TLSPSKHandler) {
 				for {
 					conn, err := ln.Accept()
 					if err != nil {
-						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept dtls connection error")
+						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept psk connection error")
 						time.Sleep(10 * time.Millisecond)
 					}
-					go h.ServeConn(conn.(*dtls.Conn))
+					go h.ServeConn(conn.(*tlspsk.Conn))
 				}
 			}(ln, h)
 		}

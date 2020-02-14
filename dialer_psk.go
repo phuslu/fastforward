@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"net"
-	"time"
 
-	"github.com/pion/dtls"
+	"github.com/phuslu/tlspsk"
 )
 
-type DTLSDialer struct {
+type TLSPSKDialer struct {
 	PSK      string
 	Username string
 	Password string
@@ -17,23 +16,17 @@ type DTLSDialer struct {
 	Port     string
 }
 
-func (d *DTLSDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(d.Host, d.Port))
-	if err != nil {
-		return nil, err
-	}
-
-	config := &dtls.Config{
-		PSK: func(hint []byte) ([]byte, error) {
-			return []byte(d.PSK), nil
+func (d *TLSPSKDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	config := &tlspsk.Config{
+		CipherSuites: []uint16{tlspsk.TLS_PSK_WITH_AES_128_CBC_SHA},
+		Certificates: []tlspsk.Certificate{tlspsk.Certificate{}},
+		Extra: tlspsk.PSKConfig{
+			GetIdentity: func() string { return "" },
+			GetKey:      func(string) ([]byte, error) { return []byte(d.PSK), nil },
 		},
-		PSKIdentityHint:      []byte(""),
-		CipherSuites:         []dtls.CipherSuiteID{dtls.TLS_PSK_WITH_AES_128_CCM_8},
-		ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
-		ConnectTimeout:       dtls.ConnectTimeoutOption(30 * time.Second),
 	}
 
-	conn, err := dtls.Dial("udp", raddr, config)
+	conn, err := tlspsk.Dial("tcp", net.JoinHostPort(d.Host, d.Port), config)
 	if err != nil {
 		return nil, err
 	}
