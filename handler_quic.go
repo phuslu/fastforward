@@ -15,14 +15,14 @@ import (
 	"text/template"
 	"time"
 
+	quic "github.com/lucas-clemente/quic-go"
 	"github.com/phuslu/log"
-	"github.com/phuslu/tlspsk"
 	"github.com/tidwall/shardmap"
 	"github.com/valyala/fastjson"
 	"golang.org/x/net/publicsuffix"
 )
 
-type TLSPSKRequest struct {
+type QuicRequest struct {
 	RemoteAddr string
 	RemoteIP   string
 	ServerAddr string
@@ -33,8 +33,8 @@ type TLSPSKRequest struct {
 	Port       int
 }
 
-type TLSPSKHandler struct {
-	Config         TLSPSKConfig
+type QuicHandler struct {
+	Config         QuicConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	Dialer         *Dialer
@@ -49,7 +49,7 @@ type TLSPSKHandler struct {
 	AuthCache        *shardmap.Map
 }
 
-func (h *TLSPSKHandler) Load() error {
+func (h *QuicHandler) Load() error {
 	var err error
 
 	expandDomains := func(domains []string) []string {
@@ -110,32 +110,43 @@ func (h *TLSPSKHandler) Load() error {
 	return nil
 }
 
-func (h *TLSPSKHandler) ServeConn(conn *tlspsk.Conn) {
-	defer conn.Close()
-
-	var req TLSPSKRequest
-	req.RemoteAddr = conn.RemoteAddr().String()
+func (h *QuicHandler) ServeSession(session quic.Session) {
+	var req QuicRequest
+	req.RemoteAddr = session.RemoteAddr().String()
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
-	req.ServerAddr = conn.LocalAddr().String()
+	req.ServerAddr = session.LocalAddr().String()
+
+	sendStream, err := session.OpenStream()
+	if err != nil {
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("quic read handshake error")
+		return
+	}
+
+	conn := &quicConn{
+		session:    session,
+		sendStream: sendStream,
+	}
+
+	defer conn.Close()
 
 	var b = make([]byte, 1200)
 
 	n, err := conn.Read(b)
 	if err != nil || n == 0 {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk read handshake error")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("quic read handshake error")
 		return
 	}
 
 	b = b[:n]
 	var i = bytes.Index(b, []byte{'\n', '\n'})
 	if i <= 0 {
-		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk read lflf error")
+		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("quic read lflf error")
 		return
 	}
 
 	lines := bytes.Split(b[:i], []byte{'\n'})
 	if len(lines) < 3 {
-		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk split lf error")
+		log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("quic split lf error")
 		return
 	}
 
@@ -143,7 +154,7 @@ func (h *TLSPSKHandler) ServeConn(conn *tlspsk.Conn) {
 	host, port, err := net.SplitHostPort(string(lines[1]))
 	parts := strings.SplitN(string(lines[2]), ":", 2)
 	if err != nil || len(parts) != 2 {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("psk split host port error")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("quic split host port error")
 		return
 	}
 
@@ -159,7 +170,7 @@ func (h *TLSPSKHandler) ServeConn(conn *tlspsk.Conn) {
 	if h.PolicyTemplate != nil {
 		sb.Reset()
 		err := h.PolicyTemplate.Execute(&sb, struct {
-			Request TLSPSKRequest
+			Request QuicRequest
 		}{req})
 		if err != nil {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.ForwardPolicy).Msg("execute forward_policy error")
@@ -179,7 +190,7 @@ func (h *TLSPSKHandler) ServeConn(conn *tlspsk.Conn) {
 		}
 	}
 
-	var ai TLSPSKAuthInfo
+	var ai QuicAuthInfo
 	if h.AuthTemplate != nil && !bypassAuth {
 		ai, err = h.GetAuthInfo(req)
 		if err != nil {
@@ -208,7 +219,7 @@ func (h *TLSPSKHandler) ServeConn(conn *tlspsk.Conn) {
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {
-			Request TLSPSKRequest
+			Request QuicRequest
 		}{req})
 		if err != nil {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Msg("execute forward_upstream error")
@@ -251,18 +262,18 @@ func (h *TLSPSKHandler) ServeConn(conn *tlspsk.Conn) {
 	return
 }
 
-type TLSPSKAuthInfo struct {
+type QuicAuthInfo struct {
 	Deadline   time.Time
 	Username   string
 	SpeedLimit int64
 	VIP        bool
 }
 
-func (h *TLSPSKHandler) GetAuthInfo(req TLSPSKRequest) (ai TLSPSKAuthInfo, err error) {
+func (h *QuicHandler) GetAuthInfo(req QuicRequest) (ai QuicAuthInfo, err error) {
 	var b bytes.Buffer
 
 	err = h.AuthTemplate.Execute(&b, struct {
-		Request TLSPSKRequest
+		Request QuicRequest
 	}{req})
 	if err != nil {
 		log.Error().Err(err).Str("forward_auth", h.Config.ForwardAuth).Msg("execute forward_auth error")
@@ -271,7 +282,7 @@ func (h *TLSPSKHandler) GetAuthInfo(req TLSPSKRequest) (ai TLSPSKAuthInfo, err e
 
 	commandLine := strings.TrimSpace(b.String())
 	if v, ok := h.AuthCache.Get(commandLine); ok {
-		ai = v.(TLSPSKAuthInfo)
+		ai = v.(QuicAuthInfo)
 		if ai.Deadline.After(timeNow()) {
 			return
 		}

@@ -47,9 +47,8 @@ type SocksConfig struct {
 	ForwardLog          bool
 }
 
-type TLSPSKConfig struct {
+type QuicConfig struct {
 	Listen []string
-	PSK    string
 
 	ForwardPolicy       string
 	ForwardAuth         string
@@ -101,7 +100,7 @@ type Config struct {
 	}
 	Https    []HTTPConfig
 	Http     []HTTPConfig
-	TlsPsk   []TLSPSKConfig
+	Quic     []QuicConfig
 	Socks    []SocksConfig
 	Relay    []RelayConfig
 	Dns      []DNSConfig

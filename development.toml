@@ -18,7 +18,6 @@ listen = [':80']
 pac_enabled = true
 proxy_pass = 'file:///C:/Users/phuslu/Desktop'
 
-[[tls_psk]]
+[[quic]]
 listen = [':8443']
-psk = 'leader.one'
 forward_policy = 'bypass_auth'

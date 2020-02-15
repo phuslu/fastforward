@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 
-	"github.com/phuslu/tlspsk"
+	quic "github.com/lucas-clemente/quic-go"
 )
 
-type TLSPSKDialer struct {
+type QuicDialer struct {
 	PSK      string
 	Username string
 	Password string
@@ -16,20 +17,26 @@ type TLSPSKDialer struct {
 	Port     string
 }
 
-func (d *TLSPSKDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	config := &tlspsk.Config{
-		CipherSuites: []uint16{tlspsk.TLS_PSK_WITH_AES_128_CBC_SHA},
-		Certificates: []tlspsk.Certificate{tlspsk.Certificate{}},
-		Extra: tlspsk.PSKConfig{
-			GetIdentity: func() string { return "" },
-			GetKey:      func(string) ([]byte, error) { return []byte(d.PSK), nil },
-		},
+func (d *QuicDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
 	}
 
-	conn, err := tlspsk.Dial("tcp", net.JoinHostPort(d.Host, d.Port), config)
+	session, err := quic.DialAddr(addr, tlsConfig, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	sendStream, err := session.OpenStream()
+	if err != nil {
+		return nil, err
+	}
+
+	conn := &quicConn{
+		session:    session,
+		sendStream: sendStream,
+	}
+
 	closeConn := &conn
 	defer func() {
 		if closeConn != nil {

@@ -21,9 +21,9 @@ import (
 	"syscall"
 	"time"
 
+	quic "github.com/lucas-clemente/quic-go"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
-	"github.com/phuslu/tlspsk"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
 )
@@ -250,17 +250,8 @@ func main() {
 				Port:      strconv.Itoa(upstream.Port),
 				UserAgent: upstream.UserAgent,
 			}).DialContext
-		case "quic", "http3":
-			dialContext = (&HTTP3Dialer{
-				Username:  upstream.Username,
-				Password:  upstream.Password,
-				Host:      upstream.Host,
-				Port:      strconv.Itoa(upstream.Port),
-				UserAgent: upstream.UserAgent,
-			}).DialContext
-		case "tls-psk", "tls_psk", "tlspsk", "psk":
-			dialContext = (&TLSPSKDialer{
-				PSK:      upstream.PSK,
+		case "quic":
+			dialContext = (&QuicDialer{
 				Username: upstream.Username,
 				Password: upstream.Password,
 				Host:     upstream.Host,
@@ -427,15 +418,6 @@ func main() {
 			WriteBufferSize: 32 * 1024,
 		}, server.TLSConfig))
 
-		// uln, err := lc.ListenPacket(context.Background(), "udp", addr)
-		// if err != nil {
-		// 	log.Fatal().Err(err).Str("address", addr).Msg("net.ListenPacket error")
-		// }
-		// go (&http3.Server{
-		// 	Server:     server,
-		// 	QuicConfig: nil,
-		// }).Serve(uln)
-
 		servers = append(servers, server)
 	}
 
@@ -523,24 +505,28 @@ func main() {
 		servers = append(servers, server)
 	}
 
-	// psk handler
-	for _, pskConfig := range config.TlsPsk {
-		for _, addr := range pskConfig.Listen {
-			ln, err := tlspsk.Listen("tcp", addr, &tlspsk.Config{
-				CipherSuites: []uint16{tlspsk.TLS_PSK_WITH_AES_128_CBC_SHA},
-				Certificates: []tlspsk.Certificate{tlspsk.Certificate{}},
-				Extra: tlspsk.PSKConfig{
-					GetKey: func(string) ([]byte, error) { return []byte(pskConfig.PSK), nil },
-				},
-			})
+	// quic handler
+	for _, quicConfig := range config.Quic {
+		for _, addr := range quicConfig.Listen {
+			tlsConfig, err := generateTLSConfig()
 			if err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("tlspsk.Listen error")
+				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
 			}
 
-			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and serve psk")
+			conn, err := lc.ListenPacket(context.Background(), "udp", addr)
+			if err != nil {
+				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
+			}
 
-			h := &TLSPSKHandler{
-				Config:         pskConfig,
+			ln, err := quic.Listen(conn, tlsConfig, nil)
+			if err != nil {
+				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
+			}
+
+			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and serve quic")
+
+			h := &QuicHandler{
+				Config:         quicConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
 				Dialer:         dialer,
@@ -549,17 +535,18 @@ func main() {
 			}
 
 			if err = h.Load(); err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("psk hanlder load error")
+				log.Fatal().Err(err).Str("address", addr).Msg("quic hanlder load error")
 			}
 
-			go func(ln net.Listener, h *TLSPSKHandler) {
+			go func(ln quic.Listener, h *QuicHandler) {
 				for {
-					conn, err := ln.Accept()
+					session, err := ln.Accept(context.Background())
 					if err != nil {
-						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept psk connection error")
+						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept quic connection error")
 						time.Sleep(10 * time.Millisecond)
 					}
-					go h.ServeConn(conn.(*tlspsk.Conn))
+
+					go h.ServeSession(session)
 				}
 			}(ln, h)
 		}
