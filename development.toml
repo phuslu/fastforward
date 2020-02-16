@@ -11,13 +11,9 @@ dns_ttl = 1800
 prefer_ipv6 = false
 
 [upstream]
-example_org = {scheme='https', username='phuslu', password='123456', host='example.org', port=443}
+quic_kr = {scheme='quic', host='kr.phus.lu', port=9443}
 
-[[http]]
-listen = [':80']
-pac_enabled = true
-proxy_pass = 'file:///C:/Users/phuslu/Desktop'
-
-[[quic]]
-listen = [':8443']
+[[socks]]
+listen = [':10800']
 forward_policy = 'bypass_auth'
+forward_upstream = 'quic_kr'

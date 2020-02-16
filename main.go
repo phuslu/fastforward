@@ -510,10 +510,15 @@ func main() {
 		for _, addr := range quicConfig.Listen {
 			tlsConfig, err := GenerateTLSConfig()
 			if err != nil {
+				log.Fatal().Err(err).Str("address", addr).Msg("generate tls config error")
+			}
+
+			laddr, err := net.ResolveUDPAddr("udp", addr)
+			if err != nil {
 				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
 			}
 
-			conn, err := lc.ListenPacket(context.Background(), "udp", addr)
+			conn, err := net.ListenUDP("udp", laddr)
 			if err != nil {
 				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
 			}
