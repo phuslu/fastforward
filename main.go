@@ -508,7 +508,7 @@ func main() {
 	// quic handler
 	for _, quicConfig := range config.Quic {
 		for _, addr := range quicConfig.Listen {
-			tlsConfig, err := generateTLSConfig()
+			tlsConfig, err := GenerateTLSConfig()
 			if err != nil {
 				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
 			}

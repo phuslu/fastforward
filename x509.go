@@ -253,24 +253,31 @@ func (ca *RootCA) Exported(commonName string) bool {
 	return err == nil
 }
 
-func generateTLSConfig() (*tls.Config, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+func GenerateTLSConfig() (*tls.Config, error) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	serialNumber, err := rand.Int(rand.Reader, big.NewInt(0x7FFFFFFFFFFFFFFF))
 	if err != nil {
 		return nil, err
 	}
 	template := x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(time.Hour),
+		SerialNumber: serialNumber,
+		NotBefore:    time.Now().Add(-30 * 24 * time.Hour),
+		NotAfter:     time.Now().Add(360 * 24 * time.Hour),
 		KeyUsage:     x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
 	}
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
+	}
+	keyBytes, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
 		return nil, err
 	}
 	keyPEM := pem.EncodeToMemory(&pem.Block{
-		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key),
+		Type: "EC PRIVATE KEY", Bytes: keyBytes,
 	})
 	b := pem.Block{Type: "CERTIFICATE", Bytes: certDER}
 	certPEM := pem.EncodeToMemory(&b)
