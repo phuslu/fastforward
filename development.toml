@@ -11,9 +11,9 @@ dns_ttl = 1800
 prefer_ipv6 = false
 
 [upstream]
-quic_kr = {scheme='quic', host='kr.phus.lu', port=9443}
+quic_kr = {scheme='quic', host='127.0.0.1', port=9443}
 
 [[socks]]
-listen = [':10800']
+listen = [':1082']
 forward_policy = 'bypass_auth'
 forward_upstream = 'quic_kr'

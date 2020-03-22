@@ -49,7 +49,7 @@ func (c *quicConn) RemoteAddr() net.Addr {
 }
 
 func (c *quicConn) Close() error {
-	return c.session.Close()
+	return c.session.CloseWithError(0, "")
 }
 
 func (c *quicConn) SetDeadline(t time.Time) error {
