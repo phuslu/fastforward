@@ -29,6 +29,7 @@ import (
 	"unsafe"
 
 	"github.com/google/shlex"
+	"github.com/phuslu/log"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/time/rate"
 )
@@ -503,6 +504,16 @@ func NewLimiterReader(r io.Reader, limit int64) io.Reader {
 		}
 	}
 	return r
+}
+
+type LevelWriter struct {
+	Logger log.Logger
+	Level  log.Level
+}
+
+func (w LevelWriter) Write(p []byte) (int, error) {
+	w.Logger.WithLevel(w.Level).Msg(b2s(p))
+	return len(p), nil
 }
 
 func ReadFile(s string) (body []byte, err error) {

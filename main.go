@@ -406,7 +406,7 @@ func main() {
 				GetConfigForClient: tlsConfigurator.GetConfigForClient,
 			},
 			ConnState: tlsConfigurator.ConnState,
-			ErrorLog:  stdLog.New(log.LevelWriter{log.DefaultLogger, log.ErrorLevel}, "", stdLog.Lshortfile),
+			ErrorLog:  stdLog.New(LevelWriter{log.DefaultLogger, log.ErrorLevel}, "", stdLog.Lshortfile),
 		}
 
 		http2.ConfigureServer(server, &http2.Server{})
@@ -492,7 +492,7 @@ func main() {
 
 		server := &http.Server{
 			Handler:  handler,
-			ErrorLog: stdLog.New(log.LevelWriter{log.DefaultLogger, log.ErrorLevel}, "", stdLog.Lshortfile),
+			ErrorLog: stdLog.New(LevelWriter{log.DefaultLogger, log.ErrorLevel}, "", stdLog.Lshortfile),
 		}
 
 		go server.Serve(TCPListener{
