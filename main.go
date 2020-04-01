@@ -669,7 +669,7 @@ func main() {
 
 	var cronOptions = []cron.Option{
 		cron.WithSeconds(),
-		cron.WithLogger(cron.PrintfLogger(log.DefaultLogger)),
+		cron.WithLogger(cron.PrintfLogger(&log.DefaultLogger)),
 	}
 	if !config.Log.Localtime {
 		cronOptions = append(cronOptions, cron.WithLocation(time.UTC))
