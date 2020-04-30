@@ -38,6 +38,7 @@ function build() {
 
 	cat <<EOF |
 CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 ./make.bash build dist
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm GOARM=7 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 ./make.bash build dist

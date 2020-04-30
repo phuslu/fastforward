@@ -26,10 +26,10 @@ require (
 	github.com/tidwall/rhh v1.1.0 // indirect
 	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211
 	github.com/valyala/fastjson v1.5.1
-	golang.org/x/crypto v0.0.0-20200427165652-729f1e841bcc
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 	golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200427175716-29b57079015a
+	golang.org/x/sys v0.0.0-20200428200454-593003d681fa
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 )
