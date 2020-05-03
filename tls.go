@@ -174,7 +174,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		disableHTTP2 = true
 	}
 
-	hasAES := cpu.X86.HasAES
+	hasAES := (cpu.X86.HasAES && cpu.X86.HasPCLMULQDQ) || (cpu.ARM64.HasAES && cpu.ARM64.HasPMULL)
 	hasTLS13, ecsdaCipher := LookupEcdsaCiphers(hello)
 	hasChaCha20 := ecsdaCipher == tls.TLS_CHACHA20_POLY1305_SHA256
 
