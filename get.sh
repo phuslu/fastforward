@@ -48,7 +48,7 @@ max_idle_conns = 100
 dial_timeout = 30
 dns_ttl = 1800
 prefer_ipv6 = false
-dns_server = 'https://1.1.1.1/dns-query'
+# dns_server = 'https://1.1.1.1/dns-query'
 
 [upstream]
 torsocks = {scheme='socks5h', host='127.0.0.1', port=9050}
