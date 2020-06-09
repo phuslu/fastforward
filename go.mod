@@ -20,7 +20,7 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/oschwald/maxminddb-golang v1.6.0
 	github.com/phuslu/geoip v1.0.20200411
-	github.com/phuslu/log v1.0.14
+	github.com/phuslu/log v1.0.16-0.20200608154348-99f8ddd2ba9a
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tidwall/lotsa v1.0.1 // indirect
 	github.com/tidwall/rhh v1.1.0 // indirect

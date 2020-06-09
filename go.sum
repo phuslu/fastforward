@@ -131,6 +131,8 @@ github.com/phuslu/geoip v1.0.20200411 h1:AfadsXTn7dr/oRLusL7GMK7j+QxvfNYkqRRgHVH
 github.com/phuslu/geoip v1.0.20200411/go.mod h1:2z3izHYc+bwW7j5pyvtXG8N+I9Q87XnZfULO6lN9NhA=
 github.com/phuslu/log v1.0.14 h1:B1IkM6+FaYBvs56iAj+gkHEeuZ5pybp3Zx64sXrNoKc=
 github.com/phuslu/log v1.0.14/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
+github.com/phuslu/log v1.0.16-0.20200608154348-99f8ddd2ba9a h1:O+Y4QKl+7xNLX3OmNk+AS7zBL8pebvJzbeYrIv7nHhQ=
+github.com/phuslu/log v1.0.16-0.20200608154348-99f8ddd2ba9a/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
