@@ -13,7 +13,6 @@ var prelude = {
 	"mzstatic.com":0,
 	"ykimg.com":0,
 	// proxy doamins
-	"onion":1,
 	"amazon.com":1,
 	"amazonaws.com":1,
 	"ampproject.org":1,
@@ -35,10 +34,13 @@ var prelude = {
 	"googleusercontent.com":1,
 	"googlevideo.com":1,
 	"gstatic.com":1,
+	"linkedin.com":1,
 	"twimg.com":1,
 	"twitter.com":1,
 	"youtube.com":1,
-	"ytimg.com":1
+	"ytimg.com":1,
+	// dark web
+	"onion":1
 }
 
 var reserved = [0xa000000,0xb000000,0x7f000000,0x80000000,0xa9fe0000,0xa9ff0000,0xac100000,0xac200000,0xc0a80000,0xc0a90000,0xf0000000,0xfa000000]
