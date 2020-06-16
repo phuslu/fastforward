@@ -30,7 +30,7 @@ type HTTPForwardHandler struct {
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
 	Transport      *http.Transport
-	Upstreams      map[string]DialFunc
+	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
 
 	ServerNames        StringSet
@@ -89,9 +89,9 @@ func (h *HTTPForwardHandler) Load() error {
 
 	if len(h.Upstreams) != 0 {
 		h.UpstreamTransports = make(map[string]*http.Transport)
-		for name, dialContext := range h.Upstreams {
+		for name, dailer := range h.Upstreams {
 			h.UpstreamTransports[name] = &http.Transport{
-				DialContext:         dialContext,
+				DialContext:         dailer.DialContext,
 				TLSClientConfig:     h.Transport.TLSClientConfig,
 				TLSHandshakeTimeout: h.Transport.TLSHandshakeTimeout,
 				IdleConnTimeout:     h.Transport.IdleConnTimeout,
@@ -272,7 +272,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				h.Next.ServeHTTP(rw, req)
 				return
 			}
-			dial = d
+			dial = d.DialContext
 			tr, _ = h.UpstreamTransports[s]
 			if tr == nil {
 				log.Error().Str("upstream", s).Msg("no upstream transport exists")

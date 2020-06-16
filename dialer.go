@@ -27,8 +27,8 @@ type LocalDialer struct {
 	TLSClientSessionCache tls.ClientSessionCache
 }
 
-func (d *LocalDialer) Dial(network, address string) (net.Conn, error) {
-	return d.dialContext(context.Background(), network, address, nil)
+func (d *LocalDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return d.dialContext(ctx, network, address, nil)
 }
 
 func (d *LocalDialer) DialTLS(network, address string, tlsConfig *tls.Config) (net.Conn, error) {
@@ -36,10 +36,6 @@ func (d *LocalDialer) DialTLS(network, address string, tlsConfig *tls.Config) (n
 		tlsConfig.ClientSessionCache = d.TLSClientSessionCache
 	}
 	return d.dialContext(context.Background(), network, address, tlsConfig)
-}
-
-func (d *LocalDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	return d.dialContext(ctx, network, address, nil)
 }
 
 func (d *LocalDialer) dialContext(ctx context.Context, network, address string, tlsConfig *tls.Config) (net.Conn, error) {

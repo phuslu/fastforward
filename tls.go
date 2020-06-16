@@ -14,8 +14,6 @@ import (
 	"golang.org/x/sys/cpu"
 )
 
-type DialFunc func(ctx context.Context, network, addr string) (net.Conn, error)
-
 type TLSVersion uint16
 
 var (

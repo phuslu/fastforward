@@ -204,11 +204,11 @@ func main() {
 		}
 	}
 
-	upstreams := make(map[string]DialFunc)
+	upstreams := make(map[string]Dialer)
 	for name, upstream := range config.Upstream {
 		switch upstream.Scheme {
 		case "http", "http1":
-			upstreams[name] = (&HTTPDialer{
+			upstreams[name] = &HTTPDialer{
 				Username:  upstream.Username,
 				Password:  upstream.Password,
 				Host:      upstream.Host,
@@ -216,17 +216,17 @@ func main() {
 				UserAgent: upstream.UserAgent,
 				Resolver:  resolver,
 				Dialer:    dialer,
-			}).DialContext
+			}
 		case "https", "http2":
-			upstreams[name] = (&HTTP2Dialer{
+			upstreams[name] = &HTTP2Dialer{
 				Username:  upstream.Username,
 				Password:  upstream.Password,
 				Host:      upstream.Host,
 				Port:      strconv.Itoa(upstream.Port),
 				UserAgent: upstream.UserAgent,
-			}).DialContext
+			}
 		case "socks", "socks5", "socks5h":
-			upstreams[name] = (&Socks5Dialer{
+			upstreams[name] = &Socks5Dialer{
 				Username: upstream.Username,
 				Password: upstream.Password,
 				Host:     upstream.Host,
@@ -234,9 +234,9 @@ func main() {
 				Socsk5H:  upstream.Scheme == "socks5h",
 				Resolver: resolver,
 				Dialer:   dialer,
-			}).DialContext
+			}
 		case "socks4", "socks4a":
-			upstreams[name] = (&Socks4Dialer{
+			upstreams[name] = &Socks4Dialer{
 				Username: upstream.Username,
 				Password: upstream.Password,
 				Host:     upstream.Host,
@@ -244,7 +244,7 @@ func main() {
 				Socks4A:  upstream.Scheme == "socks4a",
 				Resolver: resolver,
 				Dialer:   dialer,
-			}).DialContext
+			}
 		default:
 			log.Fatal().Str("upstream_scheme", upstream.Scheme).Msgf("unsupported upstream=%+v", upstream)
 		}

@@ -19,7 +19,7 @@ type RelayHandler struct {
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
-	Upstreams      map[string]DialFunc
+	Upstreams      map[string]Dialer
 }
 
 func (h *RelayHandler) Load() error {
@@ -34,14 +34,14 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
 
-	var dail DialFunc = h.LocalDialer.DialContext
+	dail := h.LocalDialer.DialContext
 	if h.Config.ForwardUpstream != "" {
-		d, ok := h.Upstreams[h.Config.ForwardUpstream]
+		u, ok := h.Upstreams[h.Config.ForwardUpstream]
 		if !ok {
 			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Msg("upstream not exists")
 			return
 		}
-		dail = d
+		dail = u.DialContext
 	}
 
 	rconn, err := dail(context.Background(), "tcp", h.Config.RelayTo)

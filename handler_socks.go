@@ -37,7 +37,7 @@ type SocksHandler struct {
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
-	Upstreams      map[string]DialFunc
+	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
 
 	AllowDomains     StringSet
@@ -253,7 +253,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("socks_host", req.Host).Msg("forward socks request")
 
 	var upstream = ""
-	var dail DialFunc = h.LocalDialer.DialContext
+	dail := h.LocalDialer.DialContext
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {
@@ -266,12 +266,12 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		}
 
 		if upstream = strings.TrimSpace(sb.String()); upstream != "" {
-			d, ok := h.Upstreams[upstream]
+			u, ok := h.Upstreams[upstream]
 			if !ok {
 				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Str("upstream", upstream).Msg("upstream not exists")
 				return
 			}
-			dail = d
+			dail = u.DialContext
 		}
 	}
 
