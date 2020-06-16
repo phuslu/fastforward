@@ -37,7 +37,7 @@ type QuicHandler struct {
 	Config         QuicConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
-	Dialer         *Dialer
+	LocalDialer    *LocalDialer
 	Upstreams      map[string]*http.Transport
 	Functions      template.FuncMap
 
@@ -100,7 +100,7 @@ func (h *QuicHandler) Load() error {
 			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option outbound_ip is confilict with option upstream")
 		}
 
-		var dialer = *h.Dialer
+		var dialer = *h.LocalDialer
 		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.ForwardOutboundIp)}
 		dialer.Control = (DailerController{BindAddressNoPort: true}).Control
 	}
@@ -215,7 +215,7 @@ func (h *QuicHandler) ServeSession(session quic.Session) {
 	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Str("username", req.Username).Str("dtls_host", req.Host).Msg("forward psk request")
 
 	var upstream = ""
-	var dail DialFunc = h.Dialer.DialContext
+	var dail DialFunc = h.LocalDialer.DialContext
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {

@@ -37,7 +37,7 @@ type SocksHandler struct {
 	Config         SocksConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
-	Dialer         *Dialer
+	LocalDialer    *LocalDialer
 	Upstreams      map[string]*http.Transport
 	Functions      template.FuncMap
 
@@ -100,7 +100,7 @@ func (h *SocksHandler) Load() error {
 			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option outbound_ip is confilict with option upstream")
 		}
 
-		var dialer = *h.Dialer
+		var dialer = *h.LocalDialer
 		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.ForwardOutboundIp)}
 		dialer.Control = (DailerController{BindAddressNoPort: true}).Control
 	}
@@ -254,7 +254,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("socks_host", req.Host).Msg("forward socks request")
 
 	var upstream = ""
-	var dail DialFunc = h.Dialer.DialContext
+	var dail DialFunc = h.LocalDialer.DialContext
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {

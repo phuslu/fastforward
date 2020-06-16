@@ -29,7 +29,8 @@ type HTTPDialer struct {
 	Host      string
 	Port      string
 	UserAgent string
-	Dialer    *Dialer
+	Resolver  *Resolver
+	Dialer    Dialer
 
 	once sync.Once
 }
@@ -39,7 +40,7 @@ func (d *HTTPDialer) init() {
 		d.UserAgent = DefaultHTTPDialerUserAgent
 	}
 	if d.Dialer == nil {
-		d.Dialer = &Dialer{}
+		d.Dialer = &LocalDialer{}
 	}
 }
 
@@ -76,8 +77,8 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		return nil, errors.New("proxy: port number out of range: " + portStr)
 	}
 
-	if d.Dialer.Resolver != nil {
-		hosts, err := d.Dialer.Resolver.LookupHost(ctx, host)
+	if d.Resolver != nil {
+		hosts, err := d.Resolver.LookupHost(ctx, host)
 		if err == nil && len(hosts) > 0 {
 			host = hosts[0]
 		}

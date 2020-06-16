@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-type Dialer struct {
+type Dialer interface {
+	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
+}
+
+type LocalDialer struct {
 	Resolver  *Resolver
 	Control   func(network, address string, conn syscall.RawConn) error
 	LocalAddr *net.TCPAddr
@@ -23,22 +27,22 @@ type Dialer struct {
 	TLSClientSessionCache tls.ClientSessionCache
 }
 
-func (d *Dialer) Dial(network, address string) (net.Conn, error) {
+func (d *LocalDialer) Dial(network, address string) (net.Conn, error) {
 	return d.dialContext(context.Background(), network, address, nil)
 }
 
-func (d *Dialer) DialTLS(network, address string, tlsConfig *tls.Config) (net.Conn, error) {
+func (d *LocalDialer) DialTLS(network, address string, tlsConfig *tls.Config) (net.Conn, error) {
 	if tlsConfig.ClientSessionCache == nil {
 		tlsConfig.ClientSessionCache = d.TLSClientSessionCache
 	}
 	return d.dialContext(context.Background(), network, address, tlsConfig)
 }
 
-func (d *Dialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+func (d *LocalDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	return d.dialContext(ctx, network, address, nil)
 }
 
-func (d *Dialer) dialContext(ctx context.Context, network, address string, tlsConfig *tls.Config) (net.Conn, error) {
+func (d *LocalDialer) dialContext(ctx context.Context, network, address string, tlsConfig *tls.Config) (net.Conn, error) {
 	switch network {
 	case "tcp", "tcp6", "tcp4":
 		break
@@ -103,7 +107,7 @@ func (d *Dialer) dialContext(ctx context.Context, network, address string, tlsCo
 	}
 }
 
-func (d *Dialer) dialSerial(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (conn net.Conn, err error) {
+func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (conn net.Conn, err error) {
 	for i, ip := range ips {
 		if d.DenyIntranet && IsReservedIP(ip) {
 			return nil, net.InvalidAddrError("intranet address is rejected: " + ip.String())
@@ -138,7 +142,7 @@ func (d *Dialer) dialSerial(ctx context.Context, network, hostname string, ips [
 	return nil, err
 }
 
-func (d *Dialer) dialParallel(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (net.Conn, error) {
+func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (net.Conn, error) {
 	type dialResult struct {
 		Conn net.Conn
 		Err  error

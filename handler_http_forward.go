@@ -28,7 +28,7 @@ type HTTPForwardHandler struct {
 	Config         HTTPConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
-	Dialer         *Dialer
+	LocalDialer    *LocalDialer
 	Transport      *http.Transport
 	Upstreams      map[string]*http.Transport
 	Functions      template.FuncMap
@@ -94,7 +94,7 @@ func (h *HTTPForwardHandler) Load() error {
 			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option outbound_ip is confilict with option upstream")
 		}
 
-		var dialer = *h.Dialer
+		var dialer = *h.LocalDialer
 		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.ForwardOutboundIp)}
 		dialer.Control = (DailerController{BindAddressNoPort: true}).Control
 

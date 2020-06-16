@@ -106,7 +106,8 @@ type Socks5Dialer struct {
 	Host     string
 	Port     string
 	Socsk5H  bool
-	Dialer   *Dialer
+	Resolver *Resolver
+	Dialer   Dialer
 }
 
 func (d *Socks5Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -140,8 +141,8 @@ func (d *Socks5Dialer) DialContext(ctx context.Context, network, addr string) (n
 		return nil, errors.New("proxy: port number out of range: " + portStr)
 	}
 
-	if !d.Socsk5H && d.Dialer.Resolver != nil {
-		hosts, err := d.Dialer.Resolver.LookupHost(ctx, host)
+	if !d.Socsk5H && d.Resolver != nil {
+		hosts, err := d.Resolver.LookupHost(ctx, host)
 		if err == nil && len(hosts) > 0 {
 			host = hosts[0]
 		}

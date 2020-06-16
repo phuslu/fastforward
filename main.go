@@ -135,7 +135,7 @@ func main() {
 		}
 	}
 
-	dialer := &Dialer{
+	dialer := &LocalDialer{
 		Resolver:              resolver,
 		ParallelLevel:         2,
 		DenyIntranet:          config.Global.DenyIntranet,
@@ -240,6 +240,7 @@ func main() {
 				Host:      upstream.Host,
 				Port:      strconv.Itoa(upstream.Port),
 				UserAgent: upstream.UserAgent,
+				Resolver:  resolver,
 				Dialer:    dialer,
 			}).DialContext
 		case "https", "http2":
@@ -264,6 +265,7 @@ func main() {
 				Host:     upstream.Host,
 				Port:     strconv.Itoa(upstream.Port),
 				Socsk5H:  upstream.Scheme == "socks5h",
+				Resolver: resolver,
 				Dialer:   dialer,
 			}).DialContext
 		case "socks4", "socks4a":
@@ -273,6 +275,7 @@ func main() {
 				Host:     upstream.Host,
 				Port:     strconv.Itoa(upstream.Port),
 				Socks4A:  upstream.Scheme == "socks4a",
+				Resolver: resolver,
 				Dialer:   dialer,
 			}).DialContext
 		default:
@@ -321,7 +324,7 @@ func main() {
 				ForwardLogger:  forwardLogger,
 				ServerNames:    NewStringSet(server.ServerName),
 				RegionResolver: regionResolver,
-				Dialer:         dialer,
+				LocalDialer:    dialer,
 				Transport:      transport,
 				Upstreams:      upstreams,
 				Functions:      functions,
@@ -448,7 +451,7 @@ func main() {
 				ForwardLogger:  forwardLogger,
 				ServerNames:    NewStringSet(httpConfig.ServerName),
 				RegionResolver: regionResolver,
-				Dialer:         dialer,
+				LocalDialer:    dialer,
 				Transport:      transport,
 				Upstreams:      upstreams,
 				Functions:      functions,
@@ -534,7 +537,7 @@ func main() {
 				Config:         quicConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
-				Dialer:         dialer,
+				LocalDialer:    dialer,
 				Upstreams:      upstreams,
 				Functions:      functions,
 			}
@@ -572,7 +575,7 @@ func main() {
 				Config:         socksConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
-				Dialer:         dialer,
+				LocalDialer:    dialer,
 				Upstreams:      upstreams,
 				Functions:      functions,
 			}
@@ -609,7 +612,7 @@ func main() {
 				Config:         relayConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
-				Dialer:         dialer,
+				LocalDialer:    dialer,
 				Upstreams:      upstreams,
 			}
 

@@ -19,7 +19,7 @@ type RelayHandler struct {
 	Config         RelayConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
-	Dialer         *Dialer
+	LocalDialer    *LocalDialer
 	Upstreams      map[string]*http.Transport
 }
 
@@ -35,7 +35,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
 
-	var dail DialFunc = h.Dialer.DialContext
+	var dail DialFunc = h.LocalDialer.DialContext
 	if h.Config.ForwardUpstream != "" {
 		tr, ok := h.Upstreams[h.Config.ForwardUpstream]
 		if !ok {
