@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -38,7 +37,7 @@ type SocksHandler struct {
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
-	Upstreams      map[string]*http.Transport
+	Upstreams      map[string]DialFunc
 	Functions      template.FuncMap
 
 	AllowDomains     StringSet
@@ -267,12 +266,12 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		}
 
 		if upstream = strings.TrimSpace(sb.String()); upstream != "" {
-			tr, ok := h.Upstreams[upstream]
+			d, ok := h.Upstreams[upstream]
 			if !ok {
 				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Str("upstream", upstream).Msg("upstream not exists")
 				return
 			}
-			dail = tr.DialContext
+			dail = d
 		}
 	}
 

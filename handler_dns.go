@@ -13,9 +13,9 @@ type DNSRequest struct {
 }
 
 type DNSHandler struct {
-	Config    DNSConfig
-	DNSLogger log.Logger
-	Dialer    *LocalDialer
+	Config      DNSConfig
+	DNSLogger   log.Logger
+	LocalDialer *LocalDialer
 }
 
 func (h *DNSHandler) Load() error {

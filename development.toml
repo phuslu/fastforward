@@ -10,10 +10,6 @@ dial_timeout = 30
 dns_ttl = 1800
 prefer_ipv6 = false
 
-[upstream]
-quic_kr = {scheme='quic', host='127.0.0.1', port=9443}
-
 [[socks]]
 listen = [':1082']
 forward_policy = 'bypass_auth'
-forward_upstream = 'quic_kr'

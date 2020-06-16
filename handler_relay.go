@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"net/http"
 
 	"github.com/phuslu/log"
 )
@@ -20,7 +19,7 @@ type RelayHandler struct {
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
-	Upstreams      map[string]*http.Transport
+	Upstreams      map[string]DialFunc
 }
 
 func (h *RelayHandler) Load() error {
@@ -37,12 +36,12 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 
 	var dail DialFunc = h.LocalDialer.DialContext
 	if h.Config.ForwardUpstream != "" {
-		tr, ok := h.Upstreams[h.Config.ForwardUpstream]
+		d, ok := h.Upstreams[h.Config.ForwardUpstream]
 		if !ok {
 			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Msg("upstream not exists")
 			return
 		}
-		dail = tr.DialContext
+		dail = d
 	}
 
 	rconn, err := dail(context.Background(), "tcp", h.Config.RelayTo)

@@ -204,6 +204,52 @@ func main() {
 		}
 	}
 
+	upstreams := make(map[string]DialFunc)
+	for name, upstream := range config.Upstream {
+		switch upstream.Scheme {
+		case "http", "http1":
+			upstreams[name] = (&HTTPDialer{
+				Username:  upstream.Username,
+				Password:  upstream.Password,
+				Host:      upstream.Host,
+				Port:      strconv.Itoa(upstream.Port),
+				UserAgent: upstream.UserAgent,
+				Resolver:  resolver,
+				Dialer:    dialer,
+			}).DialContext
+		case "https", "http2":
+			upstreams[name] = (&HTTP2Dialer{
+				Username:  upstream.Username,
+				Password:  upstream.Password,
+				Host:      upstream.Host,
+				Port:      strconv.Itoa(upstream.Port),
+				UserAgent: upstream.UserAgent,
+			}).DialContext
+		case "socks", "socks5", "socks5h":
+			upstreams[name] = (&Socks5Dialer{
+				Username: upstream.Username,
+				Password: upstream.Password,
+				Host:     upstream.Host,
+				Port:     strconv.Itoa(upstream.Port),
+				Socsk5H:  upstream.Scheme == "socks5h",
+				Resolver: resolver,
+				Dialer:   dialer,
+			}).DialContext
+		case "socks4", "socks4a":
+			upstreams[name] = (&Socks4Dialer{
+				Username: upstream.Username,
+				Password: upstream.Password,
+				Host:     upstream.Host,
+				Port:     strconv.Itoa(upstream.Port),
+				Socks4A:  upstream.Scheme == "socks4a",
+				Resolver: resolver,
+				Dialer:   dialer,
+			}).DialContext
+		default:
+			log.Fatal().Str("upstream_scheme", upstream.Scheme).Msgf("unsupported upstream=%+v", upstream)
+		}
+	}
+
 	// see http.DefaultTransport
 	transport := &http.Transport{
 		DialContext: dialer.DialContext,
@@ -226,61 +272,6 @@ func main() {
 
 	if config.Global.IdleConnTimeout > 0 {
 		transport.IdleConnTimeout = time.Duration(config.Global.IdleConnTimeout) * time.Second
-	}
-
-	upstreams := make(map[string]*http.Transport)
-	for name, upstream := range config.Upstream {
-		var dialContext func(context.Context, string, string) (net.Conn, error)
-		switch upstream.Scheme {
-		case "http", "http1":
-			dialContext = (&HTTPDialer{
-				Username:  upstream.Username,
-				Password:  upstream.Password,
-				Host:      upstream.Host,
-				Port:      strconv.Itoa(upstream.Port),
-				UserAgent: upstream.UserAgent,
-				Resolver:  resolver,
-				Dialer:    dialer,
-			}).DialContext
-		case "https", "http2":
-			dialContext = (&HTTP2Dialer{
-				Username:  upstream.Username,
-				Password:  upstream.Password,
-				Host:      upstream.Host,
-				Port:      strconv.Itoa(upstream.Port),
-				UserAgent: upstream.UserAgent,
-			}).DialContext
-		case "socks", "socks5", "socks5h":
-			dialContext = (&Socks5Dialer{
-				Username: upstream.Username,
-				Password: upstream.Password,
-				Host:     upstream.Host,
-				Port:     strconv.Itoa(upstream.Port),
-				Socsk5H:  upstream.Scheme == "socks5h",
-				Resolver: resolver,
-				Dialer:   dialer,
-			}).DialContext
-		case "socks4", "socks4a":
-			dialContext = (&Socks4Dialer{
-				Username: upstream.Username,
-				Password: upstream.Password,
-				Host:     upstream.Host,
-				Port:     strconv.Itoa(upstream.Port),
-				Socks4A:  upstream.Scheme == "socks4a",
-				Resolver: resolver,
-				Dialer:   dialer,
-			}).DialContext
-		default:
-			log.Fatal().Str("upstream_scheme", upstream.Scheme).Msgf("unsupported upstream=%+v", upstream)
-		}
-		upstreams[name] = &http.Transport{
-			DialContext:         dialContext,
-			TLSClientConfig:     transport.TLSClientConfig,
-			TLSHandshakeTimeout: transport.TLSHandshakeTimeout,
-			IdleConnTimeout:     transport.IdleConnTimeout,
-			DisableCompression:  transport.DisableCompression,
-			MaxIdleConns:        32,
-		}
 	}
 
 	functions := (&Functions{

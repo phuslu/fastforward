@@ -30,16 +30,17 @@ type HTTPForwardHandler struct {
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
 	Transport      *http.Transport
-	Upstreams      map[string]*http.Transport
+	Upstreams      map[string]DialFunc
 	Functions      template.FuncMap
 
-	ServerNames      StringSet
-	AllowDomains     StringSet
-	DenyDomains      StringSet
-	PolicyTemplate   *template.Template
-	AuthTemplate     *template.Template
-	UpstreamTemplate *template.Template
-	AuthCache        *shardmap.Map
+	ServerNames        StringSet
+	AllowDomains       StringSet
+	DenyDomains        StringSet
+	PolicyTemplate     *template.Template
+	AuthTemplate       *template.Template
+	UpstreamTemplate   *template.Template
+	UpstreamTransports map[string]*http.Transport
+	AuthCache          *shardmap.Map
 }
 
 func (h *HTTPForwardHandler) Load() error {
@@ -83,6 +84,20 @@ func (h *HTTPForwardHandler) Load() error {
 	if s := h.Config.ForwardUpstream; s != "" {
 		if h.UpstreamTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
+		}
+	}
+
+	if len(h.Upstreams) != 0 {
+		h.UpstreamTransports = make(map[string]*http.Transport)
+		for name, dialContext := range h.Upstreams {
+			h.UpstreamTransports[name] = &http.Transport{
+				DialContext:         dialContext,
+				TLSClientConfig:     h.Transport.TLSClientConfig,
+				TLSHandshakeTimeout: h.Transport.TLSHandshakeTimeout,
+				IdleConnTimeout:     h.Transport.IdleConnTimeout,
+				DisableCompression:  h.Transport.DisableCompression,
+				MaxIdleConns:        32,
+			}
 		}
 	}
 
@@ -235,7 +250,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	transport := h.Transport
+	dial := h.LocalDialer.DialContext
+	tr := h.Transport
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {
@@ -250,13 +266,19 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 
 		if s := strings.TrimSpace(sb.String()); s != "" {
-			tr, ok := h.Upstreams[s]
+			d, ok := h.Upstreams[s]
 			if !ok {
 				log.Error().Str("upstream", s).Msg("no upstream exists")
 				h.Next.ServeHTTP(rw, req)
 				return
 			}
-			transport = tr
+			dial = d
+			tr, _ = h.UpstreamTransports[s]
+			if tr == nil {
+				log.Error().Str("upstream", s).Msg("no upstream transport exists")
+				h.Next.ServeHTTP(rw, req)
+				return
+			}
 		}
 	}
 
@@ -269,7 +291,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			// FIXME: handle self-connect clients
 		}
 
-		conn, err := transport.DialContext(req.Context(), "tcp", req.URL.Host)
+		conn, err := dial(req.Context(), "tcp", req.URL.Host)
 		if err != nil {
 			log.Error().Err(err).Str("host", req.URL.Host).Msg("dial host error")
 			http.Error(rw, err.Error(), http.StatusBadGateway)
@@ -346,7 +368,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			req.Proto = "HTTP/1.1"
 		}
 
-		resp, err := transport.RoundTrip(req)
+		resp, err := tr.RoundTrip(req)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusBadGateway)
 			return
