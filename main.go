@@ -21,7 +21,6 @@ import (
 	"syscall"
 	"time"
 
-	quic "github.com/lucas-clemente/quic-go"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/robfig/cron/v3"
@@ -250,13 +249,6 @@ func main() {
 				Host:      upstream.Host,
 				Port:      strconv.Itoa(upstream.Port),
 				UserAgent: upstream.UserAgent,
-			}).DialContext
-		case "quic":
-			dialContext = (&QuicDialer{
-				Username: upstream.Username,
-				Password: upstream.Password,
-				Host:     upstream.Host,
-				Port:     strconv.Itoa(upstream.Port),
 			}).DialContext
 		case "socks", "socks5", "socks5h":
 			dialContext = (&Socks5Dialer{
@@ -506,58 +498,6 @@ func main() {
 		})
 
 		servers = append(servers, server)
-	}
-
-	// quic handler
-	for _, quicConfig := range config.Quic {
-		for _, addr := range quicConfig.Listen {
-			tlsConfig, err := GenerateTLSConfig()
-			if err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("generate tls config error")
-			}
-
-			laddr, err := net.ResolveUDPAddr("udp", addr)
-			if err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
-			}
-
-			conn, err := net.ListenUDP("udp", laddr)
-			if err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
-			}
-
-			ln, err := quic.Listen(conn, tlsConfig, nil)
-			if err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("quic.Listen error")
-			}
-
-			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and serve quic")
-
-			h := &QuicHandler{
-				Config:         quicConfig,
-				ForwardLogger:  forwardLogger,
-				RegionResolver: regionResolver,
-				LocalDialer:    dialer,
-				Upstreams:      upstreams,
-				Functions:      functions,
-			}
-
-			if err = h.Load(); err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("quic hanlder load error")
-			}
-
-			go func(ln quic.Listener, h *QuicHandler) {
-				for {
-					session, err := ln.Accept(context.Background())
-					if err != nil {
-						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept quic connection error")
-						time.Sleep(10 * time.Millisecond)
-					}
-
-					go h.ServeSession(session)
-				}
-			}(ln, h)
-		}
 	}
 
 	// socks handler

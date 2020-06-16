@@ -47,19 +47,6 @@ type SocksConfig struct {
 	ForwardLog          bool
 }
 
-type QuicConfig struct {
-	Listen []string
-
-	ForwardPolicy       string
-	ForwardAuth         string
-	ForwardUpstream     string
-	ForwardAllowDomains []string
-	ForwardDenyDomains  []string
-	ForwardSpeedLimit   int64
-	ForwardOutboundIp   string
-	ForwardLog          bool
-}
-
 type RelayConfig struct {
 	Listen []string
 
@@ -100,7 +87,6 @@ type Config struct {
 	}
 	Https    []HTTPConfig
 	Http     []HTTPConfig
-	Quic     []QuicConfig
 	Socks    []SocksConfig
 	Relay    []RelayConfig
 	Dns      []DNSConfig
