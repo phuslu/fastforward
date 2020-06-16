@@ -250,8 +250,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	dial := h.LocalDialer.DialContext
-	tr := h.Transport
+	var upstream = ""
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {
@@ -264,25 +263,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			h.Next.ServeHTTP(rw, req)
 			return
 		}
-
-		if s := strings.TrimSpace(sb.String()); s != "" {
-			d, ok := h.Upstreams[s]
-			if !ok {
-				log.Error().Str("upstream", s).Msg("no upstream exists")
-				h.Next.ServeHTTP(rw, req)
-				return
-			}
-			dial = d.DialContext
-			tr, _ = h.UpstreamTransports[s]
-			if tr == nil {
-				log.Error().Str("upstream", s).Msg("no upstream transport exists")
-				h.Next.ServeHTTP(rw, req)
-				return
-			}
-		}
+		upstream = strings.TrimSpace(sb.String())
 	}
 
-	log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Msg("forward request")
+	log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("upstream", upstream).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Msg("forward request")
 
 	var transmitBytes int64
 	switch req.Method {
@@ -291,7 +275,20 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			// FIXME: handle self-connect clients
 		}
 
-		conn, err := dial(req.Context(), "tcp", req.URL.Host)
+		var dialer Dialer
+		if upstream != "" {
+			if d, ok := h.Upstreams[upstream]; !ok {
+				log.Error().Str("upstream", upstream).Msg("no upstream exists")
+				h.Next.ServeHTTP(rw, req)
+				return
+			} else {
+				dialer = d
+			}
+		} else {
+			dialer = h.LocalDialer
+		}
+
+		conn, err := dialer.DialContext(req.Context(), "tcp", req.URL.Host)
 		if err != nil {
 			log.Error().Err(err).Str("host", req.URL.Host).Msg("dial host error")
 			http.Error(rw, err.Error(), http.StatusBadGateway)
@@ -366,6 +363,19 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			req.ProtoMajor = 1
 			req.ProtoMinor = 1
 			req.Proto = "HTTP/1.1"
+		}
+
+		var tr *http.Transport
+		if upstream != "" {
+			if t, ok := h.UpstreamTransports[upstream]; !ok {
+				log.Error().Str("upstream", upstream).Msg("no upstream transport exists")
+				h.Next.ServeHTTP(rw, req)
+				return
+			} else {
+				tr = t
+			}
+		} else {
+			tr = h.Transport
 		}
 
 		resp, err := tr.RoundTrip(req)
