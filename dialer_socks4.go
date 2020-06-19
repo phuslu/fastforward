@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+var _ Dialer = (*Socks4Dialer)(nil)
+
 type Socks4Dialer struct {
 	Username string
 	Password string

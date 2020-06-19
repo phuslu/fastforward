@@ -15,6 +15,8 @@ import (
 	"golang.org/x/net/http2"
 )
 
+var _ Dialer = (*HTTP2Dialer)(nil)
+
 type HTTP2Dialer struct {
 	Username  string
 	Password  string

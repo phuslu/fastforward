@@ -13,6 +13,8 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
 }
 
+var _ Dialer = (*LocalDialer)(nil)
+
 type LocalDialer struct {
 	Resolver  *Resolver
 	Control   func(network, address string, conn syscall.RawConn) error

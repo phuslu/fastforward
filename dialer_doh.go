@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var _ Dialer = (*DoHDialer)(nil)
+
 type DoHDialer struct {
 	EndPoint  string
 	UserAgent string

@@ -23,6 +23,8 @@ var (
 	CRLFCRLF = []byte{0x0d, 0x0a, 0x0d, 0x0a}
 )
 
+var _ Dialer = (*HTTPDialer)(nil)
+
 type HTTPDialer struct {
 	Username  string
 	Password  string

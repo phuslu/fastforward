@@ -100,6 +100,8 @@ func (s Socks5Status) String() string {
 	return "socks5 status: errno 0x" + strconv.FormatInt(int64(s), 16)
 }
 
+var _ Dialer = (*Socks5Dialer)(nil)
+
 type Socks5Dialer struct {
 	Username string
 	Password string
