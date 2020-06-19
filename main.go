@@ -95,7 +95,7 @@ func main() {
 		}
 	}
 
-	// global dailer
+	// global resolver
 	resolver := &Resolver{
 		Resolver: &net.Resolver{
 			PreferGo: false,
@@ -134,6 +134,7 @@ func main() {
 		}
 	}
 
+	// global dialer
 	dialer := &LocalDialer{
 		Resolver:              resolver,
 		ParallelLevel:         2,
