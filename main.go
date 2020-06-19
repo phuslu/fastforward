@@ -343,10 +343,11 @@ func main() {
 		for _, listen := range server.Listen {
 			for _, name := range server.ServerName {
 				tlsConfigurator.AddCertEntry(TLSConfiguratorEntry{
-					ServerName:   name,
-					KeyFile:      server.Keyfile,
-					CertFile:     server.Certfile,
-					DisableHTTP2: server.DisableHttp2,
+					ServerName:     name,
+					KeyFile:        server.Keyfile,
+					CertFile:       server.Certfile,
+					DisableHTTP2:   server.DisableHttp2,
+					PreferChacha20: server.PreferChacha20,
 				})
 				if tlsConfigurator.DefaultServername == "" {
 					tlsConfigurator.DefaultServername = name

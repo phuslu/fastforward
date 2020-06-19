@@ -38,10 +38,11 @@ func (v TLSVersion) String() string {
 }
 
 type TLSConfiguratorEntry struct {
-	ServerName   string
-	KeyFile      string
-	CertFile     string
-	DisableHTTP2 bool
+	ServerName     string
+	KeyFile        string
+	CertFile       string
+	DisableHTTP2   bool
+	PreferChacha20 bool
 }
 
 type TLSConfigurator struct {
@@ -167,14 +168,26 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		serverName = m.DefaultServername
 	}
 
-	var disableHTTP2 bool
-	if entry, ok := m.Entries[hello.ServerName]; ok && entry.DisableHTTP2 {
-		disableHTTP2 = true
+	var preferChacha20, disableHTTP2 bool
+	if entry, ok := m.Entries[hello.ServerName]; ok {
+		preferChacha20 = entry.PreferChacha20
+		disableHTTP2 = entry.DisableHTTP2
 	}
 
 	hasAES := (cpu.X86.HasAES && cpu.X86.HasPCLMULQDQ) || (cpu.ARM64.HasAES && cpu.ARM64.HasPMULL)
 	hasTLS13, ecsdaCipher := LookupEcdsaCiphers(hello)
 	hasChaCha20 := ecsdaCipher == tls.TLS_CHACHA20_POLY1305_SHA256
+
+	if preferChacha20 && !hasChaCha20 && hasTLS13 {
+		cs, i, j := hello.CipherSuites, 0, 2
+		if IsTLSGreaseCode(cs[0]) {
+			i, j = 1, 3
+		}
+		if len(cs) > j && cs[j] == tls.TLS_CHACHA20_POLY1305_SHA256 {
+			cs[i], cs[j] = cs[j], cs[i]
+			hasChaCha20 = true
+		}
+	}
 
 	cacheKey := serverName
 	if disableHTTP2 {

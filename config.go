@@ -9,11 +9,12 @@ import (
 )
 
 type HTTPConfig struct {
-	Listen       []string
-	ServerName   []string
-	Keyfile      string
-	Certfile     string
-	DisableHttp2 bool
+	Listen         []string
+	ServerName     []string
+	Keyfile        string
+	Certfile       string
+	DisableHttp2   bool
+	PreferChacha20 bool
 
 	ForwardPolicy       string
 	ForwardAuth         string
