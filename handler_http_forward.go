@@ -41,6 +41,7 @@ type HTTPForwardHandler struct {
 	UpstreamTemplate   *template.Template
 	UpstreamTransports map[string]*http.Transport
 	AuthCache          *shardmap.Map
+	AllowIPCache       *shardmap.Map
 }
 
 func (h *HTTPForwardHandler) Load() error {
@@ -124,6 +125,7 @@ func (h *HTTPForwardHandler) Load() error {
 	}
 
 	h.AuthCache = shardmap.New(0)
+	h.AllowIPCache = shardmap.New(4096)
 
 	return nil
 }
@@ -221,6 +223,20 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			return
 		case "bypass_auth":
 			bypassAuth = true
+		case "allow_ip":
+			bypassAuth = true
+			h.AllowIPCache.Set(ri.RemoteIP, timeNow().Add(6*time.Hour))
+			log.Info().Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("allow_ip ok")
+		}
+	}
+
+	if !bypassAuth {
+		if v, ok := h.AllowIPCache.Get(ri.RemoteIP); ok {
+			if timeNow().After(v.(time.Time)) {
+				bypassAuth = true
+			} else {
+				h.AllowIPCache.Delete(ri.RemoteIP)
+			}
 		}
 	}
 

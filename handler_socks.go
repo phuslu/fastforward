@@ -46,6 +46,7 @@ type SocksHandler struct {
 	AuthTemplate     *template.Template
 	UpstreamTemplate *template.Template
 	AuthCache        *shardmap.Map
+	AllowIPCache     *shardmap.Map
 }
 
 func (h *SocksHandler) Load() error {
@@ -105,6 +106,7 @@ func (h *SocksHandler) Load() error {
 	}
 
 	h.AuthCache = shardmap.New(0)
+	h.AllowIPCache = shardmap.New(4096)
 
 	return nil
 }
@@ -155,6 +157,20 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 			break
 		case "bypass_auth":
 			bypassAuth = true
+		case "allow_ip":
+			bypassAuth = true
+			h.AllowIPCache.Set(req.RemoteIP, timeNow().Add(6*time.Hour))
+			log.Info().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy_output", output).Msg("allow_ip ok")
+		}
+	}
+
+	if !bypassAuth {
+		if v, ok := h.AllowIPCache.Get(req.RemoteIP); ok {
+			if timeNow().After(v.(time.Time)) {
+				bypassAuth = true
+			} else {
+				h.AllowIPCache.Delete(req.RemoteIP)
+			}
 		}
 	}
 
