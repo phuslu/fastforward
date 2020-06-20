@@ -14,14 +14,7 @@ import (
 	"sync"
 )
 
-const (
-	DefaultHTTPDialerUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-)
-
-var (
-	CRLF     = []byte{0x0d, 0x0a}
-	CRLFCRLF = []byte{0x0d, 0x0a, 0x0d, 0x0a}
-)
+const DefaultHTTPDialerUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 
 var _ Dialer = (*HTTPDialer)(nil)
 
@@ -45,6 +38,8 @@ func (d *HTTPDialer) init() {
 		d.Dialer = &LocalDialer{}
 	}
 }
+
+var CRLFCRLF = []byte{'\r', '\n', '\r', '\n'}
 
 func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	d.once.Do(d.init)
