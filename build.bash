@@ -54,7 +54,7 @@ function packaging_macos() {
 	local revison=r$(git rev-list --count HEAD)
 
 	mkdir -p liner
-	tar xvpf liner_darwin_amd64-${revison}.tar.gz -C liner
+	tar xvpf liner_darwin_amd64-${revison}.tar.xz -C liner
 	cat <<EOF > liner/production.toml
 [log]
 level = 'debug'
@@ -77,7 +77,7 @@ pac_enabled = true
 pac_iplist = 'https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt'
 EOF
 	# clean old files
-	rm liner_darwin_amd64-${revison}.tar.gz
+	rm liner_darwin_amd64-${revison}.tar.xz
 	GZIP_OPT=-9 tar cvzpf liner_macos_amd64-${revison}.tar.gz liner
 	rm -rf liner
 
@@ -90,7 +90,7 @@ function packaging_windows() {
 	local revison=r$(git rev-list --count HEAD)
 	for arch in amd64 arm; do
 		mkdir -p liner
-		tar xvpf liner_windows_${arch}-${revison}.tar.gz -C liner
+		tar xvpf liner_windows_${arch}-${revison}.tar.xz -C liner
 		cat <<EOF > liner/production.toml
 [log]
 level = 'debug'
@@ -113,7 +113,7 @@ pac_enabled = true
 pac_iplist = 'https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt'
 EOF
 		# clean old files
-		rm liner_windows_${arch}-${revison}.tar.gz
+		rm liner_windows_${arch}-${revison}.tar.xz
 		zip -9 -r liner_windows_${arch}-${revison}.zip liner
 		rm -rf liner
 	done
