@@ -31,6 +31,7 @@ listen = [':443']
 server_name = ['demo.example.org']
 keyfile = '/path/to/demo.example.org.key'
 certfile = '/path/to/fullchain.cer'
+prefer_chacha20 = true
 forward_policy = '''
 	{{if regexMatch `^(153.3.130.101|153.3.130.102):` .Request.RemoteAddr}}
 		bypass_auth
@@ -61,6 +62,7 @@ proxy_pass = 'http://127.0.0.1:80'
 [[https]]
 listen = [':443']
 server_name = ['fly.example.org']
+prefer_chacha20 = true
 forward_policy = '''
     {{if regexMatch `^(git|curl|node|yarn|Go-http-client|Docker-Client|Homebrew)/` .Request.UserAgent}}
         bypass_auth
