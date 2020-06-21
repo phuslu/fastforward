@@ -2,6 +2,7 @@ package main
 
 import (
 	"expvar"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"strings"
@@ -18,6 +19,11 @@ func (h *HTTPPprofHandler) Load() error {
 
 func (h *HTTPPprofHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if !h.Config.PprofEnabled || !strings.HasPrefix(req.URL.Path, "/debug/") {
+		h.Next.ServeHTTP(rw, req)
+		return
+	}
+
+	if ip, _, _ := net.SplitHostPort(req.RemoteAddr); !IsReservedIP(net.ParseIP(ip)) {
 		h.Next.ServeHTTP(rw, req)
 		return
 	}
