@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"net/http"
 	"os/exec"
@@ -508,7 +507,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ui 
 }
 
 func RejectRequest(rw http.ResponseWriter, req *http.Request) {
-	time.Sleep(time.Duration(1+rand.Intn(3)) * time.Second)
+	time.Sleep(time.Duration(1+log.Fastrandn(3)) * time.Second)
 	// http.Error(rw, "403 Forbidden", http.StatusForbidden)
 	http.Error(rw, "400 Bad Request", http.StatusBadRequest)
 }

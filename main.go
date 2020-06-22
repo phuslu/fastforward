@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	stdLog "log"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -40,7 +39,6 @@ func main() {
 
 	StartSupervisor()
 
-	rand.Seed(timeNow().UnixNano())
 	executable, err := os.Executable()
 	if err != nil {
 		println("cannot get executable path")
