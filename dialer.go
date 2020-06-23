@@ -15,6 +15,10 @@ type Dialer interface {
 
 var _ Dialer = (*LocalDialer)(nil)
 
+var PreferIPv6ContextKey = struct {
+	name string
+}{"prefer-ipv6"}
+
 type LocalDialer struct {
 	Resolver  *Resolver
 	Control   func(network, address string, conn syscall.RawConn) error
@@ -64,7 +68,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 	case 1:
 		break
 	default:
-		if !d.PreferIPv6 {
+		if !d.PreferIPv6 && ctx.Value(PreferIPv6ContextKey) == nil {
 			if ips[0].To4() == nil {
 				pos := len(ips) - 1
 				if ips[pos].To4() != nil {
