@@ -13,3 +13,7 @@ prefer_ipv6 = false
 [[socks]]
 listen = [':1082']
 forward_policy = 'bypass_auth'
+
+[[dns]]
+listen = [':53']
+upstream = ["9.9.9.9"]
