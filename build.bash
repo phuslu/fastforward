@@ -124,9 +124,10 @@ EOF
 function release() {
 	pushd build
 
-	ssh-keyscan -H liner.website | tee -a ~/.ssh/known_hosts
-	sshpass -p "${SSH_PASSWORD}" ssh phuslu@liner.website 'rm -rf /var/www/liner/liner_*'
-	sshpass -p "${SSH_PASSWORD}" rsync --progress -avz liner_* "phuslu@liner.website:/var/www/liner/"
+	local ssh_host=63.223.66.20
+	ssh-keyscan -H ${ssh_host} | tee -a ~/.ssh/known_hosts
+	sshpass -p "${SSH_PASSWORD}" ssh phuslu@${ssh_host} 'rm -rf /var/www/liner/liner_*'
+	sshpass -p "${SSH_PASSWORD}" rsync --progress -avz liner_* "phuslu@${ssh_host}:/var/www/liner/"
 
 	popd
 }
