@@ -56,7 +56,7 @@ func main() {
 	}
 
 	// main logger
-	var forwardLogger log.Logger
+	var forwardLogger, dnsLogger log.Logger
 	if log.IsTerminal(os.Stderr.Fd()) {
 		log.DefaultLogger = log.Logger{
 			Level:      log.ParseLevel(config.Log.Level),
@@ -67,6 +67,10 @@ func main() {
 			},
 		}
 		forwardLogger = log.Logger{
+			Level:  log.ParseLevel(config.Log.Level),
+			Writer: log.DefaultLogger.Writer,
+		}
+		dnsLogger = log.Logger{
 			Level:  log.ParseLevel(config.Log.Level),
 			Writer: log.DefaultLogger.Writer,
 		}
@@ -86,6 +90,16 @@ func main() {
 			Level: log.ParseLevel(config.Log.Level),
 			Writer: &log.FileWriter{
 				Filename:   "forward.log",
+				MaxBackups: config.Log.Backups,
+				MaxSize:    config.Log.Maxsize,
+				LocalTime:  config.Log.Localtime,
+			},
+		}
+		// dns logger
+		dnsLogger = log.Logger{
+			Level: log.ParseLevel(config.Log.Level),
+			Writer: &log.FileWriter{
+				Filename:   "dns.log",
 				MaxBackups: config.Log.Backups,
 				MaxSize:    config.Log.Maxsize,
 				LocalTime:  config.Log.Localtime,
@@ -576,7 +590,8 @@ func main() {
 			log.Info().Str("version", version).Str("address", conn.LocalAddr().String()).Msg("liner listen and serve dns")
 
 			h := &DNSHandler{
-				Config: dnsConfig,
+				Config:    dnsConfig,
+				DNSLogger: dnsLogger,
 			}
 
 			if err = h.Load(); err != nil {

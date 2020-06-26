@@ -14,12 +14,6 @@ import (
 	"golang.org/x/net/http2"
 )
 
-type DNSRequest struct {
-	RemoteAddr string
-	RemoteIP   string
-	ServerAddr string
-}
-
 type DNSHandler struct {
 	Config    DNSConfig
 	DNSLogger log.Logger
