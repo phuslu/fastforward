@@ -7,9 +7,9 @@ import (
 	"net"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/phuslu/log"
+	"github.com/tidwall/shardmap"
 	"golang.org/x/net/dns/dnsmessage"
 	"golang.org/x/net/http2"
 )
@@ -21,11 +21,11 @@ type DNSRequest struct {
 }
 
 type DNSHandler struct {
-	Config      DNSConfig
-	DNSLogger   log.Logger
-	LocalDialer *LocalDialer
+	Config    DNSConfig
+	DNSLogger log.Logger
 
-	Resolvers []*Resolver
+	resolvers []*net.Resolver
+	cache     *shardmap.Map
 }
 
 func (h *DNSHandler) Load() error {
@@ -41,20 +41,14 @@ func (h *DNSHandler) Load() error {
 			log.Fatal().Err(errors.New("no scheme or host")).Str("dns_server", dnsServer).Msg("parse dns_server error")
 		}
 
-		resolver := &Resolver{
-			Resolver: &net.Resolver{
-				PreferGo: false,
-			},
-			DNSCacheTTL: 10 * time.Minute,
-		}
-
+		var dail func(ctx context.Context, network, address string) (net.Conn, error)
 		switch u.Scheme {
 		case "udp", "tcp":
 			var addr = u.Host
 			if _, _, err := net.SplitHostPort(u.Host); err != nil {
 				addr = net.JoinHostPort(addr, "53")
 			}
-			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
+			dail = func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
 				return d.DialContext(ctx, u.Scheme, addr)
 			}
@@ -67,11 +61,11 @@ func (h *DNSHandler) Load() error {
 				ServerName:         u.Hostname(),
 				ClientSessionCache: tls.NewLRUClientSessionCache(128),
 			}
-			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
+			dail = func(ctx context.Context, _, _ string) (net.Conn, error) {
 				return tls.Dial("tcp", addr, tlsConfig)
 			}
 		case "https":
-			resolver.Resolver.Dial = (&DoHDialer{
+			dail = (&DoHDialer{
 				EndPoint:  dnsServer,
 				UserAgent: DefaultHTTPDialerUserAgent,
 				Transport: &http2.Transport{
@@ -83,8 +77,12 @@ func (h *DNSHandler) Load() error {
 			}).DialContext
 		}
 
-		h.Resolvers = append(h.Resolvers, resolver)
+		h.resolvers = append(h.resolvers, &net.Resolver{
+			PreferGo: true,
+			Dial:     dail,
+		})
 	}
+	h.cache = shardmap.New(0)
 	return nil
 }
 
