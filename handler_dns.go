@@ -46,7 +46,7 @@ func (h *DNSHandler) Load() error {
 				var d net.Dialer
 				return d.DialContext(ctx, u.Scheme, addr)
 			}
-		case "tls":
+		case "tls", "dot":
 			var addr = u.Host
 			if _, _, err := net.SplitHostPort(u.Host); err != nil {
 				addr = net.JoinHostPort(addr, "853")
@@ -58,7 +58,7 @@ func (h *DNSHandler) Load() error {
 			dail = func(ctx context.Context, _, _ string) (net.Conn, error) {
 				return tls.Dial("tcp", addr, tlsConfig)
 			}
-		case "https":
+		case "https", "doh":
 			dail = (&DoHDialer{
 				EndPoint:  dnsServer,
 				UserAgent: DefaultHTTPDialerUserAgent,

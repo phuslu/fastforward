@@ -115,6 +115,58 @@ func main() {
 		DNSCacheTTL: 10 * time.Minute,
 	}
 
+	if config.Global.DnsTtl > 0 {
+		resolver.DNSCacheTTL = time.Duration(config.Global.DnsTtl) * time.Second
+	}
+
+	if dnsServer := config.Global.DnsServer; dnsServer != "" {
+		if !strings.Contains(dnsServer, "://") {
+			dnsServer = "udp://" + dnsServer
+		}
+		u, err := url.Parse(dnsServer)
+		if err != nil {
+			log.Fatal().Err(err).Str("dns_server", config.Global.DnsServer).Msg("parse dns_server error")
+		}
+		if u.Scheme == "" || u.Host == "" {
+			log.Fatal().Err(errors.New("no scheme or host")).Str("dns_server", config.Global.DnsServer).Msg("parse dns_server error")
+		}
+
+		switch u.Scheme {
+		case "udp", "tcp":
+			var addr = u.Host
+			if _, _, err := net.SplitHostPort(u.Host); err != nil {
+				addr = net.JoinHostPort(addr, "53")
+			}
+			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, u.Scheme, addr)
+			}
+		case "tls", "dot":
+			var addr = u.Host
+			if _, _, err := net.SplitHostPort(u.Host); err != nil {
+				addr = net.JoinHostPort(addr, "853")
+			}
+			tlsConfig := &tls.Config{
+				ServerName:         u.Hostname(),
+				ClientSessionCache: tls.NewLRUClientSessionCache(128),
+			}
+			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return tls.Dial("tcp", addr, tlsConfig)
+			}
+		case "https", "doh":
+			resolver.Resolver.Dial = (&DoHDialer{
+				EndPoint:  config.Global.DnsServer,
+				UserAgent: DefaultHTTPDialerUserAgent,
+				Transport: &http2.Transport{
+					TLSClientConfig: &tls.Config{
+						ServerName:         u.Hostname(),
+						ClientSessionCache: tls.NewLRUClientSessionCache(128),
+					},
+				},
+			}).DialContext
+		}
+	}
+
 	regionResolver := &RegionResolver{
 		Resolver: resolver,
 	}
@@ -163,58 +215,6 @@ func main() {
 	if config.Global.PreferIpv6 {
 		dialer.PreferIPv6 = true
 		dialer.ParallelLevel = 1
-	}
-
-	if config.Global.DnsTtl > 0 {
-		dialer.Resolver.DNSCacheTTL = time.Duration(config.Global.DnsTtl) * time.Second
-	}
-
-	if dnsServer := config.Global.DnsServer; dnsServer != "" {
-		if !strings.Contains(dnsServer, "://") {
-			dnsServer = "udp://" + dnsServer
-		}
-		u, err := url.Parse(dnsServer)
-		if err != nil {
-			log.Fatal().Err(err).Str("dns_server", config.Global.DnsServer).Msg("parse dns_server error")
-		}
-		if u.Scheme == "" || u.Host == "" {
-			log.Fatal().Err(errors.New("no scheme or host")).Str("dns_server", config.Global.DnsServer).Msg("parse dns_server error")
-		}
-
-		switch u.Scheme {
-		case "udp", "tcp":
-			var addr = u.Host
-			if _, _, err := net.SplitHostPort(u.Host); err != nil {
-				addr = net.JoinHostPort(addr, "53")
-			}
-			dialer.Resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				var d net.Dialer
-				return d.DialContext(ctx, u.Scheme, addr)
-			}
-		case "tls":
-			var addr = u.Host
-			if _, _, err := net.SplitHostPort(u.Host); err != nil {
-				addr = net.JoinHostPort(addr, "853")
-			}
-			tlsConfig := &tls.Config{
-				ServerName:         u.Hostname(),
-				ClientSessionCache: tls.NewLRUClientSessionCache(128),
-			}
-			dialer.Resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return tls.Dial("tcp", addr, tlsConfig)
-			}
-		case "https":
-			dialer.Resolver.Resolver.Dial = (&DoHDialer{
-				EndPoint:  config.Global.DnsServer,
-				UserAgent: DefaultHTTPDialerUserAgent,
-				Transport: &http2.Transport{
-					TLSClientConfig: &tls.Config{
-						ServerName:         u.Hostname(),
-						ClientSessionCache: tls.NewLRUClientSessionCache(128),
-					},
-				},
-			}).DialContext
-		}
 	}
 
 	upstreams := make(map[string]Dialer)
