@@ -76,6 +76,11 @@ func (h *DNSHandler) Load() error {
 			Dial:     dail,
 		})
 	}
+	if len(h.resolvers) == 0 {
+		h.resolvers = []*net.Resolver{
+			&net.Resolver{PreferGo: true},
+		}
+	}
 	h.cache = shardmap.New(0)
 	return nil
 }
