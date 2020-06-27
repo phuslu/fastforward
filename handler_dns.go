@@ -86,19 +86,38 @@ func (h *DNSHandler) Load() error {
 }
 
 func (h *DNSHandler) ServePacketConn(conn net.PacketConn, addr net.Addr, buf []byte) {
-	var p dnsmessage.Parser
+	var msg dnsmessage.Message
 
-	header, err := p.Start(buf)
+	err := msg.Unpack(buf)
 	if err != nil {
-		log.Error().Err(err).Stringer("remote_ip", addr).Msg("parse dns message header error")
+		log.Error().Err(err).Stringer("remote_ip", addr).Hex("buf", buf).Msg("parse dns message header error")
+	}
+	if len(msg.Questions) != 1 {
+		log.Error().Err(err).Stringer("remote_ip", addr).Str("msg_header", msg.Header.GoString()).Interface("msg_questions", msg.Questions[0]).Msg("parse dns message questions error")
 	}
 
-	questions, err := p.AllQuestions()
-	if err != nil || len(questions) == 0 {
-		log.Error().Err(err).Stringer("remote_ip", addr).Msg("parse dns message questions error")
-	}
-	question := questions[0]
+	question := msg.Questions[0]
+	log.Info().Stringer("remote_ip", addr).Str("msg_header", msg.Header.GoString()).Str("msg_question", question.GoString()).Msg("parse dns message ok")
 
-	log.Info().Stringer("remote_ip", addr).Str("dns_header", header.GoString()).Str("dns_question", question.GoString()).Msg("parse dns message ok")
-	return
+	if s := question.Name.String(); s == "1.0.0.127.in-addr.arpa." {
+		msg.Answers = append(msg.Answers, dnsmessage.Resource{
+			dnsmessage.ResourceHeader{
+				Name:  dnsmessage.MustNewName(s),
+				Type:  dnsmessage.TypeA,
+				Class: dnsmessage.ClassINET,
+				TTL:   86400,
+			},
+			&dnsmessage.AResource{
+				[4]byte{127, 0, 0, 1},
+			},
+		})
+	}
+
+	resp, err := msg.Pack()
+	if err != nil {
+		log.Error().Err(err).Stringer("remote_ip", addr).Str("msg_header", msg.Header.GoString()).Interface("msg_questions", msg.Questions[0]).Interface("msg_answers", msg.Answers[0]).Msg("pack dns message answers error")
+	}
+
+	conn.WriteTo(resp, addr)
+	log.Info().Stringer("remote_ip", addr).Str("msg_header", msg.Header.GoString()).Str("msg_question", question.GoString()).Interface("msg_answers", msg.Answers[0]).Msg("write msg answsers")
 }
