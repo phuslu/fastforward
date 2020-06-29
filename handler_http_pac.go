@@ -117,7 +117,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			pac = b.Bytes()
 		}
 
-		h.cache.Set(pacCacheKey, PacCacheItem{Data: pac, expires: unix() + 12*3600})
+		h.cache.Set(pacCacheKey, PacCacheItem{pac, unix() + 12*3600})
 		h.singleflight.Forget(h.PacIPList)
 	}
 

@@ -224,14 +224,14 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			bypassAuth = true
 		case "allow_ip":
 			bypassAuth = true
-			h.AllowIPCache.Set(ri.RemoteIP, timeNow().Add(6*time.Hour))
+			h.AllowIPCache.Set(ri.RemoteIP, unix()+6*3600)
 			log.Info().Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("allow_ip ok")
 		}
 	}
 
 	if !bypassAuth {
 		if v, ok := h.AllowIPCache.Get(ri.RemoteIP); ok {
-			if timeNow().After(v.(time.Time)) {
+			if v.(int64) > unix() {
 				bypassAuth = true
 			} else {
 				h.AllowIPCache.Delete(ri.RemoteIP)

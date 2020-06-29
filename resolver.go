@@ -49,7 +49,7 @@ func (r *Resolver) lookupIP(ctx context.Context, name string) ([]net.IP, error) 
 	}
 
 	if r.DNSCacheTTL > 0 && len(ips) > 0 {
-		r.cache.Set(name, ResolverCacheItem{A: ips, expires: unix() + int64(r.DNSCacheTTL)})
+		r.cache.Set(name, ResolverCacheItem{ips, unix() + int64(r.DNSCacheTTL)})
 	}
 
 	log.Debug().Msgf("lookupIP(%#v) return %+v", name, ips)

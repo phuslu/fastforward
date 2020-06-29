@@ -63,8 +63,9 @@ type TLSConfigCacheItem struct {
 }
 
 type TLSCertCacheItem struct {
-	Deadline    time.Time
 	Certificate *tls.Certificate
+
+	expires int64
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
@@ -138,7 +139,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 
 		if v, ok := m.CertCache.Get(cacheKey); ok {
 			item := v.(TLSCertCacheItem)
-			if item.Deadline.After(timeNow()) {
+			if item.expires > unix() {
 				return item.Certificate, nil
 			}
 			m.CertCache.Delete(cacheKey)
@@ -149,7 +150,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertCache.Set(cacheKey, TLSCertCacheItem{Deadline: timeNow().Add(24 * time.Hour), Certificate: &cert})
+		m.CertCache.Set(cacheKey, TLSCertCacheItem{&cert, unix() + 24*3600})
 
 		return &cert, nil
 	}
@@ -245,7 +246,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.ConfigCache.Set(cacheKey, TLSConfigCacheItem{Config: config, expires: unix() + 72*3600})
+	m.ConfigCache.Set(cacheKey, TLSConfigCacheItem{config, unix() + 72*3600})
 
 	return config, nil
 }
