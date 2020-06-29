@@ -112,11 +112,11 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: false,
 		},
-		DNSCacheTTL: 10 * time.Minute,
+		DNSCacheTTL: 600,
 	}
 
 	if config.Global.DnsTtl > 0 {
-		resolver.DNSCacheTTL = time.Duration(config.Global.DnsTtl) * time.Second
+		resolver.DNSCacheTTL = config.Global.DnsTtl
 	}
 
 	if dnsServer := config.Global.DnsServer; dnsServer != "" {

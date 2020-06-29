@@ -333,7 +333,7 @@ func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err er
 	commandLine := strings.TrimSpace(b.String())
 	if v, ok := h.AuthCache.Get(commandLine); ok {
 		ai = v.(ForwardAuthInfo)
-		if ai.deadline.After(timeNow()) {
+		if ai.expires > unix() {
 			return
 		}
 		h.AuthCache.Delete(commandLine)
@@ -372,7 +372,7 @@ func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err er
 	}
 
 	if ai.Ttl > 0 {
-		ai.deadline = timeNow().Add(time.Duration(ai.Ttl) * time.Second)
+		ai.expires = unix() + int64(ai.Ttl)
 		h.AuthCache.Set(commandLine, ai)
 	}
 

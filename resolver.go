@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net"
-	"time"
 
 	"github.com/phuslu/log"
 	"github.com/tidwall/shardmap"
@@ -11,14 +10,15 @@ import (
 
 type Resolver struct {
 	*net.Resolver
-	DNSCacheTTL time.Duration
+	DNSCacheTTL uint32
 
 	cache shardmap.Map
 }
 
 type ResolverCacheItem struct {
-	Deadline time.Time
-	A        []net.IP
+	A []net.IP
+
+	expires int64
 }
 
 func (r *Resolver) LookupIP(ctx context.Context, name string) ([]net.IP, error) {
@@ -28,7 +28,7 @@ func (r *Resolver) LookupIP(ctx context.Context, name string) ([]net.IP, error) 
 func (r *Resolver) lookupIP(ctx context.Context, name string) ([]net.IP, error) {
 	if v, ok := r.cache.Get(name); ok {
 		item := v.(ResolverCacheItem)
-		if item.Deadline.After(timeNow()) {
+		if item.expires > unix() {
 			return item.A, nil
 		}
 		r.cache.Delete(name)
@@ -49,7 +49,7 @@ func (r *Resolver) lookupIP(ctx context.Context, name string) ([]net.IP, error) 
 	}
 
 	if r.DNSCacheTTL > 0 && len(ips) > 0 {
-		r.cache.Set(name, ResolverCacheItem{Deadline: timeNow().Add(r.DNSCacheTTL), A: ips})
+		r.cache.Set(name, ResolverCacheItem{A: ips, expires: unix() + int64(r.DNSCacheTTL)})
 	}
 
 	log.Debug().Msgf("lookupIP(%#v) return %+v", name, ips)

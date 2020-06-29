@@ -435,7 +435,7 @@ type ForwardAuthInfo struct {
 	Error      string
 	Ttl        int
 
-	deadline time.Time
+	expires int64
 }
 
 func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
@@ -453,7 +453,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai 
 	commandLine := strings.TrimSpace(b.String())
 	if v, ok := h.AuthCache.Get(commandLine); ok {
 		ai = v.(ForwardAuthInfo)
-		if ai.deadline.After(timeNow()) {
+		if ai.expires > unix() {
 			return
 		}
 		h.AuthCache.Delete(commandLine)
@@ -492,7 +492,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai 
 	}
 
 	if ai.Ttl > 0 {
-		ai.deadline = timeNow().Add(time.Duration(ai.Ttl) * time.Second)
+		ai.expires = unix() + int64(ai.Ttl)
 		h.AuthCache.Set(commandLine, ai)
 	}
 

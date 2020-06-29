@@ -32,8 +32,9 @@ type HTTPPacHandler struct {
 }
 
 type PacCacheItem struct {
-	Deadline time.Time
-	Data     []byte
+	Data []byte
+
+	expires int64
 }
 
 func (h *HTTPPacHandler) Load() error {
@@ -75,7 +76,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		pacCacheKey += "!gzip"
 	}
 
-	if v, ok := h.cache.Get(pacCacheKey); ok && v.(PacCacheItem).Deadline.After(timeNow()) {
+	if v, ok := h.cache.Get(pacCacheKey); ok && v.(PacCacheItem).expires > unix() {
 		pac = v.(PacCacheItem).Data
 	} else {
 		h.cache.Delete(pacCacheKey)
@@ -116,7 +117,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			pac = b.Bytes()
 		}
 
-		h.cache.Set(pacCacheKey, PacCacheItem{Deadline: timeNow().Add(12 * time.Hour), Data: pac})
+		h.cache.Set(pacCacheKey, PacCacheItem{Data: pac, expires: unix() + 12*3600})
 		h.singleflight.Forget(h.PacIPList)
 	}
 

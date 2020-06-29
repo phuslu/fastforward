@@ -57,8 +57,9 @@ type TLSConfigurator struct {
 }
 
 type TLSConfigCacheItem struct {
-	Deadline time.Time
-	Config   *tls.Config
+	Config *tls.Config
+
+	expires int64
 }
 
 type TLSCertCacheItem struct {
@@ -208,7 +209,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 
 	if v, ok := m.ConfigCache.Get(cacheKey); ok {
 		item := v.(TLSConfigCacheItem)
-		if item.Deadline.After(timeNow()) {
+		if item.expires > unix() {
 			return item.Config, nil
 		}
 		m.ConfigCache.Delete(cacheKey)
@@ -244,7 +245,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.ConfigCache.Set(cacheKey, TLSConfigCacheItem{Deadline: timeNow().Add(72 * time.Hour), Config: config})
+	m.ConfigCache.Set(cacheKey, TLSConfigCacheItem{Config: config, expires: unix() + 72*3600})
 
 	return config, nil
 }

@@ -77,7 +77,7 @@ type Config struct {
 		TcpFastopen     bool
 		PreferIpv6      bool
 		DnsServer       string
-		DnsTtl          int
+		DnsTtl          uint32
 		IdleConnTimeout int
 		MaxIdleConns    int
 		GracefulTimeout int

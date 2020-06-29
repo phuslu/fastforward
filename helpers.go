@@ -47,6 +47,10 @@ func s2b(s string) (b []byte) {
 	return b
 }
 
+func unix() int64 {
+	return timeNow().Unix()
+}
+
 type IPInt uint32
 
 func NewIPInt(ip string) IPInt {
