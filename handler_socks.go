@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
+	"github.com/pkg/json"
 	"github.com/tidwall/shardmap"
-	"github.com/valyala/fastjson"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -174,7 +174,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		}
 	}
 
-	var ai SocksAuthInfo
+	var ai ForwardAuthInfo
 	if !bypassAuth {
 		if !req.SupportAuth {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("socks client not support auth")
@@ -224,7 +224,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	}
 	req.Port = int(b[n-2])<<8 | int(b[n-1])
 
-	if !ai.VIP {
+	if ai.VIP > 0 {
 		if addressType == Socks5DomainName && (!h.AllowDomains.Empty() || !h.DenyDomains.Empty()) {
 			if s, err := publicsuffix.EffectiveTLDPlusOne(req.Host); err == nil {
 				if !h.AllowDomains.Empty() && !h.AllowDomains.Contains(s) {
@@ -319,14 +319,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	return
 }
 
-type SocksAuthInfo struct {
-	Deadline   time.Time
-	Username   string
-	SpeedLimit int64
-	VIP        bool
-}
-
-func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai SocksAuthInfo, err error) {
+func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err error) {
 	var b bytes.Buffer
 
 	err = h.AuthTemplate.Execute(&b, struct {
@@ -339,8 +332,8 @@ func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai SocksAuthInfo, err erro
 
 	commandLine := strings.TrimSpace(b.String())
 	if v, ok := h.AuthCache.Get(commandLine); ok {
-		ai = v.(SocksAuthInfo)
-		if ai.Deadline.After(timeNow()) {
+		ai = v.(ForwardAuthInfo)
+		if ai.deadline.After(timeNow()) {
 			return
 		}
 		h.AuthCache.Delete(commandLine)
@@ -363,33 +356,23 @@ func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai SocksAuthInfo, err erro
 
 	err = cmd.Run()
 	if err != nil {
-		log.Warn().Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Str("remote_ip", req.RemoteIP).Err(err).Msg("exec.Command(...) error")
+		log.Warn().Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Str("remote_ip", req.RemoteIP).Err(err).Msg("exec auth command error")
 		return
 	}
 
-	log.Debug().Str("remote_ip", req.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("exec.Command() ok")
+	log.Debug().Str("remote_ip", req.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("exec auth command ok")
 
-	var p fastjson.Parser
-	var doc *fastjson.Value
-	doc, err = p.ParseBytes(b.Bytes())
+	err = json.NewDecoder(&b).Decode(&ai)
+	if ai.Error != "" {
+		err = errors.New(ai.Error)
+	}
 	if err != nil {
+		log.Error().Err(err).Str("remote_ip", req.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("parse auth raw info error")
 		return
 	}
 
-	if v := doc.GetStringBytes("username"); len(v) != 0 {
-		ai.Username = string(v)
-	}
-	if v := doc.GetInt("speedlimit"); v > 0 {
-		ai.SpeedLimit = int64(v)
-	}
-	if v := doc.GetInt("vip"); v != 0 {
-		ai.VIP = true
-	}
-	if v := doc.GetStringBytes("error"); len(v) != 0 {
-		err = errors.New(string(v))
-	}
-	if ttl := doc.GetInt("ttl"); ttl > 0 && err == nil {
-		ai.Deadline = timeNow().Add(time.Duration(ttl) * time.Second)
+	if ai.TTL > 0 {
+		ai.deadline = timeNow().Add(time.Duration(ai.TTL) * time.Second)
 		h.AuthCache.Set(commandLine, ai)
 	}
 

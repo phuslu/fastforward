@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
+	"github.com/pkg/json"
 	"github.com/tidwall/shardmap"
-	"github.com/valyala/fastjson"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -239,17 +239,17 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	var ui ForwardUserInfo
+	var ai ForwardAuthInfo
 	if h.AuthTemplate != nil && !bypassAuth {
-		ui, err = h.GetAuthInfo(ri, req)
+		ai, err = h.GetAuthInfo(ri, req)
 		if err != nil {
-			log.Warn().Err(err).Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("username", ui.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_proto", req.Proto).Msg("auth error")
+			log.Warn().Err(err).Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_proto", req.Proto).Msg("auth error")
 			RejectRequest(rw, req)
 			return
 		}
 	}
 
-	if !ui.VIP {
+	if ai.VIP > 0 {
 		if !h.AllowDomains.Empty() || !h.DenyDomains.Empty() {
 			if !h.AllowDomains.Empty() && !h.AllowDomains.Contains(domain) {
 				RejectRequest(rw, req)
@@ -260,8 +260,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				return
 			}
 		}
-		if ui.SpeedLimit == 0 && h.Config.ForwardSpeedLimit > 0 {
-			ui.SpeedLimit = h.Config.ForwardSpeedLimit
+		if ai.SpeedLimit == 0 && h.Config.ForwardSpeedLimit > 0 {
+			ai.SpeedLimit = h.Config.ForwardSpeedLimit
 		}
 	}
 
@@ -271,8 +271,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		err := h.UpstreamTemplate.Execute(&sb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
-			User            ForwardUserInfo
-		}{req, ri.ClientHelloInfo, ui})
+			User            ForwardAuthInfo
+		}{req, ri.ClientHelloInfo, ai})
 		if err != nil {
 			log.Error().Err(err).Str("forward_upstream", h.Config.ForwardUpstream).Msg("execute forward_upstream error")
 			h.Next.ServeHTTP(rw, req)
@@ -281,7 +281,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		upstream = strings.TrimSpace(sb.String())
 	}
 
-	log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("upstream", upstream).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Msg("forward request")
+	log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("upstream", upstream).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Msg("forward request")
 
 	var transmitBytes int64
 	switch req.Method {
@@ -347,8 +347,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		defer conn.Close()
 
 		go io.Copy(conn, r)
-		transmitBytes, err = io.Copy(w, NewLimiterReader(conn, ui.SpeedLimit))
-		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		transmitBytes, err = io.Copy(w, NewLimiterReader(conn, ai.SpeedLimit))
+		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
 			http.NotFound(rw, req)
@@ -413,8 +413,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		rw.WriteHeader(resp.StatusCode)
 		defer resp.Body.Close()
 
-		transmitBytes, err = io.Copy(rw, NewLimiterReader(resp.Body, ui.SpeedLimit))
-		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		transmitBytes, err = io.Copy(rw, NewLimiterReader(resp.Body, ai.SpeedLimit))
+		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 
 	if h.Config.ForwardLog {
@@ -424,18 +424,20 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		} else {
 			country, _ = h.RegionResolver.LookupCountry(context.Background(), ri.RemoteIP)
 		}
-		h.ForwardLogger.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ui.Username).Str("remote_ip", ri.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Msg("forward log")
+		h.ForwardLogger.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("remote_ip", ri.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Msg("forward log")
 	}
 }
 
-type ForwardUserInfo struct {
-	ValidTime  time.Time
+type ForwardAuthInfo struct {
+	deadline   time.Time
 	Username   string
 	SpeedLimit int64
-	VIP        bool
+	VIP        int
+	Error      string
+	TTL        int
 }
 
-func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ui ForwardUserInfo, err error) {
+func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
 	var b bytes.Buffer
 
 	err = h.AuthTemplate.Execute(&b, struct {
@@ -449,8 +451,8 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ui 
 
 	commandLine := strings.TrimSpace(b.String())
 	if v, ok := h.AuthCache.Get(commandLine); ok {
-		ui = v.(ForwardUserInfo)
-		if ui.ValidTime.After(timeNow()) {
+		ai = v.(ForwardAuthInfo)
+		if ai.deadline.After(timeNow()) {
 			return
 		}
 		h.AuthCache.Delete(commandLine)
@@ -473,34 +475,24 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ui 
 
 	err = cmd.Run()
 	if err != nil {
-		log.Warn().Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Str("remote_ip", ri.RemoteIP).Err(err).Msg("exec.Command(...) error")
+		log.Warn().Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Str("remote_ip", ri.RemoteIP).Err(err).Msg("exec auth command error")
 		return
 	}
 
-	log.Debug().Str("remote_ip", ri.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("exec.Command() ok")
+	log.Debug().Str("remote_ip", ri.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("exec auth command ok")
 
-	var p fastjson.Parser
-	var doc *fastjson.Value
-	doc, err = p.ParseBytes(b.Bytes())
+	err = json.NewDecoder(&b).Decode(&ai)
+	if ai.Error != "" {
+		err = errors.New(ai.Error)
+	}
 	if err != nil {
+		log.Error().Err(err).Str("remote_ip", ri.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("parse auth info error")
 		return
 	}
 
-	if v := doc.GetStringBytes("username"); len(v) != 0 {
-		ui.Username = string(v)
-	}
-	if v := doc.GetInt("speedlimit"); v > 0 {
-		ui.SpeedLimit = int64(v)
-	}
-	if v := doc.GetInt("vip"); v != 0 {
-		ui.VIP = true
-	}
-	if v := doc.GetStringBytes("error"); len(v) != 0 {
-		err = errors.New(string(v))
-	}
-	if ttl := doc.GetInt("ttl"); ttl > 0 && err == nil {
-		ui.ValidTime = timeNow().Add(time.Duration(ttl) * time.Second)
-		h.AuthCache.Set(commandLine, ui)
+	if ai.TTL > 0 {
+		ai.deadline = timeNow().Add(time.Duration(ai.TTL) * time.Second)
+		h.AuthCache.Set(commandLine, ai)
 	}
 
 	return
