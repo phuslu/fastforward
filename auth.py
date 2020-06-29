@@ -46,18 +46,13 @@ def do_authorize(username, password, remote_addr):
 
 def authorize(auth_type, *auth_args):
     """authorize function"""
-    if auth_type not in ('basic', 'socks'):
-        return {'error': 'unsupported auth type: ' + auth_type}
     if auth_type == 'basic':
         username, password = base64.b64decode(auth_args[0]).decode().split(':')
         remote_addr = auth_args[1]
-    elif auth_type in ('socks', 'dtls'):
-        username, password, remote_addr = auth_args
     else:
-        pass
+        username, password, remote_addr = auth_args
     return do_authorize(username, password, remote_addr)
 
 
 if __name__ == "__main__":
-    auth_type, auth_args = sys.argv[1], sys.argv[2:]
-    sys.stdout.write(json.dumps(authorize(auth_type.lower(), *auth_args)))
+    sys.stdout.write(json.dumps(authorize(sys.argv[1].lower(), *sys.argv[2:])))

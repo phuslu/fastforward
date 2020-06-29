@@ -429,12 +429,13 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 }
 
 type ForwardAuthInfo struct {
-	deadline   time.Time
 	Username   string
 	SpeedLimit int64
 	VIP        int
 	Error      string
 	Ttl        int
+
+	deadline time.Time
 }
 
 func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
@@ -471,7 +472,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai 
 	b.Reset()
 	cmd := exec.CommandContext(ctx, command, arguments...)
 	cmd.Stdout = &b
-	cmd.Stderr = &b
+	// cmd.Stderr = &b
 
 	err = cmd.Run()
 	if err != nil {
