@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,7 +18,6 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
-	"github.com/pkg/json"
 	"github.com/tidwall/shardmap"
 	"golang.org/x/net/publicsuffix"
 )
@@ -434,7 +434,7 @@ type ForwardAuthInfo struct {
 	SpeedLimit int64
 	VIP        int
 	Error      string
-	TTL        int
+	Ttl        int
 }
 
 func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
@@ -490,8 +490,8 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai 
 		return
 	}
 
-	if ai.TTL > 0 {
-		ai.deadline = timeNow().Add(time.Duration(ai.TTL) * time.Second)
+	if ai.Ttl > 0 {
+		ai.deadline = timeNow().Add(time.Duration(ai.Ttl) * time.Second)
 		h.AuthCache.Set(commandLine, ai)
 	}
 

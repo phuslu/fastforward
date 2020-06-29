@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
-	"github.com/pkg/json"
 	"github.com/tidwall/shardmap"
 	"golang.org/x/net/publicsuffix"
 )
@@ -371,8 +371,8 @@ func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err er
 		return
 	}
 
-	if ai.TTL > 0 {
-		ai.deadline = timeNow().Add(time.Duration(ai.TTL) * time.Second)
+	if ai.Ttl > 0 {
+		ai.deadline = timeNow().Add(time.Duration(ai.Ttl) * time.Second)
 		h.AuthCache.Set(commandLine, ai)
 	}
 
