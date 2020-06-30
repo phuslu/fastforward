@@ -61,7 +61,7 @@ func (h *DNSHandler) Load() error {
 		case "https", "doh":
 			dail = (&DoHDialer{
 				EndPoint:  dnsServer,
-				UserAgent: DefaultHTTPDialerUserAgent,
+				UserAgent: DefaultUserAgent,
 				Transport: &http2.Transport{
 					TLSClientConfig: &tls.Config{
 						ServerName:         u.Hostname(),

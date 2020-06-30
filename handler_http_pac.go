@@ -18,10 +18,6 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-const (
-	DefaultPacIPlist = "https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt"
-)
-
 type HTTPPacHandler struct {
 	Next   http.Handler
 	Config HTTPConfig

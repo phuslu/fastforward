@@ -14,8 +14,6 @@ import (
 	"sync"
 )
 
-const DefaultHTTPDialerUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-
 var _ Dialer = (*HTTPDialer)(nil)
 
 type HTTPDialer struct {
@@ -32,7 +30,7 @@ type HTTPDialer struct {
 
 func (d *HTTPDialer) init() {
 	if d.UserAgent == "" {
-		d.UserAgent = DefaultHTTPDialerUserAgent
+		d.UserAgent = DefaultUserAgent
 	}
 	if d.Dialer == nil {
 		d.Dialer = &LocalDialer{}

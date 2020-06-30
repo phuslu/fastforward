@@ -13,10 +13,6 @@ import (
 	"github.com/phuslu/log"
 )
 
-const (
-	DefaultProxyPass = "http://127.0.0.1:80"
-)
-
 type HTTPProxyHandler struct {
 	Config    HTTPConfig
 	Transport *http.Transport

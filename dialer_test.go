@@ -19,7 +19,7 @@ func TestDoHResolver(t *testing.T) {
 		PreferGo: true,
 		Dial: (&DoHDialer{
 			EndPoint:  "https://1.1.1.1/dns-query",
-			UserAgent: DefaultHTTPDialerUserAgent,
+			UserAgent: DefaultUserAgent,
 		}).DialContext,
 	}
 
