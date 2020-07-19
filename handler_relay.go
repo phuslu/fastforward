@@ -6,12 +6,14 @@ import (
 	"net"
 
 	"github.com/phuslu/log"
+	"github.com/rs/xid"
 )
 
 type RelayRequest struct {
 	RemoteAddr string
 	RemoteIP   string
 	ServerAddr string
+	TraceID    xid.ID
 }
 
 type RelayHandler struct {
@@ -33,6 +35,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 	req.RemoteAddr = conn.RemoteAddr().String()
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
+	req.TraceID = xid.New()
 
 	dail := h.LocalDialer.DialContext
 	if h.Config.ForwardUpstream != "" {
@@ -61,7 +64,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 		} else {
 			country, _ = h.RegionResolver.LookupCountry(context.Background(), req.RemoteIP)
 		}
-		h.ForwardLogger.Info().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Msg("forward port request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Msg("forward port request end")
 	}
 
 	return

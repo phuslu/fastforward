@@ -21,6 +21,7 @@ require (
 	github.com/phuslu/geoip v1.0.20200715
 	github.com/phuslu/log v1.0.26-0.20200719120501-c94728ee6bdd
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/rs/xid v1.2.1
 	github.com/tidwall/lotsa v1.0.1 // indirect
 	github.com/tidwall/rhh v1.1.0 // indirect
 	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211

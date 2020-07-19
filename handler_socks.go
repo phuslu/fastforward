@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
+	"github.com/rs/xid"
 	"github.com/tidwall/shardmap"
 	"golang.org/x/net/publicsuffix"
 )
@@ -30,6 +31,7 @@ type SocksRequest struct {
 	Password    string
 	Host        string
 	Port        int
+	TraceID     xid.ID
 }
 
 type SocksHandler struct {
@@ -118,6 +120,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	req.RemoteAddr = conn.RemoteAddr().String()
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
+	req.TraceID = xid.New()
 
 	var b [512]byte
 	n, err := io.ReadAtLeast(conn, b[:], 2)
@@ -313,7 +316,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		} else {
 			country, _ = h.RegionResolver.LookupCountry(context.Background(), req.RemoteIP)
 		}
-		h.ForwardLogger.Info().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("forward socks request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("forward socks request end")
 	}
 
 	return

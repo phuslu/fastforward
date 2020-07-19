@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/phuslu/log"
+	"github.com/rs/xid"
 )
 
 type HTTPHandler struct {
@@ -21,6 +22,7 @@ type RequestInfo struct {
 	ServerName      string
 	TLSVersion      TLSVersion
 	ClientHelloInfo *tls.ClientHelloInfo
+	TraceID         xid.ID
 	LogContext      log.Context
 }
 
@@ -43,8 +45,10 @@ func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			ri.ClientHelloInfo = v.(*tls.ClientHelloInfo)
 		}
 	}
+	ri.TraceID = xid.New()
 
 	ri.LogContext = log.NewContext().
+		Stringer("trace_id", ri.TraceID).
 		Str("server_name", ri.ServerName).
 		Str("server_addr", ri.ServerAddr).
 		Str("tls_version", ri.TLSVersion.String()).
