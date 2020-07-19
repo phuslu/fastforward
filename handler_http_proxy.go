@@ -101,7 +101,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
 		if h.Upstream != nil {
-			log.Warn().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Err(err).Msg("upstream error")
+			log.Warn().Err(err).Context(ri.LogContext).Msg("upstream error")
 			if IsTimeout(err) {
 				http.Error(rw, "504 Gateway Timeout", http.StatusGatewayTimeout)
 			} else {
@@ -113,7 +113,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Int("http_status", resp.StatusCode).Int64("http_content_length", resp.ContentLength).Str("user_agent", req.UserAgent()).Msg("proxy_pass request")
+	log.Info().Context(ri.LogContext).Int("http_status", resp.StatusCode).Int64("http_content_length", resp.ContentLength).Msg("proxy_pass request")
 
 	if req.ProtoAtLeast(2, 0) {
 		resp.Header.Del("connection")
@@ -128,9 +128,9 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	if h.Config.ProxyDumpFailure && resp.StatusCode >= http.StatusBadRequest {
 		data, err := httputil.DumpResponse(resp, true)
 		if err != nil {
-			log.Warn().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Int("status", resp.StatusCode).Int64("content_length", resp.ContentLength).Str("user_agent", req.UserAgent()).Err(err).Msg("DumpFailureResponse error")
+			log.Warn().Err(err).Context(ri.LogContext).Int("status", resp.StatusCode).Int64("content_length", resp.ContentLength).Msg("DumpFailureResponse error")
 		} else {
-			log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Int("status", resp.StatusCode).Int64("content_length", resp.ContentLength).Str("user_agent", req.UserAgent()).Str("data", string(data)).Msg("DumpFailureResponse ok")
+			log.Info().Context(ri.LogContext).Int("status", resp.StatusCode).Int64("content_length", resp.ContentLength).Str("data", string(data)).Msg("DumpFailureResponse ok")
 		}
 	}
 

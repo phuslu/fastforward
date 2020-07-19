@@ -140,7 +140,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	// if h.ServerNames.Contains(host) || net.ParseIP(ri.RemoteIP).IsLoopback() {
 	if h.ServerNames.Contains(host) && req.Method != http.MethodConnect {
-		log.Debug().Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Interface("forward_server_names", h.ServerNames).Str("request_host", req.Host).Msg("fallback to next handler")
+		log.Debug().Context(ri.LogContext).Interface("forward_server_names", h.ServerNames).Msg("fallback to next handler")
 		h.Next.ServeHTTP(rw, req)
 		return
 	}
@@ -167,13 +167,13 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 		}{req, ri.ClientHelloInfo})
 		if err != nil {
-			log.Error().Err(err).Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Str("forward_policy", h.Config.ForwardPolicy).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Msg("execute forward_policy error")
+			log.Error().Err(err).Context(ri.LogContext).Str("forward_policy", h.Config.ForwardPolicy).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Msg("execute forward_policy error")
 			h.Next.ServeHTTP(rw, req)
 			return
 		}
 
 		output := strings.TrimSpace(sb.String())
-		log.Debug().Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("execute forward_policy ok")
+		log.Debug().Context(ri.LogContext).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("execute forward_policy ok")
 
 		switch output {
 		case "", "proxy_pass":
@@ -225,7 +225,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		case "allow_ip":
 			bypassAuth = true
 			h.AllowIPCache.Set(ri.RemoteIP, unix()+6*3600)
-			log.Info().Str("server_name", ri.ServerName).Str("remote_ip", ri.RemoteIP).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("allow_ip ok")
+			log.Info().Context(ri.LogContext).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("allow_ip ok")
 		}
 	}
 
@@ -243,7 +243,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	if h.AuthTemplate != nil && !bypassAuth {
 		ai, err = h.GetAuthInfo(ri, req)
 		if err != nil {
-			log.Warn().Err(err).Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_proto", req.Proto).Msg("auth error")
+			log.Warn().Err(err).Context(ri.LogContext).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
 			RejectRequest(rw, req)
 			return
 		}
@@ -274,14 +274,14 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			User            ForwardAuthInfo
 		}{req, ri.ClientHelloInfo, ai})
 		if err != nil {
-			log.Error().Err(err).Str("forward_upstream", h.Config.ForwardUpstream).Msg("execute forward_upstream error")
+			log.Error().Err(err).Context(ri.LogContext).Str("forward_upstream", h.Config.ForwardUpstream).Msg("execute forward_upstream error")
 			h.Next.ServeHTTP(rw, req)
 			return
 		}
 		upstream = strings.TrimSpace(sb.String())
 	}
 
-	log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("upstream", upstream).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Msg("forward request")
+	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("upstream", upstream).Str("http_domain", domain).Msg("forward request")
 
 	var transmitBytes int64
 	switch req.Method {
@@ -293,7 +293,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		var dialer Dialer
 		if upstream != "" {
 			if d, ok := h.Upstreams[upstream]; !ok {
-				log.Error().Str("upstream", upstream).Msg("no upstream exists")
+				log.Error().Context(ri.LogContext).Str("upstream", upstream).Msg("no upstream exists")
 				h.Next.ServeHTTP(rw, req)
 				return
 			} else {
@@ -305,7 +305,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 		conn, err := dialer.DialContext(req.Context(), "tcp", req.URL.Host)
 		if err != nil {
-			log.Error().Err(err).Str("host", req.URL.Host).Msg("dial host error")
+			log.Error().Err(err).Context(ri.LogContext).Msg("dial host error")
 			http.Error(rw, err.Error(), http.StatusBadGateway)
 			return
 		}
@@ -348,7 +348,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 		go io.Copy(conn, r)
 		transmitBytes, err = io.Copy(w, NewLimiterReader(conn, ai.SpeedLimit))
-		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
 			http.NotFound(rw, req)
@@ -383,7 +383,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		var tr *http.Transport
 		if upstream != "" {
 			if t, ok := h.UpstreamTransports[upstream]; !ok {
-				log.Error().Str("upstream", upstream).Msg("no upstream transport exists")
+				log.Error().Context(ri.LogContext).Str("upstream", upstream).Msg("no upstream transport exists")
 				h.Next.ServeHTTP(rw, req)
 				return
 			} else {
@@ -414,7 +414,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		defer resp.Body.Close()
 
 		transmitBytes, err = io.Copy(rw, NewLimiterReader(resp.Body, ai.SpeedLimit))
-		log.Debug().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 
 	if h.Config.ForwardLog {

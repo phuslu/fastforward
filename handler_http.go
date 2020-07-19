@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+
+	"github.com/phuslu/log"
 )
 
 type HTTPHandler struct {
@@ -19,6 +21,7 @@ type RequestInfo struct {
 	ServerName      string
 	TLSVersion      TLSVersion
 	ClientHelloInfo *tls.ClientHelloInfo
+	LogContext      log.Context
 }
 
 var RequestInfoContextKey = struct {
@@ -40,6 +43,18 @@ func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			ri.ClientHelloInfo = v.(*tls.ClientHelloInfo)
 		}
 	}
+
+	ri.LogContext = log.NewContext().
+		Str("server_name", ri.ServerName).
+		Str("server_addr", ri.ServerAddr).
+		Str("tls_version", ri.TLSVersion.String()).
+		Str("remote_ip", ri.RemoteIP).
+		Str("user_agent", req.UserAgent()).
+		Str("http_method", req.Method).
+		Str("http_proto", req.Proto).
+		Str("http_host", req.Host).
+		Str("http_url", req.URL.String()).
+		Value()
 
 	h.Next.ServeHTTP(rw, req.WithContext(context.WithValue(req.Context(), RequestInfoContextKey, ri)))
 }

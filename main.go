@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"flag"
-	stdLog "log"
 	"net"
 	"net/http"
 	"net/url"
@@ -63,7 +62,8 @@ func main() {
 			Caller:     1,
 			TimeFormat: "15:04:05",
 			Writer: &log.ConsoleWriter{
-				ANSIColor: true,
+				ColorOutput:    true,
+				EndWithMessage: true,
 			},
 		}
 		forwardLogger = log.Logger{
@@ -406,7 +406,7 @@ func main() {
 				GetConfigForClient: tlsConfigurator.GetConfigForClient,
 			},
 			ConnState: tlsConfigurator.ConnState,
-			ErrorLog:  stdLog.New(LevelWriter{log.DefaultLogger, log.ErrorLevel}, "", stdLog.Lshortfile),
+			ErrorLog:  log.DefaultLogger.Std(log.ErrorLevel, log.NewContext().Str("proto", "http2").Str("addr", addr).Value(), "", 0),
 		}
 
 		http2.ConfigureServer(server, &http2.Server{})
@@ -492,7 +492,7 @@ func main() {
 
 		server := &http.Server{
 			Handler:  handler,
-			ErrorLog: stdLog.New(LevelWriter{log.DefaultLogger, log.ErrorLevel}, "", stdLog.Lshortfile),
+			ErrorLog: log.DefaultLogger.Std(log.ErrorLevel, log.NewContext().Str("proto", "http2").Str("addr", addr).Value(), "", 0),
 		}
 
 		go server.Serve(TCPListener{

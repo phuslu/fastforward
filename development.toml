@@ -16,4 +16,4 @@ forward_policy = 'bypass_auth'
 
 [[dns]]
 listen = [':53']
-upstream = ["9.9.9.9"]
+upstream = ["114.114.114.114"]

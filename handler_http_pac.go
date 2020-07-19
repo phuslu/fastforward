@@ -64,7 +64,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	hasGzip := strings.Contains(req.Header.Get("accept-encoding"), "gzip")
 
-	log.Info().Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Msg("pac request")
+	log.Info().Context(ri.LogContext).Msg("pac request")
 
 	var pac []byte
 	var pacCacheKey = req.Host + req.URL.Path + h.PacIPList
@@ -80,7 +80,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return ReadFile(h.PacIPList)
 		})
 		if err != nil {
-			log.Warn().Err(err).Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("pac_ip_list", h.PacIPList).Msg("read pac iplist error")
+			log.Warn().Err(err).Context(ri.LogContext).Str("pac_ip_list", h.PacIPList).Msg("read pac iplist error")
 			http.Error(rw, err.Error(), http.StatusServiceUnavailable)
 			return
 		}
@@ -89,14 +89,14 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		iplist, err := MergeCIDRToIPList(bytes.NewReader(body))
 		if err != nil {
-			log.Warn().Err(err).Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("rule_url", h.PacIPList).Msg("parse pac file error")
+			log.Warn().Err(err).Context(ri.LogContext).Str("rule_url", h.PacIPList).Msg("parse pac file error")
 			http.Error(rw, err.Error(), http.StatusServiceUnavailable)
 			return
 		}
 
 		pac, err = h.generatePac(req, iplist)
 		if err != nil {
-			log.Warn().Err(err).Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("remote_ip", ri.RemoteIP).Str("http_method", req.Method).Str("http_url", req.URL.String()).Str("http_proto", req.Proto).Str("rule_url", h.PacIPList).Msg("generate pac file error")
+			log.Warn().Err(err).Context(ri.LogContext).Str("rule_url", h.PacIPList).Msg("generate pac file error")
 			if os.IsNotExist(err) {
 				h.Next.ServeHTTP(rw, req)
 			} else {

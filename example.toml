@@ -140,3 +140,7 @@ forward_policy = '''
 listen = [':443']
 relay_to = 'a-mtproxy.org:443'
 forward_upstream = 'proxy1_example_org'
+
+[[dns]]
+listen = [':53']
+upstream = ['114.114.114.114', 'https://doh.dns.apple.com/dns-query']

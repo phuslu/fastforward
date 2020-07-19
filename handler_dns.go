@@ -99,17 +99,37 @@ func (h *DNSHandler) ServePacketConn(conn net.PacketConn, addr net.Addr, buf []b
 	question := msg.Questions[0]
 	log.Info().Stringer("remote_ip", addr).Str("msg_header", msg.Header.GoString()).Str("msg_question", question.GoString()).Msg("parse dns message ok")
 
-	if s := question.Name.String(); s == "1.0.0.127.in-addr.arpa." {
+	switch question.Type {
+	case dnsmessage.TypeA, dnsmessage.TypeAAAA:
+		break
+	default:
+		return
+	}
+
+	name := question.Name.String()
+	as := make([][4]byte, 0)
+
+	switch name {
+	case "1.0.0.127.in-addr.arpa.":
+		as = append(as, [4]byte{127, 0, 0, 1})
+	default:
+		hosts, _ := h.resolvers[0].LookupHost(context.Background(), name[:len(name)-2])
+		for _, s := range hosts {
+			var a [4]byte
+			copy(a[:], net.ParseIP(s))
+			as = append(as, a)
+		}
+	}
+
+	for _, a := range as {
 		msg.Answers = append(msg.Answers, dnsmessage.Resource{
 			dnsmessage.ResourceHeader{
-				Name:  dnsmessage.MustNewName(s),
+				Name:  dnsmessage.MustNewName(name),
 				Type:  dnsmessage.TypeA,
 				Class: dnsmessage.ClassINET,
-				TTL:   86400,
+				TTL:   600,
 			},
-			&dnsmessage.AResource{
-				[4]byte{127, 0, 0, 1},
-			},
+			&dnsmessage.AResource{a},
 		})
 	}
 
