@@ -48,7 +48,7 @@ func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri.TraceID = xid.New()
 
 	ri.LogContext = log.NewContext().
-		Stringer("trace_id", ri.TraceID).
+		Xid("trace_id", ri.TraceID).
 		Str("server_name", ri.ServerName).
 		Str("server_addr", ri.ServerAddr).
 		Str("tls_version", ri.TLSVersion.String()).

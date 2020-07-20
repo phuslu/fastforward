@@ -38,12 +38,8 @@ github.com/oschwald/maxminddb-golang v1.7.0 h1:JmU4Q1WBv5Q+2KZy5xJI+98aUwTIrPPxZ
 github.com/oschwald/maxminddb-golang v1.7.0/go.mod h1:RXZtst0N6+FY/3qCNmZMBApR19cdQj43/NM9VkrNAis=
 github.com/phuslu/geoip v1.0.20200715 h1:cnelSSrjnGW2mK5iuk+4tZJgWNz3hpMJXATMdMxhFT8=
 github.com/phuslu/geoip v1.0.20200715/go.mod h1:2z3izHYc+bwW7j5pyvtXG8N+I9Q87XnZfULO6lN9NhA=
-github.com/phuslu/log v1.0.25 h1:2IYDaDtofIBOaLO58GLMphwL/UZfkzJjRsmKB3un87w=
-github.com/phuslu/log v1.0.25/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
-github.com/phuslu/log v1.0.26-0.20200719075458-2a473b34eab5 h1:mOBU3MR6DMGZUrE2FY2wtIH95eSFFX/Jq6Zhdr840Ko=
-github.com/phuslu/log v1.0.26-0.20200719075458-2a473b34eab5/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
-github.com/phuslu/log v1.0.26-0.20200719120501-c94728ee6bdd h1:j33Hdm/37fY+kZwSN5TNTe1F5BM/c2JI6cfCfch77ik=
-github.com/phuslu/log v1.0.26-0.20200719120501-c94728ee6bdd/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
+github.com/phuslu/log v1.0.27-0.20200720130646-fc476b8a36ff h1:bek2vyle7jCSKQXAIn6R0/LV8RIbIrTwFRLBp9BRlk8=
+github.com/phuslu/log v1.0.27-0.20200720130646-fc476b8a36ff/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
