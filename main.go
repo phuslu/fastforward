@@ -78,11 +78,15 @@ func main() {
 		// main logger
 		log.DefaultLogger = log.Logger{
 			Level: log.ParseLevel(config.Log.Level),
-			Writer: &log.FileWriter{
-				Filename:   executable + ".log",
-				MaxBackups: 1,
-				MaxSize:    config.Log.Maxsize,
-				LocalTime:  config.Log.Localtime,
+			Writer: &log.BufferWriter{
+				MaxSize:       32 * 1024,
+				FlushDuration: 2 * time.Second,
+				Writer: &log.FileWriter{
+					Filename:   executable + ".log",
+					MaxBackups: 1,
+					MaxSize:    config.Log.Maxsize,
+					LocalTime:  config.Log.Localtime,
+				},
 			},
 		}
 		// forward logger

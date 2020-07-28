@@ -124,7 +124,7 @@ func NewConfig(filename string) (*Config, error) {
 	}
 
 	if filename == "development.toml" {
-		fmt.Fprintf(os.Stderr, "%s WAN config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
+		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
 	}
 
 	c.raw = tomlData
