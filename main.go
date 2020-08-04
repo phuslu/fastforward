@@ -79,7 +79,7 @@ func main() {
 		log.DefaultLogger = log.Logger{
 			Level: log.ParseLevel(config.Log.Level),
 			Writer: &log.BufferWriter{
-				MaxSize:       32 * 1024,
+				BufferSize:    32 * 1024,
 				FlushDuration: 2 * time.Second,
 				Writer: &log.FileWriter{
 					Filename:   executable + ".log",
@@ -410,7 +410,7 @@ func main() {
 				GetConfigForClient: tlsConfigurator.GetConfigForClient,
 			},
 			ConnState: tlsConfigurator.ConnState,
-			ErrorLog:  log.DefaultLogger.Std(log.ErrorLevel, log.NewContext().Str("proto", "http2").Str("addr", addr).Value(), "", 0),
+			ErrorLog:  log.DefaultLogger.Std(log.ErrorLevel, log.NewContext(nil).Str("proto", "http2").Str("addr", addr).Value(), "", 0),
 		}
 
 		http2.ConfigureServer(server, &http2.Server{})
@@ -496,7 +496,7 @@ func main() {
 
 		server := &http.Server{
 			Handler:  handler,
-			ErrorLog: log.DefaultLogger.Std(log.ErrorLevel, log.NewContext().Str("proto", "http2").Str("addr", addr).Value(), "", 0),
+			ErrorLog: log.DefaultLogger.Std(log.ErrorLevel, log.NewContext(nil).Str("proto", "http2").Str("addr", addr).Value(), "", 0),
 		}
 
 		go server.Serve(TCPListener{
@@ -629,7 +629,6 @@ func main() {
 	}
 	runner := cron.New(cronOptions...)
 	if !log.IsTerminal(os.Stderr.Fd()) {
-		runner.AddFunc("0 0 0 * * *", func() { log.DefaultLogger.Writer.(*log.FileWriter).Rotate() })
 		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.FileWriter).Rotate() })
 	}
 	for _, job := range config.Cron {
@@ -654,10 +653,12 @@ func main() {
 	switch <-c {
 	case syscall.SIGTERM, syscall.SIGINT:
 		log.Info().Msg("liner flush logs and exit.")
+		log.Flush(log.DefaultLogger.Writer)
 		os.Exit(0)
 	}
 
 	log.Warn().Msg("liner start graceful shutdown...")
+	log.Flush(log.DefaultLogger.Writer)
 
 	SetProcessName("liner: (graceful shutdown)")
 
@@ -683,4 +684,5 @@ func main() {
 	wg.Wait()
 
 	log.Info().Msg("liner server shutdown")
+	log.Flush(log.DefaultLogger.Writer)
 }
