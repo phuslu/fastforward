@@ -29,6 +29,7 @@ github.com/mitchellh/copystructure v1.0.0 h1:Laisrj+bAB6b/yJwB5Bt3ITZhGJdqmxquMK
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
 github.com/mitchellh/reflectwalk v1.0.0 h1:9D+8oIskB4VJBN5SFlmc27fSlIBZaov1Wpk/IfikLNY=
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
+github.com/mitchellh/reflectwalk v1.0.1 h1:FVzMWA5RllMAKIdUSC8mdWo3XtwoecrH79BY70sEEpE=
 github.com/mitchellh/reflectwalk v1.0.1/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/naoina/go-stringutil v0.1.0 h1:rCUeRUHjBjGTSHl0VC00jUPLz8/F9dDzYI70Hzifhks=
 github.com/naoina/go-stringutil v0.1.0/go.mod h1:XJ2SJL9jCtBh+P9q5btrd/Ylo8XwT/h1USek5+NqSA0=
@@ -40,6 +41,8 @@ github.com/phuslu/geoip v1.0.20200730 h1:tk4e/fHafVs10XjTqYmlvxJ6qBz108MInbTRLit
 github.com/phuslu/geoip v1.0.20200730/go.mod h1:2z3izHYc+bwW7j5pyvtXG8N+I9Q87XnZfULO6lN9NhA=
 github.com/phuslu/log v1.0.33 h1:sche9ctmglNdI6E1zr51LAYOMQNNvODHyaz4O1cr3n8=
 github.com/phuslu/log v1.0.33/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
+github.com/phuslu/log v1.0.34-0.20200805155440-fdb7c27795c6 h1:tRhKDPWwQS29zhqKV5mHWKOcwRiID92U4jGo7kRhuKw=
+github.com/phuslu/log v1.0.34-0.20200805155440-fdb7c27795c6/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/phuslu/log"
 	"github.com/rs/xid"
@@ -30,16 +31,27 @@ var RequestInfoContextKey = struct {
 	name string
 }{"request-info"}
 
+var riPool = sync.Pool{
+	New: func() interface{} {
+		return new(RequestInfo)
+	},
+}
+
 func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	var ri RequestInfo
+	ri := riPool.Get().(*RequestInfo)
+	defer riPool.Put(ri)
 
 	ri.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	ri.ServerAddr = req.Context().Value(http.LocalAddrContextKey).(net.Addr).String()
 	if req.TLS != nil {
 		ri.ServerName = req.TLS.ServerName
 		ri.TLSVersion = TLSVersion(req.TLS.Version)
+	} else {
+		ri.ServerName = ""
+		ri.TLSVersion = 0
 	}
 
+	ri.ClientHelloInfo = nil
 	if h.TLSConfigurator != nil && h.TLSConfigurator.ClientHelloCache != nil {
 		if v, ok := h.TLSConfigurator.ClientHelloCache.Get(req.RemoteAddr); ok {
 			ri.ClientHelloInfo = v.(*tls.ClientHelloInfo)
