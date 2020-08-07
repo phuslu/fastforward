@@ -37,7 +37,7 @@ func (h *HTTPProxyHandler) Load() error {
 }
 
 func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(RequestInfo)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	// if req.Method == http.MethodConnect {
 	// 	RejectRequest(rw, req)

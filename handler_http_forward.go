@@ -130,7 +130,7 @@ func (h *HTTPForwardHandler) Load() error {
 }
 
 func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(RequestInfo)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	var err error
 	var host = req.Host
@@ -438,7 +438,7 @@ type ForwardAuthInfo struct {
 	expires int64
 }
 
-func (h *HTTPForwardHandler) GetAuthInfo(ri RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
+func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
 	var b bytes.Buffer
 
 	err = h.AuthTemplate.Execute(&b, struct {

@@ -50,7 +50,7 @@ func (h *HTTPPacHandler) Load() error {
 }
 
 func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(RequestInfo)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if req.TLS != nil && !(req.ProtoAtLeast(2, 0) && ri.TLSVersion == tls.VersionTLS13 && IsTLSGreaseCode(ri.ClientHelloInfo.CipherSuites[0])) {
 		h.Next.ServeHTTP(rw, req)
