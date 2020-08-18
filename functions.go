@@ -7,7 +7,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
-	"github.com/phuslu/geoip"
+	"github.com/phuslu/iploc"
 	"github.com/phuslu/log"
 )
 
@@ -60,7 +60,7 @@ func (f *Functions) country(ip string) string {
 		ip = ips[0].String()
 	}
 
-	return string(geoip.Country(net.ParseIP(ip)))
+	return string(iploc.Country(net.ParseIP(ip)))
 }
 
 type GeoipInfo struct {

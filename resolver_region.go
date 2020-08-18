@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/oschwald/maxminddb-golang"
-	"github.com/phuslu/geoip"
+	"github.com/phuslu/iploc"
 )
 
 type RegionResolver struct {
@@ -38,7 +38,7 @@ func (r *RegionResolver) LookupCountry(ctx context.Context, host string) (string
 		return "ZZ", nil
 	}
 
-	country := string(geoip.Country(ip))
+	country := string(iploc.Country(ip))
 	if country == "" {
 		return "ZZ", nil
 	}
