@@ -49,6 +49,8 @@ github.com/phuslu/log v1.0.34-0.20200805155440-fdb7c27795c6 h1:tRhKDPWwQS29zhqKV
 github.com/phuslu/log v1.0.34-0.20200805155440-fdb7c27795c6/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
 github.com/phuslu/log v1.0.36 h1:pF8ApuHvt1FRqiZ52zEalqTlN+63or57tXEUDWpIb58=
 github.com/phuslu/log v1.0.36/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
+github.com/phuslu/log v1.0.37-0.20200818083239-a58abf75904f h1:rOieiIifDAArtydr8wBld8ey00pPG9tPdEBOfKS/BWA=
+github.com/phuslu/log v1.0.37-0.20200818083239-a58abf75904f/go.mod h1:BSFbUpGk1VoydawCb63LBAGwv/q6qbaItgrBpehbPsk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=

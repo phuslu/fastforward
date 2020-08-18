@@ -81,7 +81,7 @@ func main() {
 			Writer: &log.BufferWriter{
 				BufferSize:    32 * 1024,
 				FlushDuration: 2 * time.Second,
-				Writer: &log.FileWriter{
+				Writer: &log.FastFileWriter{
 					Filename:   executable + ".log",
 					MaxBackups: 1,
 					MaxSize:    config.Log.Maxsize,
@@ -92,7 +92,7 @@ func main() {
 		// forward logger
 		forwardLogger = log.Logger{
 			Level: log.ParseLevel(config.Log.Level),
-			Writer: &log.FileWriter{
+			Writer: &log.FastFileWriter{
 				Filename:   "forward.log",
 				MaxBackups: config.Log.Backups,
 				MaxSize:    config.Log.Maxsize,
@@ -102,7 +102,7 @@ func main() {
 		// dns logger
 		dnsLogger = log.Logger{
 			Level: log.ParseLevel(config.Log.Level),
-			Writer: &log.FileWriter{
+			Writer: &log.FastFileWriter{
 				Filename:   "dns.log",
 				MaxBackups: config.Log.Backups,
 				MaxSize:    config.Log.Maxsize,
@@ -629,7 +629,7 @@ func main() {
 	}
 	runner := cron.New(cronOptions...)
 	if !log.IsTerminal(os.Stderr.Fd()) {
-		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.FileWriter).Rotate() })
+		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.FastFileWriter).Rotate() })
 	}
 	for _, job := range config.Cron {
 		spec, command := job.Spec, job.Command
