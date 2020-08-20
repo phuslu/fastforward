@@ -6,7 +6,7 @@ function setup() {
 	mkdir -p ~/.ssh
 	ssh-keyscan -H github.com | tee -a ~/.ssh/known_hosts
 
-	curl 'https://dl.google.com/go/go1.14.6.linux-amd64.tar.gz' | tar xz -C /tmp/
+	curl 'https://dl.google.com/go/go1.15.linux-amd64.tar.gz' | tar xz -C /tmp/
 }
 
 function build() {
