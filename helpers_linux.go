@@ -79,7 +79,7 @@ func SetProcessName(name string) error {
 	argv0str := (*reflect.StringHeader)(unsafe.Pointer(&os.Args[0]))
 	argv0 := (*[1 << 30]byte)(unsafe.Pointer(argv0str.Data))[:len(name)+1]
 
-	n := copy(argv0, name+string(0))
+	n := copy(argv0, name+"\x00")
 	if n < len(argv0) {
 		argv0[n] = 0
 	}
