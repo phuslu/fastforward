@@ -19,7 +19,7 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/oschwald/maxminddb-golang v1.7.0
 	github.com/phuslu/iploc v1.0.20200808
-	github.com/phuslu/log v1.0.37-0.20200818083239-a58abf75904f
+	github.com/phuslu/log v1.0.38
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/xid v1.2.1
 	github.com/tidwall/lotsa v1.0.1 // indirect
@@ -28,7 +28,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200817155316-9781c653f443
+	golang.org/x/sys v0.0.0-20200819171115-d785dc25833f
 	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
