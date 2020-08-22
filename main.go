@@ -659,7 +659,9 @@ func main() {
 	}
 
 	log.Warn().Msg("liner start graceful shutdown...")
-	log.DefaultLogger.Writer.(io.Closer).Close()
+	if w, ok := log.DefaultLogger.Writer.(*log.AsyncWriter); ok {
+		w.Sync()
+	}
 
 	SetProcessName("liner: (graceful shutdown)")
 
