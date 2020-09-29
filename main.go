@@ -79,15 +79,11 @@ func main() {
 		// main logger
 		log.DefaultLogger = log.Logger{
 			Level: log.ParseLevel(config.Log.Level),
-			Writer: &log.AsyncWriter{
-				BufferSize:   32 * 1024,
-				SyncDuration: 2 * time.Second,
-				Writer: &log.FileWriter{
-					Filename:   executable + ".log",
-					MaxBackups: 1,
-					MaxSize:    config.Log.Maxsize,
-					LocalTime:  config.Log.Localtime,
-				},
+			Writer: &log.FileWriter{
+				Filename:   executable + ".log",
+				MaxBackups: 1,
+				MaxSize:    config.Log.Maxsize,
+				LocalTime:  config.Log.Localtime,
 			},
 		}
 		// forward logger
@@ -659,10 +655,6 @@ func main() {
 	}
 
 	log.Warn().Msg("liner start graceful shutdown...")
-	if w, ok := log.DefaultLogger.Writer.(*log.AsyncWriter); ok {
-		w.Sync()
-	}
-
 	SetProcessName("liner: (graceful shutdown)")
 
 	timeout := 5 * time.Minute
@@ -687,5 +679,4 @@ func main() {
 	wg.Wait()
 
 	log.Info().Msg("liner server shutdown")
-	log.DefaultLogger.Writer.(io.Closer).Close()
 }
