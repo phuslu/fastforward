@@ -25,9 +25,7 @@ type HTTPConfig struct {
 	ForwardOutboundIp   string
 	ForwardLog          bool
 
-	PacEnabled bool
-	PacIplist  string
-
+	PacEnabled   bool
 	PprofEnabled bool
 
 	ProxyPass        string
