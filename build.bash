@@ -71,7 +71,6 @@ server_name = ['localhost', '127.0.0.1']
 forward_policy = 'bypass_auth'
 forward_upstream = 'https_hk'
 pac_enabled = true
-pac_iplist = 'https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt'
 EOF
 	# clean old files
 	rm liner_darwin_amd64-${revison}.tar.xz
@@ -107,7 +106,6 @@ server_name = ['localhost', '127.0.0.1']
 forward_policy = 'bypass_auth'
 forward_upstream = 'https_hk'
 pac_enabled = true
-pac_iplist = 'https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt'
 EOF
 		# clean old files
 		rm liner_windows_${arch}-${revison}.tar.xz

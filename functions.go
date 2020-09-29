@@ -1,18 +1,26 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
+	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig"
 	"github.com/phuslu/iploc"
 	"github.com/phuslu/log"
+	"github.com/tidwall/shardmap"
+	"golang.org/x/sync/singleflight"
 )
 
 type Functions struct {
+	Singleflight   *singleflight.Group
 	RegionResolver *RegionResolver
+	shardmap       shardmap.Map
 }
 
 func (f *Functions) FuncMap() template.FuncMap {
@@ -25,6 +33,7 @@ func (f *Functions) FuncMap() template.FuncMap {
 	m["geoip"] = f.geoip
 	m["greased"] = f.greased
 	m["region"] = f.region
+	m["iplist"] = f.iplist
 
 	return m
 }
@@ -116,4 +125,55 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 	}
 	c := info.CipherSuites[0]
 	return c&0x0f0f == 0x0a0a && c&0xff == c>>8
+}
+
+type IPListItem struct {
+	Time time.Time
+	Data string
+}
+
+func (f *Functions) iplist(iplistUrl string) string {
+	v, ok := f.shardmap.Get(iplistUrl)
+	if ok {
+		item := v.(IPListItem)
+		if timeNow().Sub(item.Time) < 12*time.Hour {
+			return item.Data
+		}
+		f.shardmap.Delete(iplistUrl)
+	}
+
+	v, err, _ := f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
+		return ReadFile(iplistUrl)
+	})
+	if err != nil {
+		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
+		return "[]"
+	}
+
+	body := v.([]byte)
+
+	iplist, err := MergeCIDRToIPList(bytes.NewReader(body))
+	if err != nil {
+		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("parse iplist url error")
+		return "[]"
+	}
+
+	var sb strings.Builder
+	sb.WriteByte('[')
+	for i := 0; i < len(iplist); i++ {
+		if i > 0 {
+			sb.WriteByte(',')
+		}
+		if i%2 == 0 {
+			fmt.Fprintf(&sb, "%d", iplist[i])
+		} else {
+			fmt.Fprintf(&sb, "%d", iplist[i]-iplist[i-1])
+		}
+	}
+	sb.WriteByte(']')
+
+	data := sb.String()
+	f.shardmap.Set(iplistUrl, IPListItem{timeNow(), data})
+
+	return data
 }

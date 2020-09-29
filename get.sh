@@ -66,7 +66,6 @@ forward_policy = '''
 forward_upstream = '{{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}'
 forward_log = true
 pac_enabled = true
-pac_iplist = 'https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt'
 proxy_pass = 'http://127.0.0.1:80'
 EOF
 
@@ -91,7 +90,7 @@ WantedBy=multi-user.target
 EOF
 
 echo ENV=production | tee .env
-mv proxy.pac $pacfile
+mv china.pac $pacfile
 
 sudo ./liner.sh restart
 hash systemctl 2>/dev/null && sudo systemctl enable $(pwd)/liner.service

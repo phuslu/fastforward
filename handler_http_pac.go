@@ -14,37 +14,19 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
-	"github.com/tidwall/shardmap"
-	"golang.org/x/sync/singleflight"
 )
 
 type HTTPPacHandler struct {
 	Next   http.Handler
 	Config HTTPConfig
 
-	PacIPList    string
-	singleflight *singleflight.Group
-	cache        *shardmap.Map
-}
-
-type PacCacheItem struct {
-	Data []byte
-
-	expires int64
+	Functions template.FuncMap
 }
 
 func (h *HTTPPacHandler) Load() error {
 	if !h.Config.PacEnabled {
 		return nil
 	}
-
-	h.PacIPList = h.Config.PacIplist
-	if h.PacIPList == "" {
-		h.PacIPList = DefaultPacIPlist
-	}
-
-	h.singleflight = &singleflight.Group{}
-	h.cache = shardmap.New(0)
 
 	return nil
 }
@@ -66,76 +48,23 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	log.Info().Context(ri.LogContext).Msg("pac request")
 
-	var pac []byte
-	var pacCacheKey = req.Host + req.URL.Path + h.PacIPList
-	if !hasGzip {
-		pacCacheKey += "!gzip"
-	}
-
-	if v, ok := h.cache.Get(pacCacheKey); ok && v.(PacCacheItem).expires > unix() {
-		pac = v.(PacCacheItem).Data
-	} else {
-		h.cache.Delete(pacCacheKey)
-		v, err, _ := h.singleflight.Do(h.PacIPList, func() (interface{}, error) {
-			return ReadFile(h.PacIPList)
-		})
-		if err != nil {
-			log.Warn().Err(err).Context(ri.LogContext).Str("pac_ip_list", h.PacIPList).Msg("read pac iplist error")
-			http.Error(rw, err.Error(), http.StatusServiceUnavailable)
-			return
-		}
-
-		body := v.([]byte)
-
-		iplist, err := MergeCIDRToIPList(bytes.NewReader(body))
-		if err != nil {
-			log.Warn().Err(err).Context(ri.LogContext).Str("rule_url", h.PacIPList).Msg("parse pac file error")
-			http.Error(rw, err.Error(), http.StatusServiceUnavailable)
-			return
-		}
-
-		pac, err = h.generatePac(req, iplist)
-		if err != nil {
-			log.Warn().Err(err).Context(ri.LogContext).Str("rule_url", h.PacIPList).Msg("generate pac file error")
-			if os.IsNotExist(err) {
-				h.Next.ServeHTTP(rw, req)
-			} else {
-				http.Error(rw, err.Error(), http.StatusServiceUnavailable)
-			}
-			return
-		}
-
-		if hasGzip {
-			b := new(bytes.Buffer)
-			w := gzip.NewWriter(b)
-			w.Write(pac)
-			w.Close()
-			pac = b.Bytes()
-		}
-
-		h.cache.Set(pacCacheKey, PacCacheItem{pac, unix() + 12*3600})
-		h.singleflight.Forget(h.PacIPList)
-	}
-
-	rw.Header().Add("cache-control", "max-age=86400")
-	rw.Header().Add("content-type", "text/plain; charset=UTF-8")
-	rw.Header().Add("content-length", strconv.FormatUint(uint64(len(pac)), 10))
-	if hasGzip {
-		rw.Header().Add("content-encoding", "gzip")
-	}
-	rw.WriteHeader(http.StatusOK)
-	rw.Write(pac)
-}
-
-func (h *HTTPPacHandler) generatePac(req *http.Request, iplist []IPInt) ([]byte, error) {
 	data, err := ioutil.ReadFile(req.URL.Path[1:])
 	if err != nil {
-		return nil, err
+		log.Error().Context(ri.LogContext).Err(err).Msg("read pac error, fallback to next handler")
+		h.Next.ServeHTTP(rw, req)
+		return
 	}
 
-	tmpl, err := template.New(req.URL.Path[1:]).Parse(string(data))
+	var modTime time.Time
+	if fi, err := os.Stat(req.URL.Path[1:]); err == nil {
+		modTime = fi.ModTime()
+	}
+
+	tmpl, err := template.New(req.URL.Path[1:]).Funcs(h.Functions).Parse(string(data))
 	if err != nil {
-		return nil, err
+		log.Error().Context(ri.LogContext).Err(err).Msg("parse pac error, fallback to next handler")
+		h.Next.ServeHTTP(rw, req)
+		return
 	}
 
 	var proxyScheme, proxyHost, proxyPort string
@@ -160,31 +89,33 @@ func (h *HTTPPacHandler) generatePac(req *http.Request, iplist []IPInt) ([]byte,
 		UpdatedAt time.Time
 		Scheme    string
 		Host      string
-		IPList    PacIPList
 	}{
 		Version:   version,
-		UpdatedAt: timeNow(),
+		UpdatedAt: modTime,
 		Scheme:    proxyScheme,
 		Host:      proxyHost,
-		IPList:    PacIPList(iplist),
 	})
 	if err != nil {
-		return nil, err
+		log.Error().Context(ri.LogContext).Err(err).Msg("eval pac error, fallback to next handler")
+		h.Next.ServeHTTP(rw, req)
+		return
 	}
 
-	return b.Bytes(), nil
-}
-
-type PacIPList []IPInt
-
-func (iplist PacIPList) EndToStep() PacIPList {
-	iplist2 := make(PacIPList, len(iplist))
-	for i := range iplist {
-		if i%2 == 0 {
-			iplist2[i] = iplist[i]
-		} else {
-			iplist2[i] = iplist[i] - iplist[i-1]
-		}
+	pac := b.Bytes()
+	if hasGzip {
+		b := new(bytes.Buffer)
+		w := gzip.NewWriter(b)
+		w.Write(pac)
+		w.Close()
+		pac = b.Bytes()
 	}
-	return iplist2
+
+	rw.Header().Add("cache-control", "max-age=86400")
+	rw.Header().Add("content-type", "text/plain; charset=UTF-8")
+	rw.Header().Add("content-length", strconv.FormatUint(uint64(len(pac)), 10))
+	if hasGzip {
+		rw.Header().Add("content-encoding", "gzip")
+	}
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(pac)
 }

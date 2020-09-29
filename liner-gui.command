@@ -65,7 +65,7 @@ WHRkYXRlOm1vZGlmeQAyMDE3LTAyLTAzVDE4OjI0OjA2KzA4OjAwA25dRQAAAABJRU5ErkJggg==
 """
 PROXY_MENU = [
     '<None>',
-    'http://localhost:8087/proxy.pac',
+    'http://localhost:8087/china.pac',
     'localhost:8087',
 ]
 

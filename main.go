@@ -24,6 +24,7 @@ import (
 	"github.com/phuslu/log"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
+	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -290,6 +291,7 @@ func main() {
 
 	functions := (&Functions{
 		RegionResolver: regionResolver,
+		Singleflight:   &singleflight.Group{},
 	}).FuncMap()
 
 	lc := ListenConfig{
@@ -315,7 +317,8 @@ func main() {
 						},
 						Config: server,
 					},
-					Config: server,
+					Config:    server,
+					Functions: functions,
 				},
 				Config:         server,
 				ForwardLogger:  forwardLogger,
@@ -443,7 +446,8 @@ func main() {
 						},
 						Config: httpConfig,
 					},
-					Config: httpConfig,
+					Config:    httpConfig,
+					Functions: functions,
 				},
 				Config:         httpConfig,
 				ForwardLogger:  forwardLogger,
