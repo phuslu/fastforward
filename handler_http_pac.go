@@ -44,8 +44,6 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hasGzip := strings.Contains(req.Header.Get("accept-encoding"), "gzip")
-
 	log.Info().Context(ri.LogContext).Msg("pac request")
 
 	data, err := ioutil.ReadFile(req.URL.Path[1:])
@@ -55,9 +53,9 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var modTime time.Time
+	var updateAt time.Time
 	if fi, err := os.Stat(req.URL.Path[1:]); err == nil {
-		modTime = fi.ModTime()
+		updateAt = fi.ModTime()
 	}
 
 	tmpl, err := template.New(req.URL.Path[1:]).Funcs(h.Functions).Parse(string(data))
@@ -91,7 +89,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		Host      string
 	}{
 		Version:   version,
-		UpdatedAt: modTime,
+		UpdatedAt: updateAt,
 		Scheme:    proxyScheme,
 		Host:      proxyHost,
 	})
@@ -101,8 +99,10 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	supportGzip := strings.Contains(req.Header.Get("accept-encoding"), "gzip")
+
 	pac := b.Bytes()
-	if hasGzip {
+	if supportGzip {
 		b := new(bytes.Buffer)
 		w := gzip.NewWriter(b)
 		w.Write(pac)
@@ -113,7 +113,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Add("cache-control", "max-age=86400")
 	rw.Header().Add("content-type", "text/plain; charset=UTF-8")
 	rw.Header().Add("content-length", strconv.FormatUint(uint64(len(pac)), 10))
-	if hasGzip {
+	if supportGzip {
 		rw.Header().Add("content-encoding", "gzip")
 	}
 	rw.WriteHeader(http.StatusOK)
