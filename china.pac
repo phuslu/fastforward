@@ -4,6 +4,10 @@ var proxy = '{{.Scheme}} {{.Host}}'
 var direct = 'DIRECT'
 
 var prelude = {
+	// wifi hotpot
+	"captive.apple.com":0,
+	"www.msftconnecttest.com":0,
+	"www.msftncsi.com":0,
 	// direct domains
 	"alicdn.com":0,
 	"cdn-apple.com":0,

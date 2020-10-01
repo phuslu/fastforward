@@ -4,21 +4,25 @@ var proxy = '{{.Scheme}} {{.Host}}'
 var direct = 'DIRECT'
 
 var prelude = {
-    // direct domains
-    "notepad.nz":0,
-    "phus.lu":0,
-    "golang.org":0,
-    // proxy doamins
-    "facebook.com":1,
-    "googlevideo.com":1,
-    "linkedin.com":1,
-    "pornhub.com":1,
-    "twimg.com":1,
-    "twitter.com":1,
-    "youtube.com":1,
-    "ytimg.com":1,
-    // dark web
-    "onion":1
+	// wifi hotpot
+	"captive.apple.com":0,
+	"www.msftconnecttest.com":0,
+	"www.msftncsi.com":0,
+	// direct domains
+	"notepad.nz":0,
+	"phus.lu":0,
+	"golang.org":0,
+	// proxy doamins
+	"facebook.com":1,
+	"googlevideo.com":1,
+	"linkedin.com":1,
+	"pornhub.com":1,
+	"twimg.com":1,
+	"twitter.com":1,
+	"youtube.com":1,
+	"ytimg.com":1,
+	// dark web
+	"onion":1
 }
 
 var reserved = [0xa000000,0xb000000,0x7f000000,0x80000000,0xa9fe0000,0xa9ff0000,0xac100000,0xac200000,0xc0a80000,0xc0a90000,0xf0000000,0xfa000000]
