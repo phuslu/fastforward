@@ -7,7 +7,6 @@ import (
 
 const (
 	DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-	DefaultPacIPlist = "https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt"
 	DefaultProxyPass = "http://127.0.0.1:80"
 )
 

@@ -27,7 +27,7 @@ var prelude = {
 
 var reserved = [0xa000000,0xb000000,0x7f000000,0x80000000,0xa9fe0000,0xa9ff0000,0xac100000,0xac200000,0xc0a80000,0xc0a90000,0xf0000000,0xfa000000]
 
-var iplist = {{ iplist "https://cdn.jsdelivr.net/gh/phuslu/apnic-iplist/sg.txt" }}
+var iplist = {{ iplist "https://cdn.jsdelivr.net/gh/phuslu/iplist/sg.txt" }}
 
 function FindProxyForURL(_, host) {
 	var i
