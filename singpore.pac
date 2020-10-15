@@ -16,6 +16,7 @@ var prelude = {
 	"facebook.com":1,
 	"googlevideo.com":1,
 	"linkedin.com":1,
+	"phncdn.com":1,
 	"pornhub.com":1,
 	"twimg.com":1,
 	"twitter.com":1,
@@ -24,10 +25,6 @@ var prelude = {
 	// dark web
 	"onion":1
 }
-
-var reserved = [0xa000000,0xb000000,0x7f000000,0x80000000,0xa9fe0000,0xa9ff0000,0xac100000,0xac200000,0xc0a80000,0xc0a90000,0xf0000000,0xfa000000]
-
-var iplist = {{ iplist "https://cdn.jsdelivr.net/gh/phuslu/iplist/sg.txt" }}
 
 function FindProxyForURL(_, host) {
 	var i
@@ -39,37 +36,5 @@ function FindProxyForURL(_, host) {
 		tld = tld.slice(i)
 	} while (i >= 1)
 
-	var ipaddr = dnsResolve(host)
-	if (!ipaddr)
-		return proxy
-
-	var b = ipaddr.split('.')
-	var ip = (((b[0]*256+(+b[1]))*256+(+b[2]))*256)+(+b[3])
-
-	var intranet = false
-	for (i = 0; i < reserved.length/2; i++)
-		if (ip >= reserved[2 * i] && ip < reserved[2 * i + 1]) {
-			intranet = true
-			break
-		}
-
-	if (intranet || ip == 0)
-		return direct
-
-	var n = iplist.length
-	i = 0
-	while (i < n - 2) {
-		m = ((i + n) >> 1) & 0xfffe
-		v = iplist[m]
-		if (v <= ip) {
-			i = m
-		} else {
-			n = m
-		}
-	}
-
-	if (i < iplist.length && ip <= iplist[i] + iplist[i+1])
-		return direct
-
-	return proxy
+	return direct
 }
