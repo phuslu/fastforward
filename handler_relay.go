@@ -6,14 +6,13 @@ import (
 	"net"
 
 	"github.com/phuslu/log"
-	"github.com/rs/xid"
 )
 
 type RelayRequest struct {
 	RemoteAddr string
 	RemoteIP   string
 	ServerAddr string
-	TraceID    xid.ID
+	TraceID    log.XID
 }
 
 type RelayHandler struct {
@@ -35,7 +34,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 	req.RemoteAddr = conn.RemoteAddr().String()
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
-	req.TraceID = xid.New()
+	req.TraceID = log.NewXID()
 
 	dail := h.LocalDialer.DialContext
 	if h.Config.ForwardUpstream != "" {

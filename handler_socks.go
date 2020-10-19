@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
-	"github.com/rs/xid"
 	"github.com/tidwall/shardmap"
 	"golang.org/x/net/publicsuffix"
 )
@@ -31,7 +30,7 @@ type SocksRequest struct {
 	Password    string
 	Host        string
 	Port        int
-	TraceID     xid.ID
+	TraceID     log.XID
 }
 
 type SocksHandler struct {
@@ -120,7 +119,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	req.RemoteAddr = conn.RemoteAddr().String()
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
-	req.TraceID = xid.New()
+	req.TraceID = log.NewXID()
 
 	var b [512]byte
 	n, err := io.ReadAtLeast(conn, b[:], 2)

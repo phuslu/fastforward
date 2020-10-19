@@ -19,9 +19,8 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/oschwald/maxminddb-golang v1.7.0
 	github.com/phuslu/iploc v1.0.20200829
-	github.com/phuslu/log v1.0.46-0.20201015165125-9cf01c9202fe
+	github.com/phuslu/log v1.0.48-0.20201019164919-854bb95b9fc8
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/rs/xid v1.2.1
 	github.com/tidwall/lotsa v1.0.1 // indirect
 	github.com/tidwall/rhh v1.1.0 // indirect
 	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211
