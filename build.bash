@@ -39,6 +39,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=6 ./make.bash build dist
+CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./make.bash build dist
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=windows GOARCH=arm GOARM=7 ./make.bash build dist
 EOF
