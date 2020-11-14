@@ -1,12 +1,15 @@
 #!/bin/bash -xe
 
 function setup() {
-	sudo DEBIAN_FRONTEND=noninteractive apt install -yq sshpass rsync git curl zip jq
+	sudo DEBIAN_FRONTEND=noninteractive apt install -yq sshpass rsync git curl zip jq golang
 
 	mkdir -p ~/.ssh
 	ssh-keyscan -H github.com | tee -a ~/.ssh/known_hosts
 
-	curl 'https://dl.google.com/go/go1.15.linux-amd64.tar.gz' | tar xz -C /tmp/
+	pushd /tmp
+	git clone --depth=1 https://go.googlesource.com/go
+	cd go/src && ./make.bash
+	popd
 }
 
 function build() {
