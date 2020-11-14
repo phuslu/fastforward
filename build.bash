@@ -44,7 +44,6 @@ CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=6 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./make.bash build dist
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 ./make.bash build dist
-CGO_ENABLED=0 GOOS=windows GOARCH=arm GOARM=7 ./make.bash build dist
 EOF
 	xargs --max-procs=8 -n1 -i bash -c {}
 }
@@ -88,7 +87,7 @@ function packaging_windows() {
 	pushd build
 
 	local revison=r$(git rev-list --count HEAD)
-	for arch in amd64 arm; do
+	for arch in amd64; do
 		mkdir -p liner
 		tar xvpf liner_windows_${arch}-${revison}.tar.xz -C liner
 		cat <<EOF > liner/production.toml
