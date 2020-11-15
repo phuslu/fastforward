@@ -31,6 +31,9 @@ type HTTPConfig struct {
 	ProxyPass        string
 	ProxySetHeaders  map[string]string
 	ProxyDumpFailure bool
+
+	StaticRoot         string
+	StaticAddAfterBody string
 }
 
 type SocksConfig struct {
