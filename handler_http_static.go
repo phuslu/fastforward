@@ -2,13 +2,13 @@ package main
 
 import (
 	"bytes"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 const defaultStaticTemplate = `
