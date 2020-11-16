@@ -9,15 +9,20 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/phuslu/log"
 )
 
-const defaultStaticTemplate = `
-<html>
+const defaultStaticTemplate = `<html>
 <head><title>Index of {{.Request.URL.Path}}</title></head>
 <body>
 <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
-{{range .FileInfos}}
-<a href="{{.Name}}">{{.Name}}</a>    {{.ModTime}}    {{.Size}}
+{{range .FileInfos -}}
+{{if .IsDir -}}
+<a href="{{.Name}}/">{{.Name}}/</a>    {{.ModTime.Format "02-Jan-2006 15:04"}}    -
+{{else -}}
+<a href="{{.Name}}">{{.Name}}</a>    {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
+{{end -}}
 {{end}}</pre><hr></body>
 </html>
 `
@@ -47,7 +52,7 @@ func (h *HTTPStaticHandler) Load() error {
 }
 
 func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if h.Config.StaticRoot == "" {
 		h.Next.ServeHTTP(rw, req)
@@ -70,14 +75,17 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		}
 		defer file.Close()
 
-		io.Copy(rw, file)
+		n, err := io.Copy(rw, file)
+
+		log.Info().Context(ri.LogContext).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")
+
 		return
 	}
 
 	if !strings.HasSuffix(fullname, "/") {
 		req.URL.Path += "/"
-		http.Redirect(rw, req, req.URL.String(), http.StatusFound)
-		return
+		// http.Redirect(rw, req, req.URL.String(), http.StatusFound)
+		// return
 	}
 
 	infos, err := ioutil.ReadDir(fullname)

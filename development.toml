@@ -12,7 +12,7 @@ prefer_ipv6 = false
 
 [[http]]
 listen = [':80']
-forward_policy = 'bypass_auth'
+static_root = 'C:/develop'
 
 [[socks]]
 listen = [':1082']
