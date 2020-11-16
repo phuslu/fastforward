@@ -67,7 +67,14 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if h.Config.StaticRoot == "" {
-		h.Next.ServeHTTP(rw, req)
+		if h.Config.StaticTemplate != "" {
+			h.template.Execute(rw, struct {
+				Request   *http.Request
+				FileInfos []os.FileInfo
+			}{req, nil})
+		} else {
+			h.Next.ServeHTTP(rw, req)
+		}
 		return
 	}
 
