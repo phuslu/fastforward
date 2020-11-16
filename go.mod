@@ -25,10 +25,10 @@ require (
 	github.com/tidwall/lotsa v1.0.1 // indirect
 	github.com/tidwall/rhh v1.1.0 // indirect
 	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
-	golang.org/x/net v0.0.0-20201109172640-a11eb1b685be
+	golang.org/x/crypto v0.0.0-20201116153603-4be66e5b6582
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20201109165425-215b40eba54c
+	golang.org/x/sys v0.0.0-20201116161645-c061ba923fbb
 	golang.org/x/text v0.3.4 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
