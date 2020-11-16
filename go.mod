@@ -21,6 +21,7 @@ require (
 	github.com/phuslu/iploc v1.0.20201030
 	github.com/phuslu/log v1.0.50
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/tg123/go-htpasswd v1.0.0
 	github.com/tidwall/lotsa v1.0.1 // indirect
 	github.com/tidwall/rhh v1.1.0 // indirect
 	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211

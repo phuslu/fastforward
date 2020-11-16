@@ -2,15 +2,18 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/phuslu/log"
+	"github.com/tg123/go-htpasswd"
 )
 
 const defaultStaticTemplate = `<html>
@@ -90,6 +93,34 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	if fi.IsDir() {
+		// .htpasswd
+		htfile := filepath.Join(fullname, ".htpasswd")
+		if fi1, err := os.Stat(htfile); err == nil && !fi1.IsDir() {
+			ht, err := htpasswd.New(htfile, htpasswd.DefaultSystems, nil)
+			if err != nil {
+				http.Error(rw, "500 internal server error", http.StatusInternalServerError)
+				return
+			}
+			s := req.Header.Get("authorization")
+			if s == "" || !strings.HasPrefix(s, "Basic ") {
+				rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
+				http.Error(rw, "401 unauthorised", http.StatusUnauthorized)
+				return
+			}
+			data, err := base64.StdEncoding.DecodeString(s[6:])
+			if err != nil {
+				rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
+				http.Error(rw, "401 unauthorised", http.StatusUnauthorized)
+				return
+			}
+			parts := strings.SplitN(string(data), ":", 2)
+			if len(parts) != 2 || !ht.Match(parts[0], parts[1]) {
+				rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
+				http.Error(rw, "401 unauthorised", http.StatusUnauthorized)
+				return
+			}
+		}
+		// index.html
 		index := filepath.Join(fullname, h.index)
 		if fi2, err := os.Stat(index); err == nil && !fi2.IsDir() {
 			fullname = index

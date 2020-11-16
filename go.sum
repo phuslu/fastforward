@@ -50,12 +50,15 @@ github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasO
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd0=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/tg123/go-htpasswd v1.0.0 h1:Ze/pZsz73JiCwXIyJBPvNs75asKBgfodCf8iTEkgkXs=
+github.com/tg123/go-htpasswd v1.0.0/go.mod h1:eQTgl67UrNKQvEPKrDLGBssjVwYQClFZjALVLhIv8C0=
 github.com/tidwall/lotsa v1.0.1 h1:w4gpDvI7RdkgbMC0q5ndKqG2ffrwCgerUY/gM2TYkH4=
 github.com/tidwall/lotsa v1.0.1/go.mod h1:X6NiU+4yHA3fE3Puvpnn1XMDrFZrE9JO2/w+UMuqgR8=
 github.com/tidwall/rhh v1.1.0 h1:U+3RGzEB6VoBBkLlsAaF3ThjwZ0JGibplJhDin5Ub/Y=
 github.com/tidwall/rhh v1.1.0/go.mod h1:37/ybjMQQ4nDztczc//g/WBd2X51vogKHWL3xC8kY24=
 github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211 h1:PiivTZ10nwpNhdOLyoCPcYTxHMQ0K9vXUXG9PU19lmc=
 github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211/go.mod h1:Mrr4SdBhvY+pIzCrRJ8ZnbarljEN4ph2rh9GzjRQEWI=
+golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 h1:psW17arqaxU48Z5kZ0CQnkZWQJsqcURM6tKiBApRjXI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
