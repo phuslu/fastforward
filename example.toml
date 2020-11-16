@@ -18,13 +18,13 @@ proxy2_example_com = {scheme='https', username='foobar', password='123456', host
 
 [[https]]
 listen = [':443']
-proxy_pass = 'file:///var/www/html'
+static_root = '/var/www/html'
 
 [[https]]
 listen = [':443']
 server_name = ['example.org']
 keyfile = 'example_org.pem'
-proxy_pass = 'file:///var/www/example.org'
+static_root = '/var/www/example.org'
 
 [[https]]
 listen = [':443']
@@ -100,7 +100,7 @@ forward_upstream = '''
 	{{end}}
 '''
 pac_enabled = true
-proxy_pass = 'file:///C:/Users/phuslu/Desktop'
+static_root = 'C:/Users/phuslu/Desktop'
 
 [[socks]]
 listen = ['127.0.0.1:1081']

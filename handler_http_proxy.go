@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"runtime"
 	"strings"
 
 	"github.com/phuslu/log"
@@ -53,14 +52,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	if upstream.Scheme == "file" {
-		var path string
-		switch runtime.GOOS {
-		case "windows":
-			path = strings.TrimLeft(upstream.Path, "/")
-		default:
-			path = upstream.Path
-		}
-		http.FileServer(http.Dir(path)).ServeHTTP(rw, req)
+		http.Error(rw, "use static_root instead of file://", http.StatusServiceUnavailable)
 		return
 	}
 
