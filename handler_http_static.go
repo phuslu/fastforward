@@ -100,11 +100,26 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	infos2 := make([]os.FileInfo, 0, len(infos))
+	for i := range []int{0, 1} {
+		for _, info := range infos {
+			switch {
+			case info.Name()[0] == '.':
+				continue
+			case i == 0 && !info.IsDir():
+				continue
+			case i == 1 && info.IsDir():
+				continue
+			}
+			infos2 = append(infos2, info)
+		}
+	}
+
 	var b bytes.Buffer
 	err = h.template.Execute(&b, struct {
 		Request   *http.Request
 		FileInfos []os.FileInfo
-	}{req, infos})
+	}{req, infos2})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
