@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"strings"
 	"text/template"
@@ -35,6 +36,7 @@ func (f *Functions) FuncMap() template.FuncMap {
 	m["greased"] = f.greased
 	m["region"] = f.region
 	m["iplist"] = f.iplist
+	m["tryfiles"] = f.tryfiles
 
 	return m
 }
@@ -133,6 +135,16 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 	}
 	c := info.CipherSuites[0]
 	return c&0x0f0f == 0x0a0a && c&0xff == c>>8
+}
+
+func (f *Functions) tryfiles(files ...string) string {
+	for _, file := range files {
+		data, err := ioutil.ReadFile(file)
+		if err == nil {
+			return string(data)
+		}
+	}
+	return ""
 }
 
 type IPListItem struct {
