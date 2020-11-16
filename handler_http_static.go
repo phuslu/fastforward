@@ -31,7 +31,12 @@ type HTTPStaticHandler struct {
 }
 
 func (h *HTTPStaticHandler) Load() error {
-	tmpl, err := template.New(defaultStaticTemplate).Funcs(h.Functions).Parse(defaultStaticTemplate)
+	s := h.Config.StaticTemplate
+	if s == "" {
+		s = defaultStaticTemplate
+	}
+
+	tmpl, err := template.New(s).Funcs(h.Functions).Parse(s)
 	if err != nil {
 		return err
 	}
