@@ -33,6 +33,7 @@ type HTTPConfig struct {
 	ProxyDumpFailure bool
 
 	StaticRoot         string
+	StaticIndex        string
 	StaticTemplate     string
 	StaticCharset      string
 	StaticAddAfterBody string

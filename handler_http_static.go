@@ -32,6 +32,7 @@ type HTTPStaticHandler struct {
 	Config    HTTPConfig
 	Functions template.FuncMap
 
+	index    string
 	charset  string
 	template *template.Template
 }
@@ -40,6 +41,11 @@ func (h *HTTPStaticHandler) Load() error {
 	h.charset = h.Config.StaticCharset
 	if h.charset == "" {
 		h.charset = "utf-8"
+	}
+
+	h.index = h.Config.StaticIndex
+	if h.index == "" {
+		h.index = "index.html"
 	}
 
 	s := h.Config.StaticTemplate
@@ -71,6 +77,14 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	if err != nil {
 		http.Error(rw, "404 not found", http.StatusNotFound)
 		return
+	}
+
+	if fi.IsDir() {
+		index := filepath.Join(fullname, h.index)
+		if fi2, err := os.Stat(index); err == nil && !fi2.IsDir() {
+			fullname = index
+			fi = fi2
+		}
 	}
 
 	if !fi.IsDir() {
