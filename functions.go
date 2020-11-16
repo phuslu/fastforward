@@ -28,6 +28,7 @@ func (f *Functions) FuncMap() template.FuncMap {
 
 	m["all"] = f.all
 	m["any"] = f.any
+	m["host"] = f.host
 	m["city"] = f.city
 	m["country"] = f.country
 	m["geoip"] = f.geoip
@@ -54,6 +55,13 @@ func (f *Functions) any(b ...interface{}) bool {
 		}
 	}
 	return false
+}
+
+func (f *Functions) host(hostport string) string {
+	if host, _, err := net.SplitHostPort(hostport); err == nil {
+		return host
+	}
+	return hostport
 }
 
 func (f *Functions) country(ip string) string {

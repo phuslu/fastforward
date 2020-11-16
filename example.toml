@@ -28,6 +28,13 @@ static_root = '/var/www/example.org'
 
 [[https]]
 listen = [':443']
+server_name = ['ip.example.org']
+keyfile = 'example_org.pem'
+static_add_headers = {content-type="application/json"}
+static_template = '{"ip":"{{host .Request.RemoteAddr}}","geo":"{{country .Request.RemoteAddr}}"}'
+
+[[https]]
+listen = [':443']
 server_name = ['demo.example.org']
 keyfile = '/path/to/demo.example.org.key'
 certfile = '/path/to/fullchain.cer'
