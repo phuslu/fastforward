@@ -68,6 +68,9 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	if h.Config.StaticRoot == "" {
 		if h.Config.StaticTemplate != "" {
+			for key, value := range h.Config.StaticAddHeaders {
+				rw.Header().Add(key, value)
+			}
 			h.template.Execute(rw, struct {
 				Request   *http.Request
 				FileInfos []os.FileInfo
@@ -108,6 +111,9 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 			rw.Header().Set("content-type", "application/octet-stream")
 		}
 
+		for key, value := range h.Config.StaticAddHeaders {
+			rw.Header().Add(key, value)
+		}
 		n, err := io.Copy(rw, file)
 
 		log.Info().Context(ri.LogContext).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")

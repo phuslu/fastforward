@@ -36,6 +36,7 @@ type HTTPConfig struct {
 	StaticIndex        string
 	StaticTemplate     string
 	StaticCharset      string
+	StaticAddHeaders   map[string]string
 	StaticAddAfterBody string
 }
 
