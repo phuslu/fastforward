@@ -152,6 +152,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	// see https://phus.lu/autoindex.html
 	if addFile := h.Config.StaticAddAfterBody; addFile != "" {
 		if data, err := ioutil.ReadFile(filepath.Join(h.Config.StaticRoot, addFile)); err == nil {
 			b.Write(data)
