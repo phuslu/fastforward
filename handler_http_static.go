@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -54,7 +54,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	fullname := path.Join(h.Config.StaticRoot, req.URL.Path)
+	fullname := filepath.Join(h.Config.StaticRoot, req.URL.Path)
 
 	fi, err := os.Stat(fullname)
 	if err != nil {
@@ -94,6 +94,12 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if addFile := h.Config.StaticAddAfterBody; addFile != "" {
+		if data, err := ioutil.ReadFile(filepath.Join(h.Config.StaticRoot, addFile)); err == nil {
+			b.Write(data)
+		}
 	}
 
 	rw.Write(b.Bytes())
