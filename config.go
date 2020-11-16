@@ -34,6 +34,7 @@ type HTTPConfig struct {
 
 	StaticRoot         string
 	StaticTemplate     string
+	StaticCharset      string
 	StaticAddAfterBody string
 }
 

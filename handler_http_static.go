@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
 
 	"github.com/phuslu/log"
@@ -19,9 +19,9 @@ const defaultStaticTemplate = `<html>
 <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
 {{range .FileInfos -}}
 {{if .IsDir -}}
-<a href="{{.Name}}/">{{.Name}}/</a>    {{.ModTime.Format "02-Jan-2006 15:04"}}    -
+<a href="{{.Name}}/">{{.Name}}/</a>                                                                        {{.ModTime.Format "02-Jan-2006 15:04"}}       -
 {{else -}}
-<a href="{{.Name}}">{{.Name}}</a>    {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
+<a href="{{.Name}}">{{.Name}}</a>                                                                        {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
 {{end -}}
 {{end}}</pre><hr></body>
 </html>
@@ -32,10 +32,16 @@ type HTTPStaticHandler struct {
 	Config    HTTPConfig
 	Functions template.FuncMap
 
-	Template *template.Template
+	charset  string
+	template *template.Template
 }
 
 func (h *HTTPStaticHandler) Load() error {
+	h.charset = h.Config.StaticCharset
+	if h.charset == "" {
+		h.charset = "utf-8"
+	}
+
 	s := h.Config.StaticTemplate
 	if s == "" {
 		s = defaultStaticTemplate
@@ -46,7 +52,7 @@ func (h *HTTPStaticHandler) Load() error {
 		return err
 	}
 
-	h.Template = tmpl
+	h.template = tmpl
 
 	return nil
 }
@@ -75,17 +81,17 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		}
 		defer file.Close()
 
+		if s := mime.TypeByExtension(filepath.Ext(fullname)); s != "" {
+			rw.Header().Set("content-type", s)
+		} else {
+			rw.Header().Set("content-type", "application/octet-stream")
+		}
+
 		n, err := io.Copy(rw, file)
 
 		log.Info().Context(ri.LogContext).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")
 
 		return
-	}
-
-	if !strings.HasSuffix(fullname, "/") {
-		req.URL.Path += "/"
-		// http.Redirect(rw, req, req.URL.String(), http.StatusFound)
-		// return
 	}
 
 	infos, err := ioutil.ReadDir(fullname)
@@ -95,7 +101,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	var b bytes.Buffer
-	err = h.Template.Execute(&b, struct {
+	err = h.template.Execute(&b, struct {
 		Request   *http.Request
 		FileInfos []os.FileInfo
 	}{req, infos})
@@ -110,6 +116,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		}
 	}
 
+	rw.Header().Set("content-type", "text/html;charset="+h.charset)
 	rw.Write(b.Bytes())
 	return
 }
