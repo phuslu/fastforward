@@ -28,6 +28,7 @@ const defaultStaticTemplate = `<html>
 {{end -}}
 {{end}}</pre><hr></body>
 </html>
+{{tryfiles (print .StaticRoot "/autoindex.html") }}
 `
 
 type HTTPStaticHandler struct {
@@ -75,9 +76,10 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				rw.Header().Add(key, value)
 			}
 			h.template.Execute(rw, struct {
-				Request   *http.Request
-				FileInfos []os.FileInfo
-			}{req, nil})
+				StaticRoot string
+				Request    *http.Request
+				FileInfos  []os.FileInfo
+			}{h.Config.StaticRoot, req, nil})
 		} else {
 			h.Next.ServeHTTP(rw, req)
 		}
@@ -175,19 +177,13 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	var b bytes.Buffer
 	err = h.template.Execute(&b, struct {
-		Request   *http.Request
-		FileInfos []os.FileInfo
-	}{req, infos2})
+		StaticRoot string
+		Request    *http.Request
+		FileInfos  []os.FileInfo
+	}{h.Config.StaticRoot, req, infos2})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
-	}
-
-	// see https://phus.lu/autoindex.html
-	if addFile := h.Config.StaticAddAfterBody; addFile != "" {
-		if data, err := ioutil.ReadFile(filepath.Join(h.Config.StaticRoot, addFile)); err == nil {
-			b.Write(data)
-		}
 	}
 
 	rw.Header().Set("content-type", "text/html;charset="+h.charset)

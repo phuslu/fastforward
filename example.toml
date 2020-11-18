@@ -25,6 +25,19 @@ listen = [':443']
 server_name = ['example.org']
 keyfile = 'example_org.pem'
 static_root = '/var/www/example.org'
+static_template = '''<html>
+<head><title>Index of {{.Request.URL.Path}}</title></head>
+<body>
+<h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
+{{range .FileInfos -}}
+{{if .IsDir -}}
+<a href="{{.Name}}/">{{.Name}}/</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}       -
+{{else -}}
+<a href="{{.Name}}">{{.Name}}</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
+{{end -}}
+{{end}}</pre><hr></body>
+</html>
+{{tryfiles (print .StaticRoot "/autoindex.html") }}'''
 
 [[https]]
 listen = [':443']
