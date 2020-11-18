@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -144,14 +145,68 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		} else {
 			rw.Header().Set("content-type", "application/octet-stream")
 		}
-		rw.Header().Set("content-length", strconv.FormatInt(fi.Size(), 10))
-
+		rw.Header().Set("accept-ranges", "bytes")
 		for key, value := range h.Config.StaticAddHeaders {
 			rw.Header().Add(key, value)
 		}
-		n, err := io.Copy(rw, file)
 
-		log.Info().Context(ri.LogContext).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")
+		if s := req.Header.Get("range"); s == "" {
+			rw.Header().Set("content-length", strconv.FormatInt(fi.Size(), 10))
+			rw.WriteHeader(http.StatusOK)
+			n, err := io.Copy(rw, file)
+			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")
+		} else {
+			if !strings.HasPrefix(s, "bytes=") {
+				http.Error(rw, "400 bad request", http.StatusBadRequest)
+				return
+			}
+			parts := strings.SplitN(s[6:], "-", 2)
+			if len(parts) != 2 {
+				http.Error(rw, "400 bad request", http.StatusBadRequest)
+				return
+			}
+			// calc ranges
+			var filesize = fi.Size()
+			var ranges [2]int64
+			switch {
+			case parts[0] == "":
+				ranges[0] = 0
+			case parts[1] == "":
+				if filesize == 0 {
+					ranges[1] = 0
+				} else {
+					ranges[1] = filesize - 1
+				}
+			default:
+				for i, part := range parts {
+					ranges[i], err = strconv.ParseInt(part, 10, 64)
+					if err != nil {
+						http.Error(rw, "400 bad request", http.StatusBadRequest)
+						return
+					}
+				}
+			}
+			// content-length
+			length := ranges[1] - ranges[0] + 1
+			if length <= 0 {
+				http.Error(rw, "400 bad request", http.StatusBadRequest)
+				return
+			}
+			// limit reader
+			if ranges[0] > 0 {
+				file.Seek(ranges[0], 0)
+			}
+			var fr io.Reader = file
+			if ranges[1] < filesize-1 {
+				fr = io.LimitReader(file, length)
+			}
+			// send data
+			rw.Header().Set("content-range", fmt.Sprintf("bytes %d-%d/%d", ranges[0], ranges[1], filesize))
+			rw.Header().Set("content-length", strconv.FormatInt(length, 10))
+			rw.WriteHeader(http.StatusPartialContent)
+			n, err := io.Copy(rw, fr)
+			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")
+		}
 
 		return
 	}
