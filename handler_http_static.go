@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -143,6 +144,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		} else {
 			rw.Header().Set("content-type", "application/octet-stream")
 		}
+		rw.Header().Set("content-length", strconv.FormatInt(fi.Size(), 10))
 
 		for key, value := range h.Config.StaticAddHeaders {
 			rw.Header().Add(key, value)
