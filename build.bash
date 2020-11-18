@@ -1,15 +1,13 @@
 #!/bin/bash -xe
 
 function setup() {
-	sudo DEBIAN_FRONTEND=noninteractive apt install -yq sshpass rsync git curl zip jq golang
+	sudo DEBIAN_FRONTEND=noninteractive apt install -yq sshpass rsync git curl zip jq
 
 	mkdir -p ~/.ssh
 	ssh-keyscan -H github.com | tee -a ~/.ssh/known_hosts
 
-	pushd /tmp
-	git clone --depth=1 https://go.googlesource.com/go
-	cd go/src && ./make.bash
-	popd
+	curl -L https://github.com/phuslu/gotip/releases/download/v0.0.0/gotip.linux-amd64.tar.xz | \
+	tar xvJ -C /tmp/
 }
 
 function build() {
