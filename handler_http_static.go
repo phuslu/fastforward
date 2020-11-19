@@ -18,7 +18,7 @@ import (
 	"github.com/tg123/go-htpasswd"
 )
 
-const defaultStaticTemplate = `<html>
+const defaultStaticBody = `<html>
 <head><title>Index of {{.Request.URL.Path}}</title></head>
 <body>
 <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
@@ -38,25 +38,19 @@ type HTTPStaticHandler struct {
 	Config    HTTPConfig
 	Functions template.FuncMap
 
-	index    string
-	charset  string
-	template *template.Template
+	index string
+	body  *template.Template
 }
 
 func (h *HTTPStaticHandler) Load() error {
-	h.charset = h.Config.StaticCharset
-	if h.charset == "" {
-		h.charset = "utf-8"
-	}
-
 	h.index = h.Config.StaticIndex
 	if h.index == "" {
 		h.index = "index.html"
 	}
 
-	s := h.Config.StaticTemplate
+	s := h.Config.StaticBody
 	if s == "" {
-		s = defaultStaticTemplate
+		s = defaultStaticBody
 	}
 
 	tmpl, err := template.New(s).Funcs(h.Functions).Parse(s)
@@ -64,7 +58,7 @@ func (h *HTTPStaticHandler) Load() error {
 		return err
 	}
 
-	h.template = tmpl
+	h.body = tmpl
 
 	return nil
 }
@@ -73,11 +67,11 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if h.Config.StaticRoot == "" {
-		if h.Config.StaticTemplate != "" {
-			for key, value := range h.Config.StaticAddHeaders {
+		if h.Config.StaticBody != "" {
+			for key, value := range h.Config.StaticHeaders {
 				rw.Header().Add(key, value)
 			}
-			h.template.Execute(rw, struct {
+			h.body.Execute(rw, struct {
 				StaticRoot string
 				Request    *http.Request
 				FileInfos  []os.FileInfo
@@ -146,7 +140,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 			rw.Header().Set("content-type", "application/octet-stream")
 		}
 		rw.Header().Set("accept-ranges", "bytes")
-		for key, value := range h.Config.StaticAddHeaders {
+		for key, value := range h.Config.StaticHeaders {
 			rw.Header().Add(key, value)
 		}
 
@@ -233,7 +227,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	var b bytes.Buffer
-	err = h.template.Execute(&b, struct {
+	err = h.body.Execute(&b, struct {
 		StaticRoot string
 		Request    *http.Request
 		FileInfos  []os.FileInfo
@@ -243,7 +237,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	rw.Header().Set("content-type", "text/html;charset="+h.charset)
+	rw.Header().Set("content-type", "text/html;charset=utf-8")
 	rw.Write(b.Bytes())
 	return
 }

@@ -25,7 +25,7 @@ listen = [':443']
 server_name = ['example.org']
 keyfile = 'example_org.pem'
 static_root = '/var/www/example.org'
-static_template = '''<html>
+static_body = '''<html>
 <head><title>Index of {{.Request.URL.Path}}</title></head>
 <body>
 <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
@@ -43,8 +43,8 @@ static_template = '''<html>
 listen = [':443']
 server_name = ['ip.example.org']
 keyfile = 'example_org.pem'
-static_add_headers = {content-type="application/json"}
-static_template = '{"ip":"{{host .Request.RemoteAddr}}","geo":"{{country .Request.RemoteAddr}}"}'
+static_headers = {content-type="application/json"}
+static_body = '{"ip":"{{host .Request.RemoteAddr}}","geo":"{{country .Request.RemoteAddr}}"}'
 
 [[https]]
 listen = [':443']

@@ -32,11 +32,10 @@ type HTTPConfig struct {
 	ProxySetHeaders  map[string]string
 	ProxyDumpFailure bool
 
-	StaticRoot       string
-	StaticIndex      string
-	StaticTemplate   string
-	StaticCharset    string
-	StaticAddHeaders map[string]string
+	StaticRoot    string
+	StaticIndex   string
+	StaticBody    string
+	StaticHeaders map[string]string
 }
 
 type SocksConfig struct {
