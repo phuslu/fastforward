@@ -6,8 +6,8 @@ function setup() {
 	mkdir -p ~/.ssh
 	ssh-keyscan -H github.com | tee -a ~/.ssh/known_hosts
 
-	curl -L https://github.com/phuslu/gotip/releases/download/v0.0.0/gotip.linux-amd64.tar.xz | \
-	tar xvJ -C /tmp/
+	curl -L https://github.com/phuslu/gotip/releases/download/v0.0.0/gotip.linux-amd64.tar.gz | \
+	tar xvz -C /tmp/
 }
 
 function build() {
@@ -122,8 +122,8 @@ function release() {
 
 	local ssh_host=63.223.66.20
 	ssh-keyscan -H ${ssh_host} | tee -a ~/.ssh/known_hosts
-	sshpass -p "${SSH_PASSWORD}" ssh phuslu@${ssh_host} 'rm -rf /var/www/liner/liner_*'
-	sshpass -p "${SSH_PASSWORD}" rsync --progress -avz liner_* "phuslu@${ssh_host}:/var/www/liner/"
+	sshpass -p "${SSH_PASSWORD}" ssh phuslu@${ssh_host} 'rm -rf /home/phuslu/web/liner_*'
+	sshpass -p "${SSH_PASSWORD}" rsync --progress -avz liner_* "phuslu@${ssh_host}:/home/phuslu/web/"
 
 	popd
 }
