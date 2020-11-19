@@ -43,7 +43,7 @@ static_body = '''<html>
 listen = [':443']
 server_name = ['ip.example.org']
 keyfile = 'example_org.pem'
-static_headers = {content-type="application/json"}
+static_headers = 'content-type: application/json'
 static_body = '{"ip":"{{host .Request.RemoteAddr}}","geo":"{{country .Request.RemoteAddr}}"}'
 
 [[https]]

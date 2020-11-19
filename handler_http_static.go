@@ -38,29 +38,33 @@ type HTTPStaticHandler struct {
 	Config    HTTPConfig
 	Functions template.FuncMap
 
-	index string
-	body  *template.Template
+	index   string
+	headers *template.Template
+	body    *template.Template
 }
 
-func (h *HTTPStaticHandler) Load() error {
+func (h *HTTPStaticHandler) Load() (err error) {
 	h.index = h.Config.StaticIndex
 	if h.index == "" {
 		h.index = "index.html"
 	}
 
-	s := h.Config.StaticBody
-	if s == "" {
-		s = defaultStaticBody
-	}
-
-	tmpl, err := template.New(s).Funcs(h.Functions).Parse(s)
+	h.headers, err = template.New(h.Config.StaticHeaders).Funcs(h.Functions).Parse(h.Config.StaticHeaders)
 	if err != nil {
-		return err
+		return
 	}
 
-	h.body = tmpl
+	body := h.Config.StaticBody
+	if body == "" {
+		body = defaultStaticBody
+	}
 
-	return nil
+	h.body, err = template.New(body).Funcs(h.Functions).Parse(body)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -68,9 +72,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	if h.Config.StaticRoot == "" {
 		if h.Config.StaticBody != "" {
-			for key, value := range h.Config.StaticHeaders {
-				rw.Header().Add(key, value)
-			}
+			h.addHeaders(rw, req)
 			h.body.Execute(rw, struct {
 				StaticRoot string
 				Request    *http.Request
@@ -134,16 +136,13 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		}
 		defer file.Close()
 
+		h.addHeaders(rw, req)
 		if s := mime.TypeByExtension(filepath.Ext(fullname)); s != "" {
 			rw.Header().Set("content-type", s)
 		} else {
 			rw.Header().Set("content-type", "application/octet-stream")
 		}
 		rw.Header().Set("accept-ranges", "bytes")
-		for key, value := range h.Config.StaticHeaders {
-			rw.Header().Add(key, value)
-		}
-
 		if s := req.Header.Get("range"); s == "" {
 			rw.Header().Set("content-length", strconv.FormatInt(fi.Size(), 10))
 			rw.WriteHeader(http.StatusOK)
@@ -237,7 +236,24 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	h.addHeaders(rw, req)
 	rw.Header().Set("content-type", "text/html;charset=utf-8")
 	rw.Write(b.Bytes())
 	return
+}
+
+func (h *HTTPStaticHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
+	var sb strings.Builder
+	h.headers.Execute(&sb, struct {
+		StaticRoot string
+		Request    *http.Request
+		FileInfos  []os.FileInfo
+	}{h.Config.StaticRoot, req, nil})
+
+	for _, line := range strings.Split(sb.String(), "\n") {
+		parts := strings.Split(line, ":")
+		if len(parts) == 2 {
+			rw.Header().Add(parts[0], strings.TrimSpace(parts[1]))
+		}
+	}
 }

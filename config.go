@@ -34,8 +34,8 @@ type HTTPConfig struct {
 
 	StaticRoot    string
 	StaticIndex   string
+	StaticHeaders string
 	StaticBody    string
-	StaticHeaders map[string]string
 }
 
 type SocksConfig struct {
