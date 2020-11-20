@@ -238,6 +238,10 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 }
 
 func (h *HTTPIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
+	if h.Config.IndexHeaders == "" {
+		return
+	}
+
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
 		IndexRoot string
