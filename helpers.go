@@ -653,18 +653,18 @@ func GetOCSPStaple(cert *x509.Certificate) ([]byte, error) {
 
 	resp, err := http.Get(cert.IssuingCertificateURL[0])
 	if err != nil {
-		return nil, fmt.Errorf("getting issuer certificate: %v", err)
+		return nil, fmt.Errorf("getting issuer certificate: %w", err)
 	}
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 	if err != nil {
-		return nil, fmt.Errorf("reading issuer certificate: %v", err)
+		return nil, fmt.Errorf("reading issuer certificate: %w", err)
 	}
 
 	issuer, err := x509.ParseCertificate(b)
 	if err != nil {
-		return nil, fmt.Errorf("parsing issuer certificate: %v", err)
+		return nil, fmt.Errorf("parsing issuer certificate: %w", err)
 	}
 
 	b, err = ocsp.CreateRequest(cert, issuer, nil)

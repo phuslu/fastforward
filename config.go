@@ -122,7 +122,7 @@ func NewConfig(filename string) (*Config, error) {
 
 	c := new(Config)
 	if err = toml.Unmarshal(tomlData, c); err != nil {
-		return nil, fmt.Errorf("toml.Decode(%#v) error: %+v", filename, err)
+		return nil, fmt.Errorf("toml.Decode(%#v) error: %+w", filename, err)
 	}
 
 	if filename == "development.toml" {
