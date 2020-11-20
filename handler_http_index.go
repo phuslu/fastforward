@@ -64,17 +64,18 @@ func (h *HTTPIndexHandler) Load() (err error) {
 func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
+	if h.Config.IndexRoot == "" && h.Config.IndexBody == "" {
+		h.Next.ServeHTTP(rw, req)
+		return
+	}
+
 	if h.Config.IndexRoot == "" {
-		if h.Config.IndexBody != "" {
-			h.addHeaders(rw, req)
-			h.body.Execute(rw, struct {
-				IndexRoot string
-				Request   *http.Request
-				FileInfos []os.FileInfo
-			}{h.Config.IndexRoot, req, nil})
-		} else {
-			h.Next.ServeHTTP(rw, req)
-		}
+		h.addHeaders(rw, req)
+		h.body.Execute(rw, struct {
+			IndexRoot string
+			Request   *http.Request
+			FileInfos []os.FileInfo
+		}{h.Config.IndexRoot, req, nil})
 		return
 	}
 
