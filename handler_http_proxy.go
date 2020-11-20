@@ -52,7 +52,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	if upstream.Scheme == "file" {
-		http.Error(rw, "use static_root instead of file://", http.StatusServiceUnavailable)
+		http.Error(rw, "use index_root instead of file://", http.StatusServiceUnavailable)
 		return
 	}
 

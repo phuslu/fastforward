@@ -12,7 +12,7 @@ prefer_ipv6 = false
 
 [[http]]
 listen = [':80']
-static_root = 'C:/develop'
+index_root = 'C:/develop'
 
 [[socks]]
 listen = [':1082']

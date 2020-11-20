@@ -18,14 +18,14 @@ proxy2_example_com = {scheme='https', username='foobar', password='123456', host
 
 [[https]]
 listen = [':443']
-static_root = '/var/www/html'
+index_root = '/var/www/html'
 
 [[https]]
 listen = [':443']
 server_name = ['example.org']
 keyfile = 'example_org.pem'
-static_root = '/var/www/example.org'
-static_body = '''<html>
+index_root = '/var/www/example.org'
+index_body = '''<html>
 <head><title>Index of {{.Request.URL.Path}}</title></head>
 <body>
 <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
@@ -43,8 +43,8 @@ static_body = '''<html>
 listen = [':443']
 server_name = ['ip.example.org']
 keyfile = 'example_org.pem'
-static_headers = 'content-type: application/json'
-static_body = '{"ip":"{{host .Request.RemoteAddr}}","geo":"{{country .Request.RemoteAddr}}"}'
+index_headers = 'content-type: application/json'
+index_body = '{"ip":"{{host .Request.RemoteAddr}}","geo":"{{country .Request.RemoteAddr}}"}'
 
 [[https]]
 listen = [':443']
@@ -120,7 +120,7 @@ forward_upstream = '''
 	{{end}}
 '''
 pac_enabled = true
-static_root = 'C:/Users/phuslu/Desktop'
+index_root = 'C:/Users/phuslu/Desktop'
 
 [[socks]]
 listen = ['127.0.0.1:1081']

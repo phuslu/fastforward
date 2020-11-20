@@ -18,7 +18,7 @@ import (
 	"github.com/tg123/go-htpasswd"
 )
 
-const defaultStaticBody = `<html>
+const defaultIndexBody = `<html>
 <head><title>Index of {{.Request.URL.Path}}</title></head>
 <body>
 <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
@@ -30,33 +30,27 @@ const defaultStaticBody = `<html>
 {{end -}}
 {{end}}</pre><hr></body>
 </html>
-{{tryfiles (print .StaticRoot "/autoindex.html") }}
+{{tryfiles (print .IndexRoot "/autoindex.html") }}
 `
 
-type HTTPStaticHandler struct {
+type HTTPIndexHandler struct {
 	Next      http.Handler
 	Config    HTTPConfig
 	Functions template.FuncMap
 
-	index   string
 	headers *template.Template
 	body    *template.Template
 }
 
-func (h *HTTPStaticHandler) Load() (err error) {
-	h.index = h.Config.StaticIndex
-	if h.index == "" {
-		h.index = "index.html"
-	}
-
-	h.headers, err = template.New(h.Config.StaticHeaders).Funcs(h.Functions).Parse(h.Config.StaticHeaders)
+func (h *HTTPIndexHandler) Load() (err error) {
+	h.headers, err = template.New(h.Config.IndexHeaders).Funcs(h.Functions).Parse(h.Config.IndexHeaders)
 	if err != nil {
 		return
 	}
 
-	body := h.Config.StaticBody
+	body := h.Config.IndexBody
 	if body == "" {
-		body = defaultStaticBody
+		body = defaultIndexBody
 	}
 
 	h.body, err = template.New(body).Funcs(h.Functions).Parse(body)
@@ -67,24 +61,24 @@ func (h *HTTPStaticHandler) Load() (err error) {
 	return
 }
 
-func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
-	if h.Config.StaticRoot == "" {
-		if h.Config.StaticBody != "" {
+	if h.Config.IndexRoot == "" {
+		if h.Config.IndexBody != "" {
 			h.addHeaders(rw, req)
 			h.body.Execute(rw, struct {
-				StaticRoot string
-				Request    *http.Request
-				FileInfos  []os.FileInfo
-			}{h.Config.StaticRoot, req, nil})
+				IndexRoot string
+				Request   *http.Request
+				FileInfos []os.FileInfo
+			}{h.Config.IndexRoot, req, nil})
 		} else {
 			h.Next.ServeHTTP(rw, req)
 		}
 		return
 	}
 
-	fullname := filepath.Join(h.Config.StaticRoot, req.URL.Path)
+	fullname := filepath.Join(h.Config.IndexRoot, req.URL.Path)
 
 	fi, err := os.Stat(fullname)
 	if err != nil {
@@ -121,7 +115,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 			}
 		}
 		// index.html
-		index := filepath.Join(fullname, h.index)
+		index := filepath.Join(fullname, "index.html")
 		if fi2, err := os.Stat(index); err == nil && !fi2.IsDir() {
 			fullname = index
 			fi = fi2
@@ -147,7 +141,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 			rw.Header().Set("content-length", strconv.FormatInt(fi.Size(), 10))
 			rw.WriteHeader(http.StatusOK)
 			n, err := io.Copy(rw, file)
-			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")
+			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("index_root request")
 		} else {
 			if !strings.HasPrefix(s, "bytes=") {
 				http.Error(rw, "400 bad request", http.StatusBadRequest)
@@ -198,7 +192,7 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 			rw.Header().Set("content-length", strconv.FormatInt(length, 10))
 			rw.WriteHeader(http.StatusPartialContent)
 			n, err := io.Copy(rw, fr)
-			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("static_root request")
+			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("index_root request")
 		}
 
 		return
@@ -227,10 +221,10 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	var b bytes.Buffer
 	err = h.body.Execute(&b, struct {
-		StaticRoot string
-		Request    *http.Request
-		FileInfos  []os.FileInfo
-	}{h.Config.StaticRoot, req, infos2})
+		IndexRoot string
+		Request   *http.Request
+		FileInfos []os.FileInfo
+	}{h.Config.IndexRoot, req, infos2})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
@@ -242,13 +236,13 @@ func (h *HTTPStaticHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	return
 }
 
-func (h *HTTPStaticHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
-		StaticRoot string
-		Request    *http.Request
-		FileInfos  []os.FileInfo
-	}{h.Config.StaticRoot, req, nil})
+		IndexRoot string
+		Request   *http.Request
+		FileInfos []os.FileInfo
+	}{h.Config.IndexRoot, req, nil})
 
 	for _, line := range strings.Split(sb.String(), "\n") {
 		parts := strings.Split(line, ":")

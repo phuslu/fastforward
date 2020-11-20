@@ -28,14 +28,13 @@ type HTTPConfig struct {
 	PacEnabled   bool
 	PprofEnabled bool
 
+	IndexRoot    string
+	IndexHeaders string
+	IndexBody    string
+
 	ProxyPass        string
 	ProxySetHeaders  map[string]string
 	ProxyDumpFailure bool
-
-	StaticRoot    string
-	StaticIndex   string
-	StaticHeaders string
-	StaticBody    string
 }
 
 type SocksConfig struct {

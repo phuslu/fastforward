@@ -311,7 +311,7 @@ func main() {
 			Next: &HTTPForwardHandler{
 				Next: &HTTPPacHandler{
 					Next: &HTTPPprofHandler{
-						Next: &HTTPStaticHandler{
+						Next: &HTTPIndexHandler{
 							Next: &HTTPProxyHandler{
 								Config:    server,
 								Transport: transport,
@@ -444,7 +444,7 @@ func main() {
 			Next: &HTTPForwardHandler{
 				Next: &HTTPPacHandler{
 					Next: &HTTPPprofHandler{
-						Next: &HTTPStaticHandler{
+						Next: &HTTPIndexHandler{
 							Next: &HTTPProxyHandler{
 								Config:    httpConfig,
 								Transport: transport,
