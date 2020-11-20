@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -36,6 +37,8 @@ func (f *Functions) FuncMap() template.FuncMap {
 	m["greased"] = f.greased
 	m["region"] = f.region
 	m["iplist"] = f.iplist
+	m["isdir"] = f.isdir
+	m["isfile"] = f.isfile
 	m["tryfiles"] = f.tryfiles
 
 	return m
@@ -135,6 +138,22 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 	}
 	c := info.CipherSuites[0]
 	return c&0x0f0f == 0x0a0a && c&0xff == c>>8
+}
+
+func (f *Functions) isdir(filename string) bool {
+	fi, err := os.Stat(filename)
+	if err != nil {
+		return false
+	}
+	return fi.IsDir()
+}
+
+func (f *Functions) isfile(filename string) bool {
+	fi, err := os.Stat(filename)
+	if err != nil {
+		return false
+	}
+	return !fi.IsDir()
 }
 
 func (f *Functions) tryfiles(files ...string) string {
