@@ -638,6 +638,7 @@ func main() {
 	}
 	runner := cron.New(cronOptions...)
 	if !log.IsTerminal(os.Stderr.Fd()) {
+		runner.AddFunc("0 0 0 * * *", func() { log.DefaultLogger.Writer.(*log.FileWriter).Rotate() })
 		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.FileWriter).Rotate() })
 	}
 	for _, job := range config.Cron {
