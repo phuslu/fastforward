@@ -173,7 +173,7 @@ func main() {
 		Resolver: resolver,
 	}
 
-	if ok, _ := regexp.Match(`\((geoip|region|city) `, config.raw); ok {
+	if ok, _ := regexp.Match(`[({ ](geoip|region|city) `, config.raw); ok {
 		log.Info().Msg("try load maxmind geoip2 database")
 		for _, filename := range []string{
 			"GeoIP2-Enterprise.mmdb",
