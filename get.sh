@@ -63,7 +63,7 @@ https:
             proxy_pass
         {{end}}
       upstream: |
-        '{{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}'
+        {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
       log: true
     pac:
       enabled: true

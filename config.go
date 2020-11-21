@@ -75,7 +75,7 @@ type Config struct {
 	Log struct {
 		Level     string `json:"level" yaml:"level"`
 		Backups   int    `json:"backups" yaml:"backups"`
-		Maxsize   int64  `json:"max_size" yaml:"max_size"`
+		Maxsize   int64  `json:"maxsize" yaml:"maxsize"`
 		Localtime bool   `json:"localtime" yaml:"localtime"`
 	} `json:"log" yaml:"log"`
 	Global struct {
