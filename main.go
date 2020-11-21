@@ -286,21 +286,25 @@ func main() {
 	tlsConfigurator := &TLSConfigurator{}
 	h2handlers := map[string]map[string]http.Handler{}
 	for _, server := range config.Https {
-		// requestinfo -> forward -> pac -> pprof -> proxy
+		// requestinfo -> forward -> pac -> doh -> pprof -> index -> proxy
 		handler := &HTTPHandler{
 			Next: &HTTPForwardHandler{
 				Next: &HTTPPacHandler{
-					Next: &HTTPPprofHandler{
-						Next: &HTTPIndexHandler{
-							Next: &HTTPProxyHandler{
+					Next: &HTTPDoHHandler{
+						Next: &HTTPPprofHandler{
+							Next: &HTTPIndexHandler{
+								Next: &HTTPProxyHandler{
+									Config:    server,
+									Transport: transport,
+									Functions: functions,
+								},
 								Config:    server,
-								Transport: transport,
 								Functions: functions,
 							},
-							Config:    server,
-							Functions: functions,
+							Config: server,
 						},
-						Config: server,
+						Config:    server,
+						Transport: transport,
 					},
 					Config:    server,
 					Functions: functions,
@@ -412,7 +416,6 @@ func main() {
 	// listen and serve http
 	h1handlers := map[string]http.Handler{}
 	for _, httpConfig := range config.Http {
-		// requestinfo -> forward -> pac -> pprof -> proxy
 		httpConfig.ServerName = append(httpConfig.ServerName, "", "localhost", "127.0.0.1")
 		if name, err := os.Hostname(); err == nil {
 			httpConfig.ServerName = append(httpConfig.ServerName, name)
@@ -420,6 +423,7 @@ func main() {
 		if ip, err := GetPreferedLocalIP(); err == nil {
 			httpConfig.ServerName = append(httpConfig.ServerName, ip.String())
 		}
+		// requestinfo -> forward -> pac -> pprof -> index -> proxy
 		handler := &HTTPHandler{
 			Next: &HTTPForwardHandler{
 				Next: &HTTPPacHandler{

@@ -23,10 +23,6 @@ type HTTPPacHandler struct {
 }
 
 func (h *HTTPPacHandler) Load() error {
-	if !h.Config.Pac.Enabled {
-		return nil
-	}
-
 	return nil
 }
 
