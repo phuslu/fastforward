@@ -13,8 +13,8 @@ import (
 type HTTPConfig struct {
 	Listen         []string `json:"listen" yaml:"listen"`
 	ServerName     []string `json:"server_name" yaml:"server_name"`
-	Keyfile        string   `json:"key_file" yaml:"key_file"`
-	Certfile       string   `json:"cert_file" yaml:"cert_file"`
+	Keyfile        string   `json:"keyfile" yaml:"keyfile"`
+	Certfile       string   `json:"certfile" yaml:"certfile"`
 	DisableHttp2   bool     `json:"disable_http2" yaml:"disable_http2"`
 	PreferChacha20 bool     `json:"perfer_chacha20" yaml:"perfer_chacha20"`
 	Forward        struct {
