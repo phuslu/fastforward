@@ -16,47 +16,60 @@ type HTTPConfig struct {
 	DisableHttp2   bool
 	PreferChacha20 bool
 
-	ForwardPolicy       string
-	ForwardAuth         string
-	ForwardUpstream     string
-	ForwardAllowDomains []string
-	ForwardDenyDomains  []string
-	ForwardSpeedLimit   int64
-	ForwardOutboundIp   string
-	ForwardLog          bool
+	Forward struct {
+		Policy       string
+		Auth         string
+		Upstream     string
+		AllowDomains []string
+		DenyDomains  []string
+		SpeedLimit   int64
+		OutboundIp   string
+		Log          bool
+	}
 
-	PacEnabled   bool
-	PprofEnabled bool
+	Pac struct {
+		Enabled bool
+	}
 
-	IndexRoot    string
-	IndexHeaders string
-	IndexBody    string
+	Pprof struct {
+		Enabled bool
+	}
 
-	ProxyPass        string
-	ProxySetHeaders  map[string]string
-	ProxyDumpFailure bool
+	Index struct {
+		Root    string
+		Headers string
+		Body    string
+	}
+
+	Proxy struct {
+		Pass        string
+		Headers     map[string]string
+		DumpFailure bool
+	}
 }
 
 type SocksConfig struct {
 	Listen []string
 
-	ForwardPolicy       string
-	ForwardAuth         string
-	ForwardUpstream     string
-	ForwardAllowDomains []string
-	ForwardDenyDomains  []string
-	ForwardSpeedLimit   int64
-	ForwardOutboundIp   string
-	ForwardLog          bool
+	Forward struct {
+		Policy       string
+		Auth         string
+		Upstream     string
+		AllowDomains []string
+		DenyDomains  []string
+		SpeedLimit   int64
+		OutboundIp   string
+		Log          bool
+	}
 }
 
 type RelayConfig struct {
 	Listen []string
 
-	RelayTo           string
-	ForwardUpstream   string
-	ForwardSpeedLimit int64
-	ForwardLog        bool
+	To         string
+	Upstream   string
+	SpeedLimit int64
+	Log        bool
 }
 
 type DNSConfig struct {

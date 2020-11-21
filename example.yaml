@@ -10,16 +10,28 @@ global:
   prefer_ipv6: false
   dns_server: https://223.5.5.5/dns-query
 upstream:
-  torsocks: socks5h://127.0.0.1:9050
-  proxy1_example_org: https://user:password@proxy1.example.org:443
-  proxy2_example_com: https://foobar:123456@proxy2.example.org:443
+  torsocks:
+    scheme: socks5h
+    host: 127.0.0.1
+    port: 9050
+  proxy1_example_org:
+    scheme: https
+    username: user
+    password: password
+    host: proxy1.example.org
+    port: 443
+  proxy2_example_com:
+    scheme: https
+    username: foobar
+    password: 123456
+    host: proxy2.example.com
+    port: 443
 https:
-  - server:
-      - ':443'
+  - listen: [':443']
     index:
       root: /var/www/html
-  - server:
-      - example.org:443
+  - listen: [':443']
+    server_name: ['example.org']
     keyfile: example_org.pem
     index:
       root: /var/www/example.org
@@ -37,16 +49,16 @@ https:
         {{end}}</pre><hr></body>
         </html>
         {{tryfiles (print .IndexRoot "/autoindex.html") }}
-  - server:
-      - ip.example.org:443
+  - listen: [':443']
+    server_name: ['ip.example.org']
     keyfile: example_org.pem
     index:
       headers: |
         content-type: application/json
       body: |
         {"ip":"{{host .Request.RemoteAddr}}","country":"{{country .Request.RemoteAddr}}"}
-  - server:
-      - demo.example.org:443
+  - listen: [':443']
+    server_name: ['demo.example.org']
     keyfile: /path/to/demo.example.org.key
     certfile: /path/to/fullchain.cer
     prefer_chacha20: true
@@ -81,8 +93,8 @@ https:
       enabled: true
     proxy:
       pass: 'http://127.0.0.1:80'
-  - server:
-      - fly.example.org:443
+  - listen: [':443']
+    server_name: ['fly.example.org']
     prefer_chacha20: true
     forward:
       policy: |
@@ -94,9 +106,8 @@ https:
       allow_domains:
         - github.com
 http:
-  - server:
-      - 127.0.0.1:123
-      - 169.254.169.254:123
+  - listen: [':123']
+    server_name: ['127.0.0.1', '192.168.50.7']
     forward:
       policy: |
         {{if regexMatch `^192\.168\.` .Request.RemoteAddr}}
@@ -127,8 +138,8 @@ http:
     index:
       root: 'C:/Users/phuslu/Desktop'
 socks:
-  - server:
-      - 127.0.0.1:1081
+  - listen: [':1081']
+    server_name: ['127.0.0.1']
     forward:
       policy: |
         {{if regexMatch `^(153.3.130.101|153.3.130.102):` .Request.RemoteAddr}}
@@ -147,8 +158,8 @@ socks:
       deny_domains:
         - facebook.com
         - nytimes.com
-  - server:
-      - 127.0.0.1:1082
+  - listen: [':1082']
+    server_name: ['127.0.0.1']
     forward:
       policy: |
         {{if eq (city .Request.RemoteAddr) "Nanjing"}}
@@ -161,13 +172,11 @@ socks:
           reject
         {{end}}
 relay:
-  - server:
-      - ':443'
+  - listen: [':443']
     to: github.com:443
     upstream: proxy1_example_org
 dns:
-  - server:
-      - ':53'
+  - listen: [':53']
     upstream:
       - 114.114.114.114
       - 'https://doh.dns.apple.com/dns-query'

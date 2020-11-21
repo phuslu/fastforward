@@ -72,37 +72,37 @@ func (h *SocksHandler) Load() error {
 		return domains
 	}
 
-	h.AllowDomains = NewStringSet(expandDomains(h.Config.ForwardAllowDomains))
-	h.DenyDomains = NewStringSet(expandDomains(h.Config.ForwardDenyDomains))
+	h.AllowDomains = NewStringSet(expandDomains(h.Config.Forward.AllowDomains))
+	h.DenyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
 
-	if s := h.Config.ForwardPolicy; s != "" {
+	if s := h.Config.Forward.Policy; s != "" {
 		if h.PolicyTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if s := h.Config.ForwardAuth; s != "" {
+	if s := h.Config.Forward.Auth; s != "" {
 		if h.AuthTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if s := h.Config.ForwardUpstream; s != "" {
+	if s := h.Config.Forward.Upstream; s != "" {
 		if h.UpstreamTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if h.Config.ForwardOutboundIp != "" {
+	if h.Config.Forward.OutboundIp != "" {
 		if runtime.GOOS != "linux" {
 			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option outbound_ip is only available on linux")
 		}
-		if h.Config.ForwardUpstream != "" {
+		if h.Config.Forward.Upstream != "" {
 			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option outbound_ip is confilict with option upstream")
 		}
 
 		var dialer = *h.LocalDialer
-		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.ForwardOutboundIp)}
+		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.Forward.OutboundIp)}
 		dialer.Control = (DailerController{BindAddressNoPort: true}).Control
 	}
 
@@ -145,7 +145,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 			Request SocksRequest
 		}{req})
 		if err != nil {
-			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.ForwardPolicy).Msg("execute forward_policy error")
+			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("execute forward_policy error")
 			return
 		}
 
@@ -205,13 +205,13 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	// auth ok
 	n, err = conn.Write([]byte{VersionSocks5, Socks5AuthMethodNone})
 	if err != nil || n == 0 {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.ForwardPolicy).Msg("socks write auth error")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("socks write auth error")
 		return
 	}
 
 	n, err = io.ReadAtLeast(conn, b[:], 8)
 	if err != nil || n == 0 {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.ForwardPolicy).Msg("socks read address error")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("socks read address error")
 		return
 	}
 
@@ -239,8 +239,8 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 				}
 			}
 		}
-		if ai.SpeedLimit == 0 && h.Config.ForwardSpeedLimit > 0 {
-			ai.SpeedLimit = h.Config.ForwardSpeedLimit
+		if ai.SpeedLimit == 0 && h.Config.Forward.SpeedLimit > 0 {
+			ai.SpeedLimit = h.Config.Forward.SpeedLimit
 		}
 	}
 
@@ -250,7 +250,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 			Request SocksRequest
 		}{req})
 		if err != nil {
-			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.ForwardPolicy).Msg("execute forward_policy error")
+			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("execute forward_policy error")
 			return
 		}
 
@@ -278,7 +278,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 			Request SocksRequest
 		}{req})
 		if err != nil {
-			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Msg("execute forward_upstream error")
+			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Msg("execute forward_upstream error")
 			WriteSocks5Status(conn, Socks5StatusGeneralFailure)
 			return
 		}
@@ -286,7 +286,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		if upstream = strings.TrimSpace(sb.String()); upstream != "" {
 			u, ok := h.Upstreams[upstream]
 			if !ok {
-				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Str("upstream", upstream).Msg("upstream not exists")
+				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Str("upstream", upstream).Msg("upstream not exists")
 				return
 			}
 			dail = u.DialContext
@@ -297,7 +297,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 
 	rconn, err := dail(context.Background(), "tcp", net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
 	if err != nil {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("connect remote host failed")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("connect remote host failed")
 		WriteSocks5Status(conn, Socks5StatusNetworkUnreachable)
 		return
 	}
@@ -308,14 +308,14 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	go io.Copy(rconn, conn)
 	_, err = io.Copy(conn, NewLimiterReader(rconn, ai.SpeedLimit))
 
-	if h.Config.ForwardLog {
+	if h.Config.Forward.Log {
 		var country, region, city string
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
 		} else {
 			country, _ = h.RegionResolver.LookupCountry(context.Background(), req.RemoteIP)
 		}
-		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("forward socks request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.Forward.Upstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("forward socks request end")
 	}
 
 	return
@@ -328,7 +328,7 @@ func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err er
 		Request SocksRequest
 	}{req})
 	if err != nil {
-		log.Error().Err(err).Str("forward_auth", h.Config.ForwardAuth).Msg("execute forward_auth error")
+		log.Error().Err(err).Str("forward_auth", h.Config.Forward.Auth).Msg("execute forward_auth error")
 		return
 	}
 

@@ -9,17 +9,16 @@ global:
   dns_ttl: 1800
   prefer_ipv6: false
 http:
-  - listen:
-      - 127.0.0.1:80
+  - listen: [':80']
+    server_name: ['127.0.0.1']
     index:
       root: 'C:/develop'
 socks:
-  - listen:
-      - 127.0.0.1:1082
+  - listen: [':1082']
+    server_name: ['127.0.0.1']
     forward:
       policy: bypass_auth
 dns:
-  - listen:
-      - 127.0.0.1:53
-    upstream:
-      - 114.114.114.114
+  - listen: [':53']
+    server_name: ['127.0.0.1']
+    upstream: ['114.114.114.114']

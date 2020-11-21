@@ -43,12 +43,12 @@ type HTTPIndexHandler struct {
 }
 
 func (h *HTTPIndexHandler) Load() (err error) {
-	h.headers, err = template.New(h.Config.IndexHeaders).Funcs(h.Functions).Parse(h.Config.IndexHeaders)
+	h.headers, err = template.New(h.Config.Index.Headers).Funcs(h.Functions).Parse(h.Config.Index.Headers)
 	if err != nil {
 		return
 	}
 
-	body := h.Config.IndexBody
+	body := h.Config.Index.Body
 	if body == "" {
 		body = defaultIndexBody
 	}
@@ -64,22 +64,22 @@ func (h *HTTPIndexHandler) Load() (err error) {
 func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
-	if h.Config.IndexRoot == "" && h.Config.IndexBody == "" {
+	if h.Config.Index.Root == "" && h.Config.Index.Body == "" {
 		h.Next.ServeHTTP(rw, req)
 		return
 	}
 
-	if h.Config.IndexRoot == "" {
+	if h.Config.Index.Root == "" {
 		h.addHeaders(rw, req)
 		h.body.Execute(rw, struct {
 			IndexRoot string
 			Request   *http.Request
 			FileInfos []os.FileInfo
-		}{h.Config.IndexRoot, req, nil})
+		}{h.Config.Index.Root, req, nil})
 		return
 	}
 
-	fullname := filepath.Join(h.Config.IndexRoot, req.URL.Path)
+	fullname := filepath.Join(h.Config.Index.Root, req.URL.Path)
 
 	fi, err := os.Stat(fullname)
 	if err != nil {
@@ -228,7 +228,7 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		IndexRoot string
 		Request   *http.Request
 		FileInfos []os.FileInfo
-	}{h.Config.IndexRoot, req, infos2})
+	}{h.Config.Index.Root, req, infos2})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
@@ -241,7 +241,7 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 }
 
 func (h *HTTPIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
-	if h.Config.IndexHeaders == "" {
+	if h.Config.Index.Headers == "" {
 		return
 	}
 
@@ -250,7 +250,7 @@ func (h *HTTPIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request)
 		IndexRoot string
 		Request   *http.Request
 		FileInfos []os.FileInfo
-	}{h.Config.IndexRoot, req, nil})
+	}{h.Config.Index.Root, req, nil})
 
 	for _, line := range strings.Split(sb.String(), "\n") {
 		parts := strings.Split(line, ":")

@@ -18,7 +18,7 @@ func (h *HTTPPprofHandler) Load() error {
 }
 
 func (h *HTTPPprofHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if !h.Config.PprofEnabled || !strings.HasPrefix(req.URL.Path, "/debug/") {
+	if !h.Config.Pprof.Enabled || !strings.HasPrefix(req.URL.Path, "/debug/") {
 		h.Next.ServeHTTP(rw, req)
 		return
 	}

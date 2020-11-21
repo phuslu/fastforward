@@ -66,22 +66,22 @@ func (h *HTTPForwardHandler) Load() error {
 		return
 	}
 
-	h.AllowDomains = NewStringSet(expandDomains(h.Config.ForwardAllowDomains))
-	h.DenyDomains = NewStringSet(expandDomains(h.Config.ForwardDenyDomains))
+	h.AllowDomains = NewStringSet(expandDomains(h.Config.Forward.AllowDomains))
+	h.DenyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
 
-	if s := h.Config.ForwardPolicy; s != "" {
+	if s := h.Config.Forward.Policy; s != "" {
 		if h.PolicyTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if s := h.Config.ForwardAuth; s != "" {
+	if s := h.Config.Forward.Auth; s != "" {
 		if h.AuthTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if s := h.Config.ForwardUpstream; s != "" {
+	if s := h.Config.Forward.Upstream; s != "" {
 		if h.UpstreamTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
@@ -101,16 +101,16 @@ func (h *HTTPForwardHandler) Load() error {
 		}
 	}
 
-	if h.Config.ForwardOutboundIp != "" {
+	if h.Config.Forward.OutboundIp != "" {
 		if runtime.GOOS != "linux" {
 			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option outbound_ip is only available on linux")
 		}
-		if h.Config.ForwardUpstream != "" {
+		if h.Config.Forward.Upstream != "" {
 			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option outbound_ip is confilict with option upstream")
 		}
 
 		var dialer = *h.LocalDialer
-		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.ForwardOutboundIp)}
+		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.Forward.OutboundIp)}
 		dialer.Control = (DailerController{BindAddressNoPort: true}).Control
 
 		h.Transport = &http.Transport{
@@ -152,7 +152,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	if h.Config.ForwardPolicy == "" {
+	if h.Config.Forward.Policy == "" {
 		h.Next.ServeHTTP(rw, req)
 		return
 	}
@@ -167,7 +167,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 		}{req, ri.ClientHelloInfo})
 		if err != nil {
-			log.Error().Err(err).Context(ri.LogContext).Str("forward_policy", h.Config.ForwardPolicy).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Msg("execute forward_policy error")
+			log.Error().Err(err).Context(ri.LogContext).Str("forward_policy", h.Config.Forward.Policy).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Msg("execute forward_policy error")
 			h.Next.ServeHTTP(rw, req)
 			return
 		}
@@ -260,8 +260,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				return
 			}
 		}
-		if ai.SpeedLimit == 0 && h.Config.ForwardSpeedLimit > 0 {
-			ai.SpeedLimit = h.Config.ForwardSpeedLimit
+		if ai.SpeedLimit == 0 && h.Config.Forward.SpeedLimit > 0 {
+			ai.SpeedLimit = h.Config.Forward.SpeedLimit
 		}
 	}
 
@@ -274,7 +274,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			User            ForwardAuthInfo
 		}{req, ri.ClientHelloInfo, ai})
 		if err != nil {
-			log.Error().Err(err).Context(ri.LogContext).Str("forward_upstream", h.Config.ForwardUpstream).Msg("execute forward_upstream error")
+			log.Error().Err(err).Context(ri.LogContext).Str("forward_upstream", h.Config.Forward.Upstream).Msg("execute forward_upstream error")
 			h.Next.ServeHTTP(rw, req)
 			return
 		}
@@ -417,7 +417,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 
-	if h.Config.ForwardLog {
+	if h.Config.Forward.Log {
 		var country, region, city string
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(ri.RemoteIP))
@@ -446,7 +446,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai
 		ClientHelloInfo *tls.ClientHelloInfo
 	}{req, ri.ClientHelloInfo})
 	if err != nil {
-		log.Error().Err(err).Str("forward_auth", h.Config.ForwardAuth).Msg("execute forward_auth error")
+		log.Error().Err(err).Str("forward_auth", h.Config.Forward.Auth).Msg("execute forward_auth error")
 		return
 	}
 

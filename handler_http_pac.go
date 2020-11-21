@@ -24,7 +24,7 @@ type HTTPPacHandler struct {
 }
 
 func (h *HTTPPacHandler) Load() error {
-	if !h.Config.PacEnabled {
+	if !h.Config.Pac.Enabled {
 		return nil
 	}
 
@@ -39,7 +39,7 @@ func (h *HTTPPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !h.Config.PacEnabled || !strings.HasSuffix(req.URL.Path, ".pac") {
+	if !h.Config.Pac.Enabled || !strings.HasSuffix(req.URL.Path, ".pac") {
 		h.Next.ServeHTTP(rw, req)
 		return
 	}

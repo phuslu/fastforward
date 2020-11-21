@@ -22,7 +22,7 @@ type HTTPProxyHandler struct {
 func (h *HTTPProxyHandler) Load() error {
 	var err error
 
-	var u = h.Config.ProxyPass
+	var u = h.Config.Proxy.Pass
 	if u == "" {
 		u = DefaultProxyPass
 	}
@@ -76,7 +76,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		req.Header.Set("x-tls-version", ri.TLSVersion.String())
 	}
 
-	for key, value := range h.Config.ProxySetHeaders {
+	for key, value := range h.Config.Proxy.Headers {
 		switch strings.ToLower(key) {
 		case "host":
 			req.URL.Host = value
@@ -117,7 +117,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	// 	resp.Header.Set("alt-svc", fmt.Sprintf(`%s=":%s"; ma=86400`, nextProtoH3, port))
 	// }
 
-	if h.Config.ProxyDumpFailure && resp.StatusCode >= http.StatusBadRequest {
+	if h.Config.Proxy.DumpFailure && resp.StatusCode >= http.StatusBadRequest {
 		data, err := httputil.DumpResponse(resp, true)
 		if err != nil {
 			log.Warn().Err(err).Context(ri.LogContext).Int("status", resp.StatusCode).Int64("content_length", resp.ContentLength).Msg("DumpFailureResponse error")

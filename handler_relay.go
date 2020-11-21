@@ -37,33 +37,33 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 	req.TraceID = log.NewXID()
 
 	dail := h.LocalDialer.DialContext
-	if h.Config.ForwardUpstream != "" {
-		u, ok := h.Upstreams[h.Config.ForwardUpstream]
+	if h.Config.Upstream != "" {
+		u, ok := h.Upstreams[h.Config.Upstream]
 		if !ok {
-			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Msg("upstream not exists")
+			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("relay_upstream", h.Config.Upstream).Msg("upstream not exists")
 			return
 		}
 		dail = u.DialContext
 	}
 
-	rconn, err := dail(context.Background(), "tcp", h.Config.RelayTo)
+	rconn, err := dail(context.Background(), "tcp", h.Config.To)
 	if err != nil {
-		log.Error().Err(err).Str("relay_to", h.Config.RelayTo).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.ForwardUpstream).Msg("connect remote host failed")
+		log.Error().Err(err).Str("relay_to", h.Config.To).Str("remote_ip", req.RemoteIP).Str("relay_upstream", h.Config.Upstream).Msg("connect remote host failed")
 		return
 	}
 	defer rconn.Close()
 
 	go io.Copy(rconn, conn)
-	_, err = io.Copy(conn, NewLimiterReader(rconn, h.Config.ForwardSpeedLimit))
+	_, err = io.Copy(conn, NewLimiterReader(rconn, h.Config.SpeedLimit))
 
-	if h.Config.ForwardLog {
+	if h.Config.Log {
 		var country, region, city string
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
 		} else {
 			country, _ = h.RegionResolver.LookupCountry(context.Background(), req.RemoteIP)
 		}
-		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.ForwardUpstream).Msg("forward port request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("relay_upstream", h.Config.Upstream).Msg("forward port request end")
 	}
 
 	return
