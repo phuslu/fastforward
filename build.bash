@@ -53,25 +53,29 @@ function packaging_macos() {
 
 	mkdir -p liner
 	tar xvpf liner_darwin_amd64-${revison}.tar.xz -C liner
-	cat <<EOF > liner/production.toml
-[log]
-level = 'debug'
-
-[global]
-max_idle_conns = 16
-dial_timeout = 30
-dns_ttl = 900
-prefer_ipv6 = false
-
-[upstream]
-https_hk = {scheme='https', username='leader.one', password='123456', host='flyspace.hk', port=443}
-
-[[http]]
-listen = ['127.0.0.1:8087']
-server_name = ['localhost', '127.0.0.1']
-forward_policy = 'bypass_auth'
-forward_upstream = 'https_hk'
-pac_enabled = true
+	cat <<EOF > liner/production.yaml
+log:
+  level: debug
+global:
+  max_idle_conns: 16
+  dial_timeout: 30
+  dns_ttl: 900
+  prefer_ipv6: false
+upstream:
+  https_hk:
+    scheme: https
+    username: leader.one
+    password: '123456'
+    host: flyspace.hk
+    port: 443
+http:
+  - listen: ['127.0.0.1:8087']
+    server_name: ['localhost']
+    forward:
+      policy: bypass_auth
+      upstream: https_hk
+    pac:
+      enabled: true
 EOF
 	# clean old files
 	rm liner_darwin_amd64-${revison}.tar.xz
@@ -88,25 +92,29 @@ function packaging_windows() {
 	for arch in amd64; do
 		mkdir -p liner
 		tar xvpf liner_windows_${arch}-${revison}.tar.xz -C liner
-		cat <<EOF > liner/production.toml
-[log]
-level = 'debug'
-
-[global]
-max_idle_conns = 16
-dial_timeout = 30
-dns_ttl = 900
-prefer_ipv6 = false
-
-[upstream]
-https_hk = {scheme='https', username='leader.one', password='123456', host='flyspace.hk', port=443}
-
-[[http]]
-listen = ['127.0.0.1:8087']
-server_name = ['localhost', '127.0.0.1']
-forward_policy = 'bypass_auth'
-forward_upstream = 'https_hk'
-pac_enabled = true
+		cat <<EOF > liner/production.yaml
+log:
+  level: debug
+global:
+  max_idle_conns: 16
+  dial_timeout: 30
+  dns_ttl: 900
+  prefer_ipv6: false
+upstream:
+  https_hk:
+    scheme: https
+    username: leader.one
+    password: '123456'
+    host: flyspace.hk
+    port: 443
+http:
+  - listen: ['127.0.0.1:8087']
+    server_name: ['localhost']
+    forward:
+      policy: bypass_auth
+      upstream: https_hk
+    pac:
+      enabled: true
 EOF
 		# clean old files
 		rm liner_windows_${arch}-${revison}.tar.xz

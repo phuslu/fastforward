@@ -3,9 +3,8 @@ pki/*
 .env
 liner
 auth.csv
-production*.toml
 production*.yaml
-debug.toml
+debug.yaml
 go.mod
 go.sum
 CHANGELOG.*

@@ -49,8 +49,8 @@ _stop() {
 }
 
 _restart() {
-    if ! ./liner -validate ${ENV:-development}.toml >/dev/null 2>&1; then
-        echo "Cannot restart liner, please correct liner toml file"
+    if ! ./liner -validate ${ENV:-development}.yaml >/dev/null 2>&1; then
+        echo "Cannot restart liner, please correct liner yaml file"
         echo "Run './liner -validate' for details"
         exit 1
     fi

@@ -178,5 +178,5 @@ relay:
 dns:
   - listen: [':53']
     upstream:
-      - 114.114.114.114
+      - '114.114.114.114'
       - 'https://doh.dns.apple.com/dns-query'

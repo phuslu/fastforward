@@ -32,11 +32,11 @@ fi
 
 curl liner.website/$filename | tar xvJ
 
-if test -f production.toml; then
+if test -f production.yaml; then
 	exit 0
 fi
 
-cat <<EOF > production.toml
+cat <<EOF > production.yaml
 [log]
 level = 'info'
 backups = 2
