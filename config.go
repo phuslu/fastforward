@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -117,7 +119,12 @@ func NewConfig(filename string) (*Config, error) {
 				break
 			}
 		}
-		filename = env + ".yaml"
+		for _, ext := range []string{".json", ".yaml"} {
+			filename = env + ext
+			if _, err := os.Stat(filename); err == nil {
+				break
+			}
+		}
 	}
 
 	data, err := ioutil.ReadFile(filename)
@@ -126,8 +133,16 @@ func NewConfig(filename string) (*Config, error) {
 	}
 
 	c := new(Config)
-	if err = yaml.Unmarshal(data, c); err != nil {
-		return nil, fmt.Errorf("yaml.Decode(%#v) error: %+w", filename, err)
+	switch filepath.Ext(filename) {
+	case ".yaml":
+		err = yaml.Unmarshal(data, c)
+	case ".json":
+		err = json.Unmarshal(data, c)
+	default:
+		err = fmt.Errorf("format of %s not supportted", filename)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("yaml.Decode(%#v) error: %w", filename, err)
 	}
 
 	if filename == "development.yaml" {
