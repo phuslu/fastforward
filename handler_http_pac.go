@@ -17,9 +17,8 @@ import (
 )
 
 type HTTPPacHandler struct {
-	Next   http.Handler
-	Config HTTPConfig
-
+	Next      http.Handler
+	Config    HTTPConfig
 	Functions template.FuncMap
 }
 

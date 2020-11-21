@@ -32,21 +32,21 @@ type HTTPForwardHandler struct {
 	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
 
-	ServerNames        StringSet
-	AllowDomains       StringSet
-	DenyDomains        StringSet
-	PolicyTemplate     *template.Template
-	AuthTemplate       *template.Template
-	UpstreamTemplate   *template.Template
-	UpstreamTransports map[string]*http.Transport
-	AuthCache          *shardmap.Map
-	AllowIPCache       *shardmap.Map
+	serverNames  StringSet
+	allowDomains StringSet
+	denyDomains  StringSet
+	policy       *template.Template
+	auth         *template.Template
+	upstream     *template.Template
+	transports   map[string]*http.Transport
+	authCache    *shardmap.Map
+	allowIPCache *shardmap.Map
 }
 
 func (h *HTTPForwardHandler) Load() error {
 	var err error
 
-	h.ServerNames = NewStringSet(h.Config.ServerName)
+	h.serverNames = NewStringSet(h.Config.ServerName)
 
 	expandDomains := func(domains []string) (a []string) {
 		for _, s := range domains {
@@ -66,31 +66,31 @@ func (h *HTTPForwardHandler) Load() error {
 		return
 	}
 
-	h.AllowDomains = NewStringSet(expandDomains(h.Config.Forward.AllowDomains))
-	h.DenyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
+	h.allowDomains = NewStringSet(expandDomains(h.Config.Forward.AllowDomains))
+	h.denyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
 
 	if s := h.Config.Forward.Policy; s != "" {
-		if h.PolicyTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+		if h.policy, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
 	if s := h.Config.Forward.Auth; s != "" {
-		if h.AuthTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+		if h.auth, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
 	if s := h.Config.Forward.Upstream; s != "" {
-		if h.UpstreamTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+		if h.upstream, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
 	if len(h.Upstreams) != 0 {
-		h.UpstreamTransports = make(map[string]*http.Transport)
+		h.transports = make(map[string]*http.Transport)
 		for name, dailer := range h.Upstreams {
-			h.UpstreamTransports[name] = &http.Transport{
+			h.transports[name] = &http.Transport{
 				DialContext:         dailer.DialContext,
 				TLSClientConfig:     h.Transport.TLSClientConfig,
 				TLSHandshakeTimeout: h.Transport.TLSHandshakeTimeout,
@@ -123,8 +123,8 @@ func (h *HTTPForwardHandler) Load() error {
 		}
 	}
 
-	h.AuthCache = shardmap.New(0)
-	h.AllowIPCache = shardmap.New(4096)
+	h.authCache = shardmap.New(0)
+	h.allowIPCache = shardmap.New(4096)
 
 	return nil
 }
@@ -138,9 +138,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		host = h
 	}
 
-	// if h.ServerNames.Contains(host) || net.ParseIP(ri.RemoteIP).IsLoopback() {
-	if h.ServerNames.Contains(host) && req.Method != http.MethodConnect {
-		log.Debug().Context(ri.LogContext).Interface("forward_server_names", h.ServerNames).Msg("fallback to next handler")
+	// if h.serverNames.Contains(host) || net.ParseIP(ri.RemoteIP).IsLoopback() {
+	if h.serverNames.Contains(host) && req.Method != http.MethodConnect {
+		log.Debug().Context(ri.LogContext).Interface("forward_server_names", h.serverNames).Msg("fallback to next handler")
 		h.Next.ServeHTTP(rw, req)
 		return
 	}
@@ -160,9 +160,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	var bypassAuth bool
 
 	var sb strings.Builder
-	if h.PolicyTemplate != nil {
+	if h.policy != nil {
 		sb.Reset()
-		err = h.PolicyTemplate.Execute(&sb, struct {
+		err = h.policy.Execute(&sb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 		}{req, ri.ClientHelloInfo})
@@ -224,23 +224,23 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			bypassAuth = true
 		case "allow_ip":
 			bypassAuth = true
-			h.AllowIPCache.Set(ri.RemoteIP, unix()+6*3600)
+			h.allowIPCache.Set(ri.RemoteIP, unix()+6*3600)
 			log.Info().Context(ri.LogContext).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("allow_ip ok")
 		}
 	}
 
 	if !bypassAuth {
-		if v, ok := h.AllowIPCache.Get(ri.RemoteIP); ok {
+		if v, ok := h.allowIPCache.Get(ri.RemoteIP); ok {
 			if v.(int64) > unix() {
 				bypassAuth = true
 			} else {
-				h.AllowIPCache.Delete(ri.RemoteIP)
+				h.allowIPCache.Delete(ri.RemoteIP)
 			}
 		}
 	}
 
 	var ai ForwardAuthInfo
-	if h.AuthTemplate != nil && !bypassAuth {
+	if h.auth != nil && !bypassAuth {
 		ai, err = h.GetAuthInfo(ri, req)
 		if err != nil {
 			log.Warn().Err(err).Context(ri.LogContext).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
@@ -250,12 +250,12 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	if ai.VIP > 0 {
-		if !h.AllowDomains.Empty() || !h.DenyDomains.Empty() {
-			if !h.AllowDomains.Empty() && !h.AllowDomains.Contains(domain) {
+		if !h.allowDomains.Empty() || !h.denyDomains.Empty() {
+			if !h.allowDomains.Empty() && !h.allowDomains.Contains(domain) {
 				RejectRequest(rw, req)
 				return
 			}
-			if h.DenyDomains.Contains(domain) {
+			if h.denyDomains.Contains(domain) {
 				RejectRequest(rw, req)
 				return
 			}
@@ -266,9 +266,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	var upstream = ""
-	if h.UpstreamTemplate != nil {
+	if h.upstream != nil {
 		sb.Reset()
-		err := h.UpstreamTemplate.Execute(&sb, struct {
+		err := h.upstream.Execute(&sb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 			User            ForwardAuthInfo
@@ -382,7 +382,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 		var tr *http.Transport
 		if upstream != "" {
-			if t, ok := h.UpstreamTransports[upstream]; !ok {
+			if t, ok := h.transports[upstream]; !ok {
 				log.Error().Context(ri.LogContext).Str("upstream", upstream).Msg("no upstream transport exists")
 				h.Next.ServeHTTP(rw, req)
 				return
@@ -441,7 +441,7 @@ type ForwardAuthInfo struct {
 func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
 	var b bytes.Buffer
 
-	err = h.AuthTemplate.Execute(&b, struct {
+	err = h.auth.Execute(&b, struct {
 		Request         *http.Request
 		ClientHelloInfo *tls.ClientHelloInfo
 	}{req, ri.ClientHelloInfo})
@@ -451,12 +451,12 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai
 	}
 
 	commandLine := strings.TrimSpace(b.String())
-	if v, ok := h.AuthCache.Get(commandLine); ok {
+	if v, ok := h.authCache.Get(commandLine); ok {
 		ai = v.(ForwardAuthInfo)
 		if ai.expires > unix() {
 			return
 		}
-		h.AuthCache.Delete(commandLine)
+		h.authCache.Delete(commandLine)
 	}
 
 	var command string
@@ -493,7 +493,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai
 
 	if ai.Ttl > 0 {
 		ai.expires = unix() + int64(ai.Ttl)
-		h.AuthCache.Set(commandLine, ai)
+		h.authCache.Set(commandLine, ai)
 	}
 
 	return
