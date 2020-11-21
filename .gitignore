@@ -4,6 +4,7 @@ pki/*
 liner
 auth.csv
 production*.toml
+production*.yaml
 debug.toml
 go.mod
 go.sum

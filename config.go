@@ -5,115 +5,107 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/naoina/toml"
+	"gopkg.in/yaml.v2"
 )
 
 type HTTPConfig struct {
-	Listen         []string
-	ServerName     []string
-	Keyfile        string
-	Certfile       string
-	DisableHttp2   bool
-	PreferChacha20 bool
-
-	Forward struct {
-		Policy       string
-		Auth         string
-		Upstream     string
-		AllowDomains []string
-		DenyDomains  []string
-		SpeedLimit   int64
-		OutboundIp   string
-		Log          bool
-	}
-
+	Listen         []string `json:"listen" yaml:"listen"`
+	ServerName     []string `json:"server_name" yaml:"server_name"`
+	Keyfile        string   `json:"key_file" yaml:"key_file"`
+	Certfile       string   `json:"cert_file" yaml:"cert_file"`
+	DisableHttp2   bool     `json:"disable_http2" yaml:"disable_http2"`
+	PreferChacha20 bool     `json:"perfer_chacha20" yaml:"perfer_chacha20"`
+	Forward        struct {
+		Policy       string   `json:"policy" yaml:"policy"`
+		Auth         string   `json:"auth" yaml:"auth"`
+		Upstream     string   `json:"upstream" yaml:"upstream"`
+		AllowDomains []string `json:"allow_domains" yaml:"allow_domains"`
+		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
+		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
+		OutboundIp   string   `json:"outbound_ip" yaml:"outbound_ip"`
+		Log          bool     `json:"log" yaml:"log"`
+	} `json:"forward" yaml:"forward"`
 	Pac struct {
-		Enabled bool
-	}
-
+		Enabled bool `json:"enabled" yaml:"enabled"`
+	} `json:"pac" yaml:"pac"`
 	Pprof struct {
-		Enabled bool
-	}
-
+		Enabled bool `json:"enabled" yaml:"enabled"`
+	} `json:"pprof" yaml:"pprof"`
 	Index struct {
-		Root    string
-		Headers string
-		Body    string
-	}
-
+		Root    string `json:"root" yaml:"root"`
+		Headers string `json:"headers" yaml:"headers"`
+		Body    string `json:"body" yaml:"body"`
+	} `json:"index" yaml:"index"`
 	Proxy struct {
-		Pass        string
-		Headers     map[string]string
-		DumpFailure bool
-	}
+		Pass        string            `json:"pass" yaml:"pass"`
+		Headers     map[string]string `json:"headers" yaml:"headers"`
+		DumpFailure bool              `json:"dump_failure" yaml:"dump_failure"`
+	} `json:"proxy" yaml:"proxy"`
 }
 
 type SocksConfig struct {
-	Listen []string
-
+	Listen  []string `json:"listen" yaml:"listen"`
 	Forward struct {
-		Policy       string
-		Auth         string
-		Upstream     string
-		AllowDomains []string
-		DenyDomains  []string
-		SpeedLimit   int64
-		OutboundIp   string
-		Log          bool
-	}
+		Policy       string   `json:"policy" yaml:"policy"`
+		Auth         string   `json:"auth" yaml:"auth"`
+		Upstream     string   `json:"upstream" yaml:"upstream"`
+		AllowDomains []string `json:"allow_domain" yaml:"allow_domain"`
+		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
+		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
+		OutboundIp   string   `json:"outbound_ip" yaml:"outbound_ip"`
+		Log          bool     `json:"log" yaml:"log"`
+	} `json:"forward" yaml:"forward"`
 }
 
 type RelayConfig struct {
-	Listen []string
-
-	To         string
-	Upstream   string
-	SpeedLimit int64
-	Log        bool
+	Listen     []string `json:"listen" yaml:"listen"`
+	To         string   `json:"to" yaml:"to"`
+	Upstream   string   `json:"upstream" yaml:"upstream"`
+	SpeedLimit int64    `json:"speed_limit" yaml:"speed_limit"`
+	Log        bool     `json:"log" yaml:"log"`
 }
 
 type DNSConfig struct {
-	Listen []string
-
-	Upstream []string
+	Listen   []string `json:"listen" yaml:"listen"`
+	Upstream []string `json:"upstream" yaml:"upstream"`
 }
 
 type Config struct {
 	raw []byte
 	Log struct {
-		Level     string
-		Backups   int
-		Maxsize   int64
-		Localtime bool
-	}
+		Level     string `json:"level" yaml:"level"`
+		Backups   int    `json:"backups" yaml:"backups"`
+		Maxsize   int64  `json:"max_size" yaml:"max_size"`
+		Localtime bool   `json:"localtime" yaml:"localtime"`
+	} `json:"log" yaml:"log"`
 	Global struct {
-		DenyIntranet    bool
-		DialTimeout     int
-		TcpFastopen     bool
-		PreferIpv6      bool
-		DnsServer       string
-		DnsTtl          uint32
-		IdleConnTimeout int
-		MaxIdleConns    int
-		GracefulTimeout int
-	}
+		DenyIntranet    bool   `json:"deny_intranet" yaml:"deny_intranet"`
+		DialTimeout     int    `json:"dial_timeout" yaml:"dial_timeout"`
+		TcpFastopen     bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
+		PreferIpv6      bool   `json:"perfer_ipv6" yaml:"perfer_ipv6"`
+		DnsServer       string `json:"dns_server" yaml:"dns_server"`
+		DnsTtl          uint32 `json:"dns_ttl" yaml:"dns_ttl"`
+		IdleConnTimeout int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
+		MaxIdleConns    int    `json:"max_idle_conns" yaml:"max_idle_conns"`
+		GracefulTimeout int    `json:"graceful_timeout" yaml:"graceful_timeout"`
+	} `json:"global" yaml:"global"`
 	Cron []struct {
-		Spec    string
-		Command string
-	}
-	Https    []HTTPConfig
-	Http     []HTTPConfig
-	Socks    []SocksConfig
-	Relay    []RelayConfig
-	Dns      []DNSConfig
+		Spec    string `json:"spec" yaml:"spec"`
+		Command string `json:"command" yaml:"command"`
+	} `json:"cron" yaml:"cron"`
+	Https    []HTTPConfig  `json:"https" yaml:"https"`
+	Http     []HTTPConfig  `json:"http" yaml:"http"`
+	Socks    []SocksConfig `json:"socks" yaml:"socks"`
+	Relay    []RelayConfig `json:"relay" yaml:"relay"`
+	Dns      []DNSConfig   `json:"dns" yaml:"dns"`
 	Upstream map[string]struct {
-		Scheme    string
-		Username  string
-		Password  string
-		Host      string
-		Port      int
-		UserAgent string
-	}
+		Scheme    string `json:"scheme" yaml:"scheme"`
+		Username  string `json:"username" yaml:"username"`
+		Password  string `json:"password" yaml:"password"`
+		Host      string `json:"host" yaml:"host"`
+		Port      int    `json:"port" yaml:"port"`
+		UserAgent string `json:"user_agent" yaml:"user_agent"`
+	} `json:"upstream" yaml:"upstream"`
 }
 
 func NewConfig(filename string) (*Config, error) {
@@ -125,24 +117,24 @@ func NewConfig(filename string) (*Config, error) {
 				break
 			}
 		}
-		filename = env + ".toml"
+		filename = env + ".yaml"
 	}
 
-	tomlData, err := ioutil.ReadFile(filename)
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
 	c := new(Config)
-	if err = toml.Unmarshal(tomlData, c); err != nil {
-		return nil, fmt.Errorf("toml.Decode(%#v) error: %+w", filename, err)
+	if err = yaml.Unmarshal(data, c); err != nil {
+		return nil, fmt.Errorf("yaml.Decode(%#v) error: %+w", filename, err)
 	}
 
-	if filename == "development.toml" {
+	if filename == "development.yaml" {
 		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
 	}
 
-	c.raw = tomlData
+	c.raw = data
 
 	return c, nil
 }
