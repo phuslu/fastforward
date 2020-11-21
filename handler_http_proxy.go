@@ -16,7 +16,7 @@ type HTTPProxyHandler struct {
 	Config    HTTPConfig
 	Transport *http.Transport
 
-	Upstream *url.URL
+	upstream *url.URL
 }
 
 func (h *HTTPProxyHandler) Load() error {
@@ -27,7 +27,7 @@ func (h *HTTPProxyHandler) Load() error {
 		u = DefaultProxyPass
 	}
 
-	h.Upstream, err = url.Parse(u)
+	h.upstream, err = url.Parse(u)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	// 	return
 	// }
 
-	upstream := h.Upstream
+	upstream := h.upstream
 	if upstream == nil {
 		upstream = &url.URL{
 			Scheme: "http",
@@ -76,7 +76,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		req.Header.Set("x-tls-version", ri.TLSVersion.String())
 	}
 
-	for key, value := range h.Config.Proxy.Headers {
+	for key, value := range h.Config.Proxy.SetHeaders {
 		switch strings.ToLower(key) {
 		case "host":
 			req.URL.Host = value
@@ -92,7 +92,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
-		if h.Upstream != nil {
+		if h.upstream != nil {
 			log.Warn().Err(err).Context(ri.LogContext).Msg("upstream error")
 			if IsTimeout(err) {
 				http.Error(rw, "504 Gateway Timeout", http.StatusGatewayTimeout)
