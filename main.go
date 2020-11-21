@@ -12,8 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -173,30 +173,10 @@ func main() {
 		Resolver: resolver,
 	}
 
-	if ok, _ := regexp.Match(`[({ ](geoip|region|city) `, config.raw); ok {
-		log.Info().Msg("try load maxmind geoip2 database")
-		for _, filename := range []string{
-			"GeoIP2-Enterprise.mmdb",
-			"GeoIP2-City.mmdb",
-			"GeoIP2-City-Africa.mmdb",
-			"GeoIP2-City-Asia-Pacific.mmdb",
-			"GeoIP2-City-Europe.mmdb",
-			"GeoIP2-City-North-America.mmdb",
-			"GeoIP2-City-South-America.mmdb",
-			"GeoIP2-Precision-City.mmdb",
-			"GeoLite2-City.mmdb",
-			"GeoIP2-Country.mmdb",
-			"GeoLite2-Country.mmdb",
-		} {
-			reader, err := maxminddb.Open(filename)
-			switch {
-			case os.IsNotExist(err):
-				continue
-			case err != nil:
-				log.Fatal().Err(err).Str("geoip2_database", filename).Msg("load geoip2_city_database error")
-			}
-			regionResolver.MaxmindReader = reader
-			break
+	if names, _ := filepath.Glob("*.mmdb"); len(names) != 0 {
+		regionResolver.MaxmindReader, err = maxminddb.Open(names[0])
+		if err != nil {
+			log.Fatal().Err(err).Str("geoip2_database", names[0]).Msg("load geoip2_database error")
 		}
 	}
 

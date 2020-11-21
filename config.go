@@ -73,7 +73,6 @@ type DNSConfig struct {
 }
 
 type Config struct {
-	raw []byte
 	Log struct {
 		Level     string `json:"level" yaml:"level"`
 		Backups   int    `json:"backups" yaml:"backups"`
@@ -134,10 +133,10 @@ func NewConfig(filename string) (*Config, error) {
 
 	c := new(Config)
 	switch filepath.Ext(filename) {
-	case ".yaml":
-		err = yaml.Unmarshal(data, c)
 	case ".json":
 		err = json.Unmarshal(data, c)
+	case ".yaml":
+		err = yaml.Unmarshal(data, c)
 	default:
 		err = fmt.Errorf("format of %s not supportted", filename)
 	}
@@ -148,8 +147,6 @@ func NewConfig(filename string) (*Config, error) {
 	if filename == "development.yaml" {
 		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
 	}
-
-	c.raw = data
 
 	return c, nil
 }
