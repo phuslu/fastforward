@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"text/template"
 
 	"github.com/phuslu/log"
 )
@@ -15,8 +16,10 @@ import (
 type HTTPProxyHandler struct {
 	Config    HTTPConfig
 	Transport *http.Transport
+	Functions template.FuncMap
 
 	upstream *url.URL
+	headers  *template.Template
 }
 
 func (h *HTTPProxyHandler) Load() error {
@@ -28,6 +31,11 @@ func (h *HTTPProxyHandler) Load() error {
 	}
 
 	h.upstream, err = url.Parse(u)
+	if err != nil {
+		return err
+	}
+
+	h.headers, err = template.New(h.Config.Proxy.SetHeaders).Funcs(h.Functions).Parse(h.Config.Proxy.SetHeaders)
 	if err != nil {
 		return err
 	}
@@ -75,16 +83,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		req.Header.Set("x-forwarded-proto", "https")
 		req.Header.Set("x-tls-version", ri.TLSVersion.String())
 	}
-
-	for key, value := range h.Config.Proxy.SetHeaders {
-		switch strings.ToLower(key) {
-		case "host":
-			req.URL.Host = value
-			req.Host = value
-		default:
-			req.Header.Set(key, value)
-		}
-	}
+	h.setHeaders(req)
 
 	if req.ProtoAtLeast(3, 0) && req.Method == http.MethodGet {
 		req.Body = nil
@@ -186,5 +185,31 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		rw.WriteHeader(resp.StatusCode)
 		defer resp.Body.Close()
 		io.Copy(rw, resp.Body)
+	}
+}
+
+func (h *HTTPProxyHandler) setHeaders(req *http.Request) {
+	if h.Config.Proxy.SetHeaders == "" {
+		return
+	}
+
+	var sb strings.Builder
+	h.headers.Execute(&sb, struct {
+		Request *http.Request
+	}{req})
+
+	for _, line := range strings.Split(sb.String(), "\n") {
+		parts := strings.Split(line, ":")
+		if len(parts) != 2 {
+			continue
+		}
+		key, value := parts[0], strings.TrimSpace(parts[1])
+		switch strings.ToLower(key) {
+		case "host":
+			req.URL.Host = value
+			req.Host = value
+		default:
+			req.Header.Set(key, value)
+		}
 	}
 }

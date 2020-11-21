@@ -39,9 +39,9 @@ type HTTPConfig struct {
 		Body    string `json:"body" yaml:"body"`
 	} `json:"index" yaml:"index"`
 	Proxy struct {
-		Pass        string            `json:"pass" yaml:"pass"`
-		SetHeaders  map[string]string `json:"set_headers" yaml:"set_headers"`
-		DumpFailure bool              `json:"dump_failure" yaml:"dump_failure"`
+		Pass        string `json:"pass" yaml:"pass"`
+		SetHeaders  string `json:"set_headers" yaml:"set_headers"`
+		DumpFailure bool   `json:"dump_failure" yaml:"dump_failure"`
 	} `json:"proxy" yaml:"proxy"`
 }
 

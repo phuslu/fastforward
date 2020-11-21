@@ -295,6 +295,7 @@ func main() {
 							Next: &HTTPProxyHandler{
 								Config:    server,
 								Transport: transport,
+								Functions: functions,
 							},
 							Config:    server,
 							Functions: functions,
@@ -428,6 +429,7 @@ func main() {
 							Next: &HTTPProxyHandler{
 								Config:    httpConfig,
 								Transport: transport,
+								Functions: functions,
 							},
 							Config:    httpConfig,
 							Functions: functions,
