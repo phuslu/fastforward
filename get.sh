@@ -2,21 +2,6 @@
 
 set -x
 
-echo >/dev/tcp/127.0.0.1/80 || (
-	if hash yum; then
-		sudo yum install -y epel-release
-		sudo yum install -y nginx
-		sudo chkconfig nginx on
-		sudo service nginx start
-	elif hash apt-get; then
-		sudo apt-get install -y nginx
-		sudo update-rc.d nginx defaults
-		sudo service nginx start
-	else
-		echo please install nginx
-	fi
-)
-
 ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
 filename=$(curl liner.website | egrep -o 'liner_linux_amd64-r[0-9]+.tar.xz'  | head -1)
