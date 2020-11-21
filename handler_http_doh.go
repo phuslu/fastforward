@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/phuslu/log"
 )
@@ -36,10 +37,10 @@ func (h *HTTPDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	log.Info().Context(ri.LogContext).Msg("doh request")
 
-	req.Host = req.URL.Host
-	req.URL.Scheme = h.upstream.Scheme
+	req.Host = h.upstream.Host
 	req.URL.Host = h.upstream.Host
 	req.URL.Path = h.upstream.Path
+	req.URL.Scheme = h.upstream.Scheme
 	resp, err := h.Transport.RoundTrip(req)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadGateway)
@@ -48,6 +49,10 @@ func (h *HTTPDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	defer resp.Body.Close()
 
 	for key, values := range resp.Header {
+		switch strings.ToLower(key) {
+		case "server", "expect-ct", "cf-ray", "cf-request-id":
+			continue
+		}
 		for _, value := range values {
 			rw.Header().Add(key, value)
 		}
