@@ -112,12 +112,14 @@ type Config struct {
 func NewConfig(filename string) (*Config, error) {
 	if filename == "" {
 		var env = "development"
+		// perfer GOLANG_ENV
 		for _, name := range []string{"GOLANG_ENV", "ENV"} {
 			if s := os.Getenv(name); s != "" {
 				env = s
 				break
 			}
 		}
+		// perfer .json
 		for _, ext := range []string{".json", ".yaml"} {
 			filename = env + ext
 			if _, err := os.Stat(filename); err == nil {
