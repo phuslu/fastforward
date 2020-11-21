@@ -37,36 +37,38 @@ if test -f production.yaml; then
 fi
 
 cat <<EOF > production.yaml
-[log]
-level = 'info'
-backups = 2
-maxsize = 1073741824
-localtime = true
-
-[global]
-max_idle_conns = 100
-dial_timeout = 30
-dns_ttl = 1800
-prefer_ipv6 = false
-# dns_server = 'https://223.5.5.5/dns-query'
-
-[upstream]
-torsocks = {scheme='socks5h', host='127.0.0.1', port=9050}
-
-[[https]]
-listen = [':443', ':8443']
-server_name = ['$domain']
-forward_policy = '''
-    {{if all (.Request.ProtoAtLeast 2 0) (eq .Request.TLS.Version 0x0304) (greased .ClientHelloInfo)}}
-        bypass_auth
-    {{else}}
-        proxy_pass
-    {{end}}
-'''
-forward_upstream = '{{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}'
-forward_log = true
-pac_enabled = true
-proxy_pass = 'http://127.0.0.1:80'
+log:
+  level: info
+  backups: 2
+  maxsize: 1073741824
+  localtime: true
+global:
+  max_idle_conns: 100
+  dial_timeout: 30
+  dns_ttl: 1800
+  prefer_ipv6: false
+upstream:
+  torsocks:
+    scheme: socks5h
+    host: 127.0.0.1
+    port: 9050
+https:
+  - listen: [':443', ':8443']
+    server_name: ['$domain']
+    forward:
+      policy: |
+        {{if all (.Request.ProtoAtLeast 2 0) (eq .Request.TLS.Version 0x0304) (greased .ClientHelloInfo)}}
+            bypass_auth
+        {{else}}
+            proxy_pass
+        {{end}}
+      upstream: |
+        '{{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}'
+      log: true
+    pac:
+      enabled: true
+    proxy:
+      pass: 'http://127.0.0.1:80'
 EOF
 
 cat <<EOF > liner.service
