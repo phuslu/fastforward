@@ -93,6 +93,9 @@ https:
       enabled: true
       path: /dns-query
       upstream: 'https://1.1.1.1/dns-query'
+      prelude:
+        example.com: ['93.184.216.34']
+        example.org: ['93.184.216.34']
     pprof:
       enabled: true
     proxy:
@@ -179,8 +182,3 @@ relay:
   - listen: [':443']
     to: github.com:443
     upstream: proxy1_example_org
-dns:
-  - listen: [':53']
-    upstream:
-      - '114.114.114.114'
-      - 'https://doh.dns.apple.com/dns-query'

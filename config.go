@@ -31,9 +31,10 @@ type HTTPConfig struct {
 		Enabled bool `json:"enabled" yaml:"enabled"`
 	} `json:"pac" yaml:"pac"`
 	Doh struct {
-		Enabled  bool   `json:"enabled" yaml:"enabled"`
-		Path     string `json:"path" yaml:"path"`
-		Upstream string `json:"upstream" yaml:"upstream"`
+		Enabled  bool                `json:"enabled" yaml:"enabled"`
+		Path     string              `json:"path" yaml:"path"`
+		Upstream string              `json:"upstream" yaml:"upstream"`
+		Prelude  map[string][]string `json:"prelude" yaml:"prelude"`
 	} `json:"doh" yaml:"doh"`
 	Pprof struct {
 		Enabled bool `json:"enabled" yaml:"enabled"`
