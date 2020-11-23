@@ -42,9 +42,9 @@ https:
         <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
         {{range .FileInfos -}}
         {{if .IsDir -}}
-        <a href="{{.Name}}/">{{.Name}}/</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}       -
+        <a href="{{.Name}}/">{{.Name}}/</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}       -
         {{else -}}
-        <a href="{{.Name}}">{{.Name}}</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
+        <a href="{{.Name}}">{{.Name}}</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
         {{end -}}
         {{end}}</pre><hr></body>
         </html>
