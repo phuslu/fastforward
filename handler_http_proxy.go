@@ -18,19 +18,14 @@ type HTTPProxyHandler struct {
 	Transport *http.Transport
 	Functions template.FuncMap
 
-	upstream *url.URL
+	upstream *template.Template
 	headers  *template.Template
 }
 
 func (h *HTTPProxyHandler) Load() error {
 	var err error
 
-	var u = h.Config.Proxy.Pass
-	if u == "" {
-		u = DefaultProxyPass
-	}
-
-	h.upstream, err = url.Parse(u)
+	h.upstream, err = template.New(h.Config.Proxy.Pass).Funcs(h.Functions).Parse(h.Config.Proxy.Pass)
 	if err != nil {
 		return err
 	}
@@ -51,23 +46,26 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	// 	return
 	// }
 
-	upstream := h.upstream
-	if upstream == nil {
-		upstream = &url.URL{
-			Scheme: "http",
-			Host:   "127.0.0.1:80",
-		}
+	var sb strings.Builder
+	h.upstream.Execute(&sb, struct {
+		Request *http.Request
+	}{req})
+
+	u, err := url.Parse(sb.String())
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("bad upstream %+v", sb.String()), http.StatusServiceUnavailable)
+		return
 	}
 
-	if upstream.Scheme == "file" {
+	if u.Scheme == "file" {
 		http.Error(rw, "use index_root instead of file://", http.StatusServiceUnavailable)
 		return
 	}
 
 	var tr http.RoundTripper = h.Transport
 
-	req.URL.Scheme = upstream.Scheme
-	req.URL.Host = upstream.Host
+	req.URL.Scheme = u.Scheme
+	req.URL.Host = u.Host
 
 	if s := req.Header.Get("x-forwarded-for"); s != "" {
 		req.Header.Set("x-forwarded-for", s+", "+ri.RemoteIP)
