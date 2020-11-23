@@ -92,7 +92,7 @@ https:
     doh:
       enabled: true
       path: /dns-query
-      upstream: 'https://doh.dns.apple.com/dns-query'
+      upstream: 'https://1.1.1.1/dns-query'
     pprof:
       enabled: true
     proxy:
