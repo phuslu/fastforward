@@ -15,7 +15,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
 	github.com/oschwald/maxminddb-golang v1.7.0
 	github.com/phuslu/iploc v1.0.20201030
-	github.com/phuslu/log v1.0.51
+	github.com/phuslu/log v1.0.53-0.20201126170601-cc5c21b807cf
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.0.0
 	github.com/tidwall/rhh v1.1.1 // indirect

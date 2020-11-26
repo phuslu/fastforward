@@ -35,6 +35,10 @@ github.com/phuslu/iploc v1.0.20201030 h1:bE9RYWI10d3erdQSymknm4YqmutlcwDdJXUSZft
 github.com/phuslu/iploc v1.0.20201030/go.mod h1:Q/0VX0txvbxekt4NhWIi3Q3eyZ139lHhnlzvDxyXhuc=
 github.com/phuslu/log v1.0.51 h1:+Gac0QNEaJYS9GYWV0cmETmn7V+JPuudVpd1JaUWGJ8=
 github.com/phuslu/log v1.0.51/go.mod h1:kzJN3LRifrepxThMjufQwS7S35yFAB+jAV1qgA7eBW4=
+github.com/phuslu/log v1.0.53-0.20201125185618-ed39dca96348 h1:tsd8KnjjS/bDLDg8wTKmofpa1wKkuL5Z4OXKFMC6pGQ=
+github.com/phuslu/log v1.0.53-0.20201125185618-ed39dca96348/go.mod h1:kzJN3LRifrepxThMjufQwS7S35yFAB+jAV1qgA7eBW4=
+github.com/phuslu/log v1.0.53-0.20201126170601-cc5c21b807cf h1:mA3sJB7R7xrc9A750TxhW8wtR/K4Jru9LICEytcwqjk=
+github.com/phuslu/log v1.0.53-0.20201126170601-cc5c21b807cf/go.mod h1:kzJN3LRifrepxThMjufQwS7S35yFAB+jAV1qgA7eBW4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
