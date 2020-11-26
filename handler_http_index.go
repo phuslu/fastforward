@@ -163,6 +163,7 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 			case parts[0] == "":
 				ranges[0] = 0
 			case parts[1] == "":
+				ranges[0], _ = strconv.ParseInt(parts[0], 10, 64)
 				if filesize == 0 {
 					ranges[1] = 0
 				} else {
