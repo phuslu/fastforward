@@ -40,9 +40,10 @@ type HTTPConfig struct {
 		Enabled bool `json:"enabled" yaml:"enabled"`
 	} `json:"pprof" yaml:"pprof"`
 	Index struct {
-		Root    string `json:"root" yaml:"root"`
-		Headers string `json:"headers" yaml:"headers"`
-		Body    string `json:"body" yaml:"body"`
+		Root    string            `json:"root" yaml:"root"`
+		Mimes   map[string]string `json:"mimes" yaml:"mimes"`
+		Headers string            `json:"headers" yaml:"headers"`
+		Body    string            `json:"body" yaml:"body"`
 	} `json:"index" yaml:"index"`
 	Proxy struct {
 		Pass        string `json:"pass" yaml:"pass"`

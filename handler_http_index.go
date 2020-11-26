@@ -43,6 +43,13 @@ type HTTPIndexHandler struct {
 }
 
 func (h *HTTPIndexHandler) Load() (err error) {
+	for key, value := range defaultTypesMap {
+		mime.AddExtensionType(key, value)
+	}
+	for key, value := range h.Config.Index.Mimes {
+		mime.AddExtensionType(strings.ToLower("."+strings.Trim(key, ".")), value)
+	}
+
 	h.headers, err = template.New(h.Config.Index.Headers).Funcs(h.Functions).Parse(h.Config.Index.Headers)
 	if err != nil {
 		return
@@ -132,14 +139,11 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		defer file.Close()
 
 		h.addHeaders(rw, req)
-		mimeType := mime.TypeByExtension(filepath.Ext(fullname))
-		if mimeType == "" {
-			mimeType, _ = defaultTypesMap[filepath.Ext(fullname)]
+		if s := mime.TypeByExtension(filepath.Ext(fullname)); s != "" {
+			rw.Header().Set("content-type", s)
+		} else {
+			rw.Header().Set("content-type", "application/octet-stream")
 		}
-		if mimeType == "" {
-			mimeType = "application/octet-stream"
-		}
-		rw.Header().Set("content-type", mimeType)
 		rw.Header().Set("accept-ranges", "bytes")
 		if s := req.Header.Get("range"); s == "" {
 			rw.Header().Set("content-length", strconv.FormatInt(fi.Size(), 10))
