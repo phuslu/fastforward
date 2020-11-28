@@ -2,9 +2,19 @@
 
 set -x
 
+arch=amd64
+case $(uname -m) in
+  arm* )
+    arch=armv5
+    if readelf -A /bin/sh | grep -q 'VFP registers'; then
+      arch=armv7
+    fi
+    ;;
+esac
+
 ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
-filename=$(curl liner.website | egrep -o 'liner_linux_amd64-r[0-9]+.tar.xz'  | head -1)
+filename=$(curl liner.website | egrep -o "liner_linux_${arch}-r[0-9]+.tar.xz"  | head -1)
 pacfile=$(head -c 6 /dev/urandom | base64 | tr -d =/+).pac
 
 if test -d liner; then
