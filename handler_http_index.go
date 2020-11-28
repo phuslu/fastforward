@@ -30,7 +30,7 @@ const defaultIndexBody = `<html>
 {{end -}}
 {{end}}</pre><hr></body>
 </html>
-{{tryfiles (print .IndexRoot "/autoindex.html") }}
+{{tryfiles (print .IndexRoot "/.autoindex.html") }}
 `
 
 type HTTPIndexHandler struct {

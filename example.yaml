@@ -48,7 +48,7 @@ https:
         {{end -}}
         {{end}}</pre><hr></body>
         </html>
-        {{tryfiles (print .IndexRoot "/autoindex.html") }}
+        {{tryfiles (print .IndexRoot "/.autoindex.html") }}
   - listen: [':443']
     server_name: ['ip.example.org']
     keyfile: example_org.pem
