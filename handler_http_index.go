@@ -184,8 +184,12 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 			}
 			// content-length
 			length := ranges[1] - ranges[0] + 1
-			if length <= 0 {
+			switch {
+			case length < 0:
 				http.Error(rw, "400 bad request", http.StatusBadRequest)
+				return
+			case length == 0:
+				rw.WriteHeader(http.StatusNoContent)
 				return
 			}
 			// limit reader
