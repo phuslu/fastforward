@@ -30,10 +30,10 @@ const defaultIndexBody = `<html>
 {{end -}}
 {{end}}</pre><hr></body>
 </html>
-{{tryfiles (print .IndexRoot "/.autoindex.html") }}
+{{tryfiles (print .WebRoot "/.autoindex.html") }}
 `
 
-type HTTPIndexHandler struct {
+type HTTPWebHandler struct {
 	Next      http.Handler
 	Config    HTTPConfig
 	Functions template.FuncMap
@@ -42,20 +42,20 @@ type HTTPIndexHandler struct {
 	body    *template.Template
 }
 
-func (h *HTTPIndexHandler) Load() (err error) {
+func (h *HTTPWebHandler) Load() (err error) {
 	for key, value := range defaultTypesMap {
 		mime.AddExtensionType(key, value)
 	}
-	for key, value := range h.Config.Index.Mimes {
+	for key, value := range h.Config.Web.Mimes {
 		mime.AddExtensionType(strings.ToLower("."+strings.Trim(key, ".")), value)
 	}
 
-	h.headers, err = template.New(h.Config.Index.Headers).Funcs(h.Functions).Parse(h.Config.Index.Headers)
+	h.headers, err = template.New(h.Config.Web.Headers).Funcs(h.Functions).Parse(h.Config.Web.Headers)
 	if err != nil {
 		return
 	}
 
-	body := h.Config.Index.Body
+	body := h.Config.Web.Body
 	if body == "" {
 		body = defaultIndexBody
 	}
@@ -68,25 +68,25 @@ func (h *HTTPIndexHandler) Load() (err error) {
 	return
 }
 
-func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPWebHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
-	if h.Config.Index.Root == "" && h.Config.Index.Body == "" {
+	if h.Config.Web.Root == "" && h.Config.Web.Body == "" {
 		h.Next.ServeHTTP(rw, req)
 		return
 	}
 
-	if h.Config.Index.Root == "" {
+	if h.Config.Web.Root == "" {
 		h.addHeaders(rw, req)
 		h.body.Execute(rw, struct {
-			IndexRoot string
+			WebRoot   string
 			Request   *http.Request
 			FileInfos []os.FileInfo
-		}{h.Config.Index.Root, req, nil})
+		}{h.Config.Web.Root, req, nil})
 		return
 	}
 
-	fullname := filepath.Join(h.Config.Index.Root, req.URL.Path)
+	fullname := filepath.Join(h.Config.Web.Root, req.URL.Path)
 
 	fi, err := os.Stat(fullname)
 	if err != nil {
@@ -149,7 +149,7 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 			rw.Header().Set("content-length", strconv.FormatInt(fi.Size(), 10))
 			rw.WriteHeader(http.StatusOK)
 			n, err := io.Copy(rw, file)
-			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("index_root request")
+			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("web_root request")
 		} else {
 			if !strings.HasPrefix(s, "bytes=") {
 				http.Error(rw, "400 bad request", http.StatusBadRequest)
@@ -205,7 +205,7 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 			rw.Header().Set("content-length", strconv.FormatInt(length, 10))
 			rw.WriteHeader(http.StatusPartialContent)
 			n, err := io.Copy(rw, fr)
-			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("index_root request")
+			log.Info().Context(ri.LogContext).Err(err).Int("http_status", http.StatusOK).Int64("http_content_length", n).Msg("web_root request")
 		}
 
 		return
@@ -234,10 +234,10 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 
 	var b bytes.Buffer
 	err = h.body.Execute(&b, struct {
-		IndexRoot string
+		WebRoot   string
 		Request   *http.Request
 		FileInfos []os.FileInfo
-	}{h.Config.Index.Root, req, infos2})
+	}{h.Config.Web.Root, req, infos2})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
@@ -249,17 +249,17 @@ func (h *HTTPIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	return
 }
 
-func (h *HTTPIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
-	if h.Config.Index.Headers == "" {
+func (h *HTTPWebHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
+	if h.Config.Web.Headers == "" {
 		return
 	}
 
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
-		IndexRoot string
+		WebRoot   string
 		Request   *http.Request
 		FileInfos []os.FileInfo
-	}{h.Config.Index.Root, req, nil})
+	}{h.Config.Web.Root, req, nil})
 
 	for _, line := range strings.Split(sb.String(), "\n") {
 		parts := strings.Split(line, ":")

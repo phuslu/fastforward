@@ -39,12 +39,12 @@ type HTTPConfig struct {
 	Pprof struct {
 		Enabled bool `json:"enabled" yaml:"enabled"`
 	} `json:"pprof" yaml:"pprof"`
-	Index struct {
+	Web struct {
 		Root    string            `json:"root" yaml:"root"`
 		Mimes   map[string]string `json:"mimes" yaml:"mimes"`
 		Headers string            `json:"headers" yaml:"headers"`
 		Body    string            `json:"body" yaml:"body"`
-	} `json:"index" yaml:"index"`
+	} `json:"web" yaml:"web"`
 	Proxy struct {
 		Pass        string `json:"pass" yaml:"pass"`
 		SetHeaders  string `json:"set_headers" yaml:"set_headers"`

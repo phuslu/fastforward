@@ -28,12 +28,12 @@ upstream:
     port: 443
 https:
   - listen: [':443']
-    index:
+    web:
       root: /var/www/html
   - listen: [':443']
     server_name: ['example.org']
     keyfile: example_org.pem
-    index:
+    web:
       root: /var/www/example.org
       body: |
         <html>
@@ -48,11 +48,11 @@ https:
         {{end -}}
         {{end}}</pre><hr></body>
         </html>
-        {{tryfiles (print .IndexRoot "/.autoindex.html") }}
+        {{tryfiles (print .WebRoot "/.autoweb.html") }}
   - listen: [':443']
     server_name: ['ip.example.org']
     keyfile: example_org.pem
-    index:
+    web:
       headers: |
         content-type: application/json
       body: |
@@ -142,7 +142,7 @@ http:
         {{end}}
     pac:
       enabled: true
-    index:
+    web:
       root: 'C:/Users/phuslu/Desktop'
 socks:
   - listen: [':1081']
