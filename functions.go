@@ -28,8 +28,6 @@ type Functions struct {
 func (f *Functions) FuncMap() template.FuncMap {
 	var m = sprig.TxtFuncMap()
 
-	m["all"] = f.all
-	m["any"] = f.any
 	m["host"] = f.host
 	m["city"] = f.city
 	m["country"] = f.country
@@ -42,24 +40,6 @@ func (f *Functions) FuncMap() template.FuncMap {
 	m["tryfiles"] = f.tryfiles
 
 	return m
-}
-
-func (f *Functions) all(b ...interface{}) bool {
-	for _, v := range b {
-		if truth, _ := template.IsTrue(v); !truth {
-			return false
-		}
-	}
-	return true
-}
-
-func (f *Functions) any(b ...interface{}) bool {
-	for _, v := range b {
-		if truth, _ := template.IsTrue(v); truth {
-			return true
-		}
-	}
-	return false
 }
 
 func (f *Functions) host(hostport string) string {
