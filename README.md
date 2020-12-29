@@ -1,4 +1,4 @@
 ### Installation
 ```
-curl liner.website/get.sh | bash
+curl golab.cc/get.sh | bash
 ```

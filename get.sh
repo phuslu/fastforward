@@ -14,7 +14,7 @@ esac
 
 ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
-filename=$(curl liner.website | egrep -o "liner_linux_${arch}-r[0-9]+.tar.xz"  | head -1)
+filename=$(curl golab.cc | egrep -o "liner_linux_${arch}-r[0-9]+.tar.xz"  | head -1)
 pacfile=$(head -c 6 /dev/urandom | base64 | tr -d =/+).pac
 
 if test -d liner; then
@@ -25,7 +25,7 @@ else
 	mkdir liner && cd liner
 fi
 
-curl liner.website/$filename | tar xvJ
+curl golab.cc/$filename | tar xvJ
 
 if test -f production.yaml; then
 	exit 0
