@@ -11,9 +11,10 @@ import (
 )
 
 type HTTPHandler struct {
-	Next http.Handler
-
 	TLSConfigurator *TLSConfigurator
+	ServerNames     StringSet
+	ForwardHandler  http.Handler
+	WebHandler      http.Handler
 }
 
 type RequestInfo struct {
@@ -71,5 +72,10 @@ func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		Str("http_url", req.URL.String()).
 		Value()
 
-	h.Next.ServeHTTP(rw, req.WithContext(context.WithValue(req.Context(), RequestInfoContextKey, ri)))
+	req = req.WithContext(context.WithValue(req.Context(), RequestInfoContextKey, ri))
+	if req.Method == http.MethodConnect && !h.ServerNames.Contains(req.Host) {
+		h.ForwardHandler.ServeHTTP(rw, req)
+	} else {
+		h.WebHandler.ServeHTTP(rw, req)
+	}
 }

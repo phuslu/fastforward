@@ -286,29 +286,8 @@ func main() {
 	tlsConfigurator := &TLSConfigurator{}
 	h2handlers := map[string]map[string]http.Handler{}
 	for _, server := range config.Https {
-		// requestinfo -> forward -> pac -> doh -> pprof -> index -> proxy
 		handler := &HTTPHandler{
-			Next: &HTTPForwardHandler{
-				Next: &HTTPPacHandler{
-					Next: &HTTPDoHHandler{
-						Next: &HTTPPprofHandler{
-							Next: &HTTPWebHandler{
-								Next: &HTTPProxyHandler{
-									Config:    server,
-									Transport: transport,
-									Functions: functions,
-								},
-								Config:    server,
-								Functions: functions,
-							},
-							Config: server,
-						},
-						Config:    server,
-						Transport: transport,
-					},
-					Config:    server,
-					Functions: functions,
-				},
+			ForwardHandler: &HTTPForwardHandler{
 				Config:         server,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
@@ -317,6 +296,11 @@ func main() {
 				Upstreams:      upstreams,
 				Functions:      functions,
 			},
+			WebHandler: &HTTPWebHandler{
+				Config:    server,
+				Functions: functions,
+			},
+			ServerNames:     NewStringSet(server.ServerName),
 			TLSConfigurator: tlsConfigurator,
 		}
 
@@ -425,23 +409,7 @@ func main() {
 		}
 		// requestinfo -> forward -> pac -> pprof -> index -> proxy
 		handler := &HTTPHandler{
-			Next: &HTTPForwardHandler{
-				Next: &HTTPPacHandler{
-					Next: &HTTPPprofHandler{
-						Next: &HTTPWebHandler{
-							Next: &HTTPProxyHandler{
-								Config:    httpConfig,
-								Transport: transport,
-								Functions: functions,
-							},
-							Config:    httpConfig,
-							Functions: functions,
-						},
-						Config: httpConfig,
-					},
-					Config:    httpConfig,
-					Functions: functions,
-				},
+			ForwardHandler: &HTTPForwardHandler{
 				Config:         httpConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
@@ -450,6 +418,12 @@ func main() {
 				Upstreams:      upstreams,
 				Functions:      functions,
 			},
+			WebHandler: &HTTPWebHandler{
+				Config:    httpConfig,
+				Functions: functions,
+			},
+			ServerNames:     NewStringSet(httpConfig.ServerName),
+			TLSConfigurator: tlsConfigurator,
 		}
 
 		var h http.Handler = handler
