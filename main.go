@@ -297,8 +297,7 @@ func main() {
 				Functions:      functions,
 			},
 			WebHandler: &HTTPWebHandler{
-				Config:    server,
-				Functions: functions,
+				Config: server,
 			},
 			ServerNames:     NewStringSet(server.ServerName),
 			TLSConfigurator: tlsConfigurator,

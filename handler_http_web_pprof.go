@@ -8,16 +8,16 @@ import (
 	"strings"
 )
 
-type HTTPPprofHandler struct {
+type HTTPWebPprofHandler struct {
 	Next   http.Handler
 	Config HTTPConfig
 }
 
-func (h *HTTPPprofHandler) Load() error {
+func (h *HTTPWebPprofHandler) Load() error {
 	return nil
 }
 
-func (h *HTTPPprofHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPWebPprofHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if !h.Config.Pprof.Enabled || !strings.HasPrefix(req.URL.Path, "/debug/") {
 		h.Next.ServeHTTP(rw, req)
 		return

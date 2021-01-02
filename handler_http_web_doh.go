@@ -16,7 +16,7 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 )
 
-type HTTPDoHHandler struct {
+type HTTPWebDoHHandler struct {
 	Next      http.Handler
 	Config    HTTPConfig
 	Transport *http.Transport
@@ -26,7 +26,7 @@ type HTTPDoHHandler struct {
 	cache    *shardmap.Map
 }
 
-func (h *HTTPDoHHandler) Load() (err error) {
+func (h *HTTPWebDoHHandler) Load() (err error) {
 	h.upstream, err = url.Parse(h.Config.Doh.Upstream)
 	h.cache = shardmap.New(0)
 
@@ -85,7 +85,7 @@ type DoHCacheItem struct {
 	Data []byte
 }
 
-func (h *HTTPDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPWebDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if req.TLS == nil {

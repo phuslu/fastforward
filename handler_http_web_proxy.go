@@ -13,7 +13,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-type HTTPProxyHandler struct {
+type HTTPWebProxyHandler struct {
 	Config    HTTPConfig
 	Transport *http.Transport
 	Functions template.FuncMap
@@ -22,7 +22,7 @@ type HTTPProxyHandler struct {
 	headers  *template.Template
 }
 
-func (h *HTTPProxyHandler) Load() error {
+func (h *HTTPWebProxyHandler) Load() error {
 	var err error
 
 	h.upstream, err = template.New(h.Config.Proxy.Pass).Funcs(h.Functions).Parse(h.Config.Proxy.Pass)
@@ -38,7 +38,7 @@ func (h *HTTPProxyHandler) Load() error {
 	return nil
 }
 
-func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	// if req.Method == http.MethodConnect {
@@ -186,7 +186,7 @@ func (h *HTTPProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	}
 }
 
-func (h *HTTPProxyHandler) setHeaders(req *http.Request) {
+func (h *HTTPWebProxyHandler) setHeaders(req *http.Request) {
 	if h.Config.Proxy.SetHeaders == "" {
 		return
 	}
