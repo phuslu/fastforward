@@ -11,12 +11,13 @@ import (
 )
 
 type HTTPConfig struct {
-	Listen         []string `json:"listen" yaml:"listen"`
-	ServerName     []string `json:"server_name" yaml:"server_name"`
-	Keyfile        string   `json:"keyfile" yaml:"keyfile"`
-	Certfile       string   `json:"certfile" yaml:"certfile"`
-	DisableHttp2   bool     `json:"disable_http2" yaml:"disable_http2"`
-	PreferChacha20 bool     `json:"perfer_chacha20" yaml:"perfer_chacha20"`
+	Listen         []string          `json:"listen" yaml:"listen"`
+	ServerName     []string          `json:"server_name" yaml:"server_name"`
+	Keyfile        string            `json:"keyfile" yaml:"keyfile"`
+	Certfile       string            `json:"certfile" yaml:"certfile"`
+	DisableHttp2   bool              `json:"disable_http2" yaml:"disable_http2"`
+	PreferChacha20 bool              `json:"perfer_chacha20" yaml:"perfer_chacha20"`
+	Mimes          map[string]string `json:"mimes" yaml:"mimes"`
 	Forward        struct {
 		Policy       string   `json:"policy" yaml:"policy"`
 		Auth         string   `json:"auth" yaml:"auth"`
@@ -27,30 +28,32 @@ type HTTPConfig struct {
 		OutboundIp   string   `json:"outbound_ip" yaml:"outbound_ip"`
 		Log          bool     `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
-	Pac struct {
-		Enabled bool `json:"enabled" yaml:"enabled"`
-	} `json:"pac" yaml:"pac"`
-	Doh struct {
-		Enabled  bool                `json:"enabled" yaml:"enabled"`
-		Path     string              `json:"path" yaml:"path"`
-		Upstream string              `json:"upstream" yaml:"upstream"`
-		Prelude  map[string][]string `json:"prelude" yaml:"prelude"`
-	} `json:"doh" yaml:"doh"`
-	Pprof struct {
-		Enabled bool `json:"enabled" yaml:"enabled"`
-	} `json:"pprof" yaml:"pprof"`
-	Web struct {
-		Root         string            `json:"root" yaml:"root"`
-		Mimes        map[string]string `json:"mimes" yaml:"mimes"`
-		Headers      string            `json:"headers" yaml:"headers"`
-		Body         string            `json:"body" yaml:"body"`
-		AddAfterBody string            `json:"add_after_body" yaml:"add_after_body"`
+	Web []struct {
+		Location string `json:"location" yaml:"location"`
+		Root     struct {
+			Root         string `json:"root" yaml:"root"`
+			Headers      string `json:"headers" yaml:"headers"`
+			Body         string `json:"body" yaml:"body"`
+			AddAfterBody string `json:"add_after_body" yaml:"add_after_body"`
+		} `json:"root" yaml:"root"`
+		Proxy struct {
+			Pass        string `json:"pass" yaml:"pass"`
+			SetHeaders  string `json:"set_headers" yaml:"set_headers"`
+			DumpFailure bool   `json:"dump_failure" yaml:"dump_failure"`
+		} `json:"proxy" yaml:"proxy"`
+		Pprof struct {
+			Enabled bool `json:"enabled" yaml:"enabled"`
+		} `json:"pprof" yaml:"pprof"`
+		Pac struct {
+			Enabled bool `json:"enabled" yaml:"enabled"`
+		} `json:"pac" yaml:"pac"`
+		Doh struct {
+			Enabled  bool                `json:"enabled" yaml:"enabled"`
+			Path     string              `json:"path" yaml:"path"`
+			Upstream string              `json:"upstream" yaml:"upstream"`
+			Prelude  map[string][]string `json:"prelude" yaml:"prelude"`
+		} `json:"doh" yaml:"doh"`
 	} `json:"web" yaml:"web"`
-	Proxy struct {
-		Pass        string `json:"pass" yaml:"pass"`
-		SetHeaders  string `json:"set_headers" yaml:"set_headers"`
-		DumpFailure bool   `json:"dump_failure" yaml:"dump_failure"`
-	} `json:"proxy" yaml:"proxy"`
 }
 
 type SocksConfig struct {

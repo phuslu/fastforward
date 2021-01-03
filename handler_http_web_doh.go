@@ -26,12 +26,12 @@ type HTTPWebDoHHandler struct {
 }
 
 func (h *HTTPWebDoHHandler) Load() (err error) {
-	h.upstream, err = url.Parse(h.Config.Doh.Upstream)
+	h.upstream, err = url.Parse(h.Config.Web[0].Doh.Upstream)
 	h.cache = shardmap.New(0)
 
 	// prelude to cache
 	h.prelude = make(map[string][]dnsmessage.Resource)
-	for name, iplist := range h.Config.Doh.Prelude {
+	for name, iplist := range h.Config.Web[0].Doh.Prelude {
 		for _, typ := range []string{"A", "AAAA"} {
 			key := name + typ
 			if _, ok := h.prelude[key]; !ok {
@@ -92,7 +92,7 @@ func (h *HTTPWebDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	if !h.Config.Doh.Enabled || req.URL.Path != h.Config.Doh.Path {
+	if !h.Config.Web[0].Doh.Enabled || req.URL.Path != h.Config.Web[0].Doh.Path {
 		http.Error(rw, "404 bad request", http.StatusNotFound)
 		return
 	}
