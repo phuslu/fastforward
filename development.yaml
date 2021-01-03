@@ -13,8 +13,9 @@ http:
     server_name: ['127.0.0.1']
     web:
       - location: /
-        root: 'C:/develop'
-        add_after_body: /.autoindex.html
+        index:
+          root: 'C:/develop'
+          add_after_body: /.autoindex.html
 socks:
   - listen: [':1082']
     server_name: ['127.0.0.1']

@@ -30,12 +30,12 @@ type HTTPConfig struct {
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`
-		Root     struct {
+		Index    struct {
 			Root         string `json:"root" yaml:"root"`
 			Headers      string `json:"headers" yaml:"headers"`
 			Body         string `json:"body" yaml:"body"`
 			AddAfterBody string `json:"add_after_body" yaml:"add_after_body"`
-		} `json:"root" yaml:"root"`
+		} `json:"index" yaml:"index"`
 		Proxy struct {
 			Pass        string `json:"pass" yaml:"pass"`
 			SetHeaders  string `json:"set_headers" yaml:"set_headers"`

@@ -32,7 +32,7 @@ const defaultIndexBody = `<html>
 </html>
 `
 
-type HTTPWebRootHandler struct {
+type HTTPWebIndexHandler struct {
 	Root         string
 	Headers      string
 	Body         string
@@ -43,7 +43,7 @@ type HTTPWebRootHandler struct {
 	body    *template.Template
 }
 
-func (h *HTTPWebRootHandler) Load() (err error) {
+func (h *HTTPWebIndexHandler) Load() (err error) {
 	if h.Body == "" {
 		h.Body = defaultIndexBody
 	}
@@ -61,7 +61,7 @@ func (h *HTTPWebRootHandler) Load() (err error) {
 	return
 }
 
-func (h *HTTPWebRootHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if h.Root == "" && h.Body == "" {
@@ -247,7 +247,7 @@ func (h *HTTPWebRootHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	rw.Write(b.Bytes())
 }
 
-func (h *HTTPWebRootHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
 		WebRoot   string

@@ -16,12 +16,12 @@ type HTTPWebHandler struct {
 
 func (h *HTTPWebHandler) Load() error {
 	handlers := make(map[string]HTTPHandler)
-	handlers[h.Config.Web[0].Location] = &HTTPWebRootHandler{
+	handlers[h.Config.Web[0].Location] = &HTTPWebIndexHandler{
 		Functions:    h.Functions,
-		Root:         h.Config.Web[0].Root.Root,
-		Headers:      h.Config.Web[0].Root.Headers,
-		Body:         h.Config.Web[0].Root.Body,
-		AddAfterBody: h.Config.Web[0].Root.AddAfterBody,
+		Root:         h.Config.Web[0].Index.Root,
+		Headers:      h.Config.Web[0].Index.Headers,
+		Body:         h.Config.Web[0].Index.Body,
+		AddAfterBody: h.Config.Web[0].Index.AddAfterBody,
 	}
 
 	h.mux = http.NewServeMux()
