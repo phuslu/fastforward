@@ -30,14 +30,14 @@ const defaultIndexBody = `<html>
 {{end -}}
 {{end}}</pre><hr></body>
 </html>
-{{tryfiles (print .WebRoot "/.autoindex.html") }}
 `
 
 type HTTPWebRootHandler struct {
-	Root      string
-	Headers   string
-	Body      string
-	Functions template.FuncMap
+	Root         string
+	Headers      string
+	Body         string
+	AddAfterBody string
+	Functions    template.FuncMap
 
 	headers *template.Template
 	body    *template.Template
@@ -234,6 +234,12 @@ func (h *HTTPWebRootHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
+	}
+	if h.AddAfterBody != "" {
+		filename := filepath.Join(h.Root, h.AddAfterBody)
+		if data, err := ioutil.ReadFile(filename); err == nil {
+			b.Write(data)
+		}
 	}
 
 	h.addHeaders(rw, req)

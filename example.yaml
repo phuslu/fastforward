@@ -30,6 +30,7 @@ https:
   - listen: [':443']
     web:
       root: /var/www/html
+      add_after_body: /.autoindex.html
   - listen: [':443']
     server_name: ['example.org']
     keyfile: example_org.pem
@@ -48,7 +49,6 @@ https:
         {{end -}}
         {{end}}</pre><hr></body>
         </html>
-        {{tryfiles (print .WebRoot "/.autoweb.html") }}
   - listen: [':443']
     server_name: ['ip.example.org']
     keyfile: example_org.pem

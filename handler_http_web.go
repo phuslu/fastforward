@@ -26,10 +26,11 @@ func (h *HTTPWebHandler) Load() error {
 
 	handlers := make(map[string]HTTPHandler)
 	handlers["/"] = &HTTPWebRootHandler{
-		Root:      h.Config.Web.Root,
-		Headers:   h.Config.Web.Headers,
-		Body:      h.Config.Web.Body,
-		Functions: h.Functions,
+		Functions:    h.Functions,
+		Root:         h.Config.Web.Root,
+		Headers:      h.Config.Web.Headers,
+		Body:         h.Config.Web.Body,
+		AddAfterBody: h.Config.Web.AddAfterBody,
 	}
 
 	h.mux = http.NewServeMux()
