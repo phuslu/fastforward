@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -286,7 +285,7 @@ func main() {
 	tlsConfigurator := &TLSConfigurator{}
 	h2handlers := map[string]map[string]http.Handler{}
 	for _, server := range config.Https {
-		handler := &HTTPHandler{
+		handler := &HTTPMainHandler{
 			ForwardHandler: &HTTPForwardHandler{
 				Config:         server,
 				ForwardLogger:  forwardLogger,
@@ -303,23 +302,12 @@ func main() {
 			TLSConfigurator: tlsConfigurator,
 		}
 
-		var h http.Handler = handler
-		for {
-			if loadable, ok := h.(interface {
-				Load() error
-			}); ok {
-				err = loadable.Load()
-				if err != nil {
-					log.Fatal().Err(err).Strs("server_name", server.ServerName).Msgf("%T.Load() return error: %+v", h, err)
-				}
-				log.Info().Strs("server_name", server.ServerName).Msgf("%T.Load() ok", h)
+		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler} {
+			err = h.Load()
+			if err != nil {
+				log.Fatal().Err(err).Strs("server_name", server.ServerName).Msgf("%T.Load() return error: %+v", h, err)
 			}
-
-			v := reflect.Indirect(reflect.ValueOf(h)).FieldByName("Next")
-			if !v.IsValid() {
-				break
-			}
-			h = v.Interface().(http.Handler)
+			log.Info().Strs("server_name", server.ServerName).Msgf("%T.Load() ok", h)
 		}
 
 		// add support for ip tls certificate
@@ -406,8 +394,7 @@ func main() {
 		if ip, err := GetPreferedLocalIP(); err == nil {
 			httpConfig.ServerName = append(httpConfig.ServerName, ip.String())
 		}
-		// requestinfo -> forward -> pac -> pprof -> index -> proxy
-		handler := &HTTPHandler{
+		handler := &HTTPMainHandler{
 			ForwardHandler: &HTTPForwardHandler{
 				Config:         httpConfig,
 				ForwardLogger:  forwardLogger,
@@ -425,23 +412,12 @@ func main() {
 			TLSConfigurator: tlsConfigurator,
 		}
 
-		var h http.Handler = handler
-		for {
-			if loadable, ok := h.(interface {
-				Load() error
-			}); ok {
-				err = loadable.Load()
-				if err != nil {
-					log.Fatal().Err(err).Strs("server_name", httpConfig.ServerName).Msgf("%T.Load() return error: %+v", h, err)
-				}
-				log.Info().Strs("server_name", httpConfig.ServerName).Msgf("%T.Load() ok", h)
+		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler} {
+			err = h.Load()
+			if err != nil {
+				log.Fatal().Err(err).Strs("server_name", httpConfig.ServerName).Msgf("%T.Load() return error: %+v", h, err)
 			}
-
-			v := reflect.Indirect(reflect.ValueOf(h)).FieldByName("Next")
-			if !v.IsValid() {
-				break
-			}
-			h = v.Interface().(http.Handler)
+			log.Info().Strs("server_name", httpConfig.ServerName).Msgf("%T.Load() ok", h)
 		}
 
 		for _, listen := range httpConfig.Listen {

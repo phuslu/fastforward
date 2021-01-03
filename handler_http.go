@@ -10,11 +10,16 @@ import (
 	"github.com/phuslu/log"
 )
 
-type HTTPHandler struct {
+type HTTPHandler interface {
+	http.Handler
+	Load() error
+}
+
+type HTTPMainHandler struct {
 	TLSConfigurator *TLSConfigurator
 	ServerNames     StringSet
-	ForwardHandler  http.Handler
-	WebHandler      http.Handler
+	ForwardHandler  HTTPHandler
+	WebHandler      HTTPHandler
 }
 
 type RequestInfo struct {
@@ -37,7 +42,7 @@ var riPool = sync.Pool{
 	},
 }
 
-func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPMainHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := riPool.Get().(*RequestInfo)
 	defer riPool.Put(ri)
 

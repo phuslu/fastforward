@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"text/template"
+
+	"github.com/phuslu/log"
 )
 
 type HTTPWebHandler struct {
@@ -22,13 +24,23 @@ func (h *HTTPWebHandler) Load() error {
 		mime.AddExtensionType(strings.ToLower("."+strings.Trim(key, ".")), value)
 	}
 
-	h.mux = http.NewServeMux()
-	h.mux.Handle("/", &HTTPWebRootHandler{
+	handlers := make(map[string]HTTPHandler)
+	handlers["/"] = &HTTPWebRootHandler{
 		Root:      h.Config.Web.Root,
 		Headers:   h.Config.Web.Headers,
 		Body:      h.Config.Web.Body,
 		Functions: h.Functions,
-	})
+	}
+
+	h.mux = http.NewServeMux()
+	for prefix, handler := range handlers {
+		err := handler.Load()
+		if err != nil {
+			log.Fatal().Err(err).Str("web_prefix", prefix).Msgf("%T.Load() return error: %+v", h, err)
+		}
+		log.Info().Str("web_prefix", prefix).Msgf("%T.Load() ok", h)
+		h.mux.Handle(prefix, handler)
+	}
 
 	return nil
 }
