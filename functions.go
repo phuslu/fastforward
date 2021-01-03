@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -37,7 +36,6 @@ func (f *Functions) FuncMap() template.FuncMap {
 	m["iplist"] = f.iplist
 	m["isdir"] = f.isdir
 	m["isfile"] = f.isfile
-	m["tryfiles"] = f.tryfiles
 
 	return m
 }
@@ -134,16 +132,6 @@ func (f *Functions) isfile(filename string) bool {
 		return false
 	}
 	return !fi.IsDir()
-}
-
-func (f *Functions) tryfiles(files ...string) string {
-	for _, file := range files {
-		data, err := ioutil.ReadFile(file)
-		if err == nil {
-			return string(data)
-		}
-	}
-	return ""
 }
 
 type IPListItem struct {
