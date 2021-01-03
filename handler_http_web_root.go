@@ -44,6 +44,10 @@ type HTTPWebRootHandler struct {
 }
 
 func (h *HTTPWebRootHandler) Load() (err error) {
+	if h.Body == "" {
+		h.Body = defaultIndexBody
+	}
+
 	h.headers, err = template.New(h.Headers).Funcs(h.Functions).Parse(h.Headers)
 	if err != nil {
 		return
