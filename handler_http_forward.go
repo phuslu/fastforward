@@ -23,7 +23,6 @@ import (
 )
 
 type HTTPForwardHandler struct {
-	Next           http.Handler
 	Config         HTTPConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
@@ -141,7 +140,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	// if h.serverNames.Contains(host) || net.ParseIP(ri.RemoteIP).IsLoopback() {
 	if h.serverNames.Contains(host) && req.Method != http.MethodConnect {
 		log.Debug().Context(ri.LogContext).Interface("forward_server_names", h.serverNames).Msg("fallback to next handler")
-		h.Next.ServeHTTP(rw, req)
+		http.NotFound(rw, req)
 		return
 	}
 
@@ -153,7 +152,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	if h.Config.Forward.Policy == "" {
-		h.Next.ServeHTTP(rw, req)
+		http.NotFound(rw, req)
 		return
 	}
 
@@ -168,7 +167,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}{req, ri.ClientHelloInfo})
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Str("forward_policy", h.Config.Forward.Policy).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Msg("execute forward_policy error")
-			h.Next.ServeHTTP(rw, req)
+			http.NotFound(rw, req)
 			return
 		}
 
@@ -177,7 +176,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 		switch output {
 		case "", "proxy_pass":
-			h.Next.ServeHTTP(rw, req)
+			http.NotFound(rw, req)
 			return
 		case "reject", "deny":
 			RejectRequest(rw, req)
@@ -275,7 +274,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}{req, ri.ClientHelloInfo, ai})
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Str("forward_upstream", h.Config.Forward.Upstream).Msg("execute forward_upstream error")
-			h.Next.ServeHTTP(rw, req)
+			http.NotFound(rw, req)
 			return
 		}
 		upstream = strings.TrimSpace(sb.String())
@@ -294,7 +293,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		if upstream != "" {
 			if d, ok := h.Upstreams[upstream]; !ok {
 				log.Error().Context(ri.LogContext).Str("upstream", upstream).Msg("no upstream exists")
-				h.Next.ServeHTTP(rw, req)
+				http.NotFound(rw, req)
 				return
 			} else {
 				dialer = d
@@ -384,7 +383,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		if upstream != "" {
 			if t, ok := h.transports[upstream]; !ok {
 				log.Error().Context(ri.LogContext).Str("upstream", upstream).Msg("no upstream transport exists")
-				h.Next.ServeHTTP(rw, req)
+				http.NotFound(rw, req)
 				return
 			} else {
 				tr = t

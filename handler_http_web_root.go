@@ -61,7 +61,7 @@ func (h *HTTPWebRootHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if h.Root == "" && h.Body == "" {
-		http.Error(rw, "404 not found", http.StatusNotFound)
+		http.NotFound(rw, req)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *HTTPWebRootHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	fi, err := os.Stat(fullname)
 	if err != nil {
-		http.Error(rw, "404 not found", http.StatusNotFound)
+		http.NotFound(rw, req)
 		return
 	}
 

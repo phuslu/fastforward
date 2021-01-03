@@ -283,7 +283,7 @@ func main() {
 
 	// listen and serve https
 	tlsConfigurator := &TLSConfigurator{}
-	h2handlers := map[string]map[string]http.Handler{}
+	h2handlers := map[string]map[string]HTTPHandler{}
 	for _, server := range config.Https {
 		handler := &HTTPMainHandler{
 			ForwardHandler: &HTTPForwardHandler{
@@ -329,7 +329,7 @@ func main() {
 				}
 				hs, ok := h2handlers[listen]
 				if !ok {
-					hs = make(map[string]http.Handler)
+					hs = make(map[string]HTTPHandler)
 					h2handlers[listen] = hs
 				}
 				hs[name] = handler
@@ -385,7 +385,7 @@ func main() {
 	}
 
 	// listen and serve http
-	h1handlers := map[string]http.Handler{}
+	h1handlers := map[string]HTTPHandler{}
 	for _, httpConfig := range config.Http {
 		httpConfig.ServerName = append(httpConfig.ServerName, "", "localhost", "127.0.0.1")
 		if name, err := os.Hostname(); err == nil {

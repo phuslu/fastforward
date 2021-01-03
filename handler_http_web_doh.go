@@ -17,7 +17,6 @@ import (
 )
 
 type HTTPWebDoHHandler struct {
-	Next      http.Handler
 	Config    HTTPConfig
 	Transport *http.Transport
 
@@ -89,12 +88,12 @@ func (h *HTTPWebDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if req.TLS == nil {
-		h.Next.ServeHTTP(rw, req)
+		http.Error(rw, "400 bad request", http.StatusBadRequest)
 		return
 	}
 
 	if !h.Config.Doh.Enabled || req.URL.Path != h.Config.Doh.Path {
-		h.Next.ServeHTTP(rw, req)
+		http.Error(rw, "404 bad request", http.StatusNotFound)
 		return
 	}
 

@@ -42,6 +42,10 @@ var riPool = sync.Pool{
 	},
 }
 
+func (h *HTTPMainHandler) Load() error {
+	return nil
+}
+
 func (h *HTTPMainHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := riPool.Get().(*RequestInfo)
 	defer riPool.Put(ri)

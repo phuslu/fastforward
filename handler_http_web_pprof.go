@@ -9,7 +9,6 @@ import (
 )
 
 type HTTPWebPprofHandler struct {
-	Next   http.Handler
 	Config HTTPConfig
 }
 
@@ -19,12 +18,12 @@ func (h *HTTPWebPprofHandler) Load() error {
 
 func (h *HTTPWebPprofHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if !h.Config.Pprof.Enabled || !strings.HasPrefix(req.URL.Path, "/debug/") {
-		h.Next.ServeHTTP(rw, req)
+		http.NotFound(rw, req)
 		return
 	}
 
 	if ip, _, _ := net.SplitHostPort(req.RemoteAddr); !IsReservedIP(net.ParseIP(ip)) {
-		h.Next.ServeHTTP(rw, req)
+		http.Error(rw, "403 forbidden", http.StatusForbidden)
 		return
 	}
 

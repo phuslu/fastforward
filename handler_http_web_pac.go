@@ -17,7 +17,6 @@ import (
 )
 
 type HTTPWebPacHandler struct {
-	Next      http.Handler
 	Config    HTTPConfig
 	Functions template.FuncMap
 }
@@ -30,12 +29,12 @@ func (h *HTTPWebPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	if req.TLS != nil && !(req.ProtoAtLeast(2, 0) && ri.TLSVersion == tls.VersionTLS13 && IsTLSGreaseCode(ri.ClientHelloInfo.CipherSuites[0])) {
-		h.Next.ServeHTTP(rw, req)
+		http.NotFound(rw, req)
 		return
 	}
 
 	if !h.Config.Pac.Enabled || !strings.HasSuffix(req.URL.Path, ".pac") {
-		h.Next.ServeHTTP(rw, req)
+		http.NotFound(rw, req)
 		return
 	}
 
@@ -43,8 +42,8 @@ func (h *HTTPWebPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	data, err := ioutil.ReadFile(req.URL.Path[1:])
 	if err != nil {
-		log.Error().Context(ri.LogContext).Err(err).Msg("read pac error, fallback to next handler")
-		h.Next.ServeHTTP(rw, req)
+		log.Error().Context(ri.LogContext).Err(err).Msg("read pac error")
+		http.NotFound(rw, req)
 		return
 	}
 
@@ -55,8 +54,8 @@ func (h *HTTPWebPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	tmpl, err := template.New(req.URL.Path[1:]).Funcs(h.Functions).Parse(string(data))
 	if err != nil {
-		log.Error().Context(ri.LogContext).Err(err).Msg("parse pac error, fallback to next handler")
-		h.Next.ServeHTTP(rw, req)
+		log.Error().Context(ri.LogContext).Err(err).Msg("parse pac error")
+		http.NotFound(rw, req)
 		return
 	}
 
@@ -89,8 +88,8 @@ func (h *HTTPWebPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		Host:      proxyHost,
 	})
 	if err != nil {
-		log.Error().Context(ri.LogContext).Err(err).Msg("eval pac error, fallback to next handler")
-		h.Next.ServeHTTP(rw, req)
+		log.Error().Context(ri.LogContext).Err(err).Msg("eval pac error")
+		http.NotFound(rw, req)
 		return
 	}
 
