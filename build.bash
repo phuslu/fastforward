@@ -126,7 +126,6 @@ EOF
 }
 
 function release() {
-	return
 	pushd build
 
 	local ssh_host=63.223.66.20
