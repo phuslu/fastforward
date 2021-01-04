@@ -9,7 +9,7 @@ import (
 )
 
 type HTTPWebPprofHandler struct {
-	Config HTTPConfig
+	AllowPublicNet bool
 }
 
 func (h *HTTPWebPprofHandler) Load() error {
@@ -17,14 +17,16 @@ func (h *HTTPWebPprofHandler) Load() error {
 }
 
 func (h *HTTPWebPprofHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if !h.Config.Web[0].Pprof.Enabled || !strings.HasPrefix(req.URL.Path, "/debug/") {
+	if !strings.HasPrefix(req.URL.Path, "/debug/") {
 		http.NotFound(rw, req)
 		return
 	}
 
-	if ip, _, _ := net.SplitHostPort(req.RemoteAddr); !IsReservedIP(net.ParseIP(ip)) {
-		http.Error(rw, "403 forbidden", http.StatusForbidden)
-		return
+	if !h.AllowPublicNet {
+		if ip, _, _ := net.SplitHostPort(req.RemoteAddr); !IsReservedIP(net.ParseIP(ip)) {
+			http.Error(rw, "403 forbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	switch req.URL.Path {

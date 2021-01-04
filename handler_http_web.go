@@ -29,6 +29,10 @@ func (h *HTTPWebHandler) Load() error {
 				Upstream:  web.Doh.Upstream,
 				Prelude:   web.Doh.Prelude,
 			}
+		case web.Pprof.Enabled:
+			handlers[web.Location] = &HTTPWebPprofHandler{
+				AllowPublicNet: false,
+			}
 		case web.Index.Root != "":
 			handlers[web.Location] = &HTTPWebIndexHandler{
 				Functions:    h.Functions,
