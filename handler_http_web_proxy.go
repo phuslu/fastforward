@@ -14,9 +14,11 @@ import (
 )
 
 type HTTPWebProxyHandler struct {
-	Config    HTTPConfig
-	Transport *http.Transport
-	Functions template.FuncMap
+	Transport   *http.Transport
+	Functions   template.FuncMap
+	Pass        string
+	SetHeaders  string
+	DumpFailure bool
 
 	upstream *template.Template
 	headers  *template.Template
@@ -25,12 +27,12 @@ type HTTPWebProxyHandler struct {
 func (h *HTTPWebProxyHandler) Load() error {
 	var err error
 
-	h.upstream, err = template.New(h.Config.Web[0].Proxy.Pass).Funcs(h.Functions).Parse(h.Config.Web[0].Proxy.Pass)
+	h.upstream, err = template.New(h.Pass).Funcs(h.Functions).Parse(h.Pass)
 	if err != nil {
 		return err
 	}
 
-	h.headers, err = template.New(h.Config.Web[0].Proxy.SetHeaders).Funcs(h.Functions).Parse(h.Config.Web[0].Proxy.SetHeaders)
+	h.headers, err = template.New(h.SetHeaders).Funcs(h.Functions).Parse(h.SetHeaders)
 	if err != nil {
 		return err
 	}
@@ -114,7 +116,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	// 	resp.Header.Set("alt-svc", fmt.Sprintf(`%s=":%s"; ma=86400`, nextProtoH3, port))
 	// }
 
-	if h.Config.Web[0].Proxy.DumpFailure && resp.StatusCode >= http.StatusBadRequest {
+	if h.DumpFailure && resp.StatusCode >= http.StatusBadRequest {
 		data, err := httputil.DumpResponse(resp, true)
 		if err != nil {
 			log.Warn().Err(err).Context(ri.LogContext).Int("status", resp.StatusCode).Int64("content_length", resp.ContentLength).Msg("DumpFailureResponse error")
@@ -187,7 +189,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 }
 
 func (h *HTTPWebProxyHandler) setHeaders(req *http.Request) {
-	if h.Config.Web[0].Proxy.SetHeaders == "" {
+	if h.SetHeaders == "" {
 		return
 	}
 

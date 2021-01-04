@@ -33,6 +33,14 @@ func (h *HTTPWebHandler) Load() error {
 			handlers[web.Location] = &HTTPWebPprofHandler{
 				AllowPublicNet: false,
 			}
+		case web.Proxy.Pass != "":
+			handlers[web.Location] = &HTTPWebProxyHandler{
+				Transport:   h.Transport,
+				Functions:   h.Functions,
+				Pass:        web.Proxy.Pass,
+				SetHeaders:  web.Proxy.SetHeaders,
+				DumpFailure: web.Proxy.DumpFailure,
+			}
 		case web.Index.Root != "":
 			handlers[web.Location] = &HTTPWebIndexHandler{
 				Functions:    h.Functions,
