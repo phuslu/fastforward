@@ -296,7 +296,9 @@ func main() {
 				Functions:      functions,
 			},
 			WebHandler: &HTTPWebHandler{
-				Config: server,
+				Config:    server,
+				Transport: transport,
+				Functions: functions,
 			},
 			ServerNames:     NewStringSet(server.ServerName),
 			TLSConfigurator: tlsConfigurator,
@@ -406,6 +408,7 @@ func main() {
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    httpConfig,
+				Transport: transport,
 				Functions: functions,
 			},
 			ServerNames:     NewStringSet(httpConfig.ServerName),

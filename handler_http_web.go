@@ -9,6 +9,7 @@ import (
 
 type HTTPWebHandler struct {
 	Config    HTTPConfig
+	Transport *http.Transport
 	Functions template.FuncMap
 
 	mux *http.ServeMux
@@ -18,6 +19,12 @@ func (h *HTTPWebHandler) Load() error {
 	handlers := make(map[string]HTTPHandler)
 	for _, web := range h.Config.Web {
 		switch {
+		case web.Doh.Enabled:
+			handlers[web.Location] = &HTTPWebDoHHandler{
+				Transport: h.Transport,
+				Upstream:  web.Doh.Upstream,
+				Prelude:   web.Doh.Prelude,
+			}
 		case web.Index.Root != "":
 			handlers[web.Location] = &HTTPWebIndexHandler{
 				Functions:    h.Functions,
