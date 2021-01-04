@@ -17,7 +17,6 @@ import (
 )
 
 type HTTPWebPacHandler struct {
-	Config    HTTPConfig
 	Functions template.FuncMap
 }
 
@@ -33,7 +32,7 @@ func (h *HTTPWebPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	if !h.Config.Web[0].Pac.Enabled || !strings.HasSuffix(req.URL.Path, ".pac") {
+	if !strings.HasSuffix(req.URL.Path, ".pac") {
 		http.NotFound(rw, req)
 		return
 	}

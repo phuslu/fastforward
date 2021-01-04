@@ -17,9 +17,9 @@ import (
 )
 
 type HTTPWebDoHHandler struct {
+	Transport *http.Transport
 	Upstream  string
 	Prelude   map[string][]string
-	Transport *http.Transport
 
 	upstream *url.URL
 	prelude  map[string][]dnsmessage.Resource

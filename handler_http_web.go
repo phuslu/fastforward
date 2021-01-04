@@ -19,6 +19,10 @@ func (h *HTTPWebHandler) Load() error {
 	handlers := make(map[string]HTTPHandler)
 	for _, web := range h.Config.Web {
 		switch {
+		case web.Pac.Enabled:
+			handlers[web.Location] = &HTTPWebPacHandler{
+				Functions: h.Functions,
+			}
 		case web.Doh.Enabled:
 			handlers[web.Location] = &HTTPWebDoHHandler{
 				Transport: h.Transport,
