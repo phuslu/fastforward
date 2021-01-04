@@ -41,7 +41,7 @@ func (h *HTTPWebHandler) Load() error {
 				SetHeaders:  web.Proxy.SetHeaders,
 				DumpFailure: web.Proxy.DumpFailure,
 			}
-		case web.Index.Root != "":
+		case web.Index.Root != "" || web.Index.Body != "":
 			handlers[web.Location] = &HTTPWebIndexHandler{
 				Functions:    h.Functions,
 				Root:         web.Index.Root,
