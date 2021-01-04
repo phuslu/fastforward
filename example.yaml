@@ -29,34 +29,38 @@ upstream:
 https:
   - listen: [':443']
     web:
-      root: /var/www/html
-      add_after_body: /.autoindex.html
+      - location: /
+        index:
+          root: /var/www/html
+          add_after_body: /.autoindex.html
   - listen: [':443']
     server_name: ['example.org']
     keyfile: example_org.pem
     web:
-      root: /var/www/example.org
-      body: |
-        <html>
-        <head><title>Index of {{.Request.URL.Path}}</title></head>
-        <body>
-        <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
-        {{range .FileInfos -}}
-        {{if .IsDir -}}
-        <a href="{{.Name}}/">{{.Name}}/</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}       -
-        {{else -}}
-        <a href="{{.Name}}">{{.Name}}</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
-        {{end -}}
-        {{end}}</pre><hr></body>
-        </html>
+      - location: /
+        index: /var/www/example.org
+        body: |
+          <html>
+          <head><title>Index of {{.Request.URL.Path}}</title></head>
+          <body>
+          <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
+          {{range .FileInfos -}}
+          {{if .IsDir -}}
+          <a href="{{.Name}}/">{{.Name}}/</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}       -
+          {{else -}}
+          <a href="{{.Name}}">{{.Name}}</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
+          {{end -}}
+          {{end}}</pre><hr></body>
+          </html>
   - listen: [':443']
     server_name: ['ip.example.org']
     keyfile: example_org.pem
     web:
-      headers: |
-        content-type: application/json
-      body: |
-        {"ip":"{{host .Request.RemoteAddr}}","country":"{{country .Request.RemoteAddr}}"}
+      - location: /
+        headers: |
+          content-type: application/json
+        body: |
+          {"ip":"{{host .Request.RemoteAddr}}","country":"{{country .Request.RemoteAddr}}"}
   - listen: [':443']
     server_name: ['demo.example.org']
     keyfile: /path/to/demo.example.org.key
@@ -87,19 +91,23 @@ https:
         - facebook.com
         - nytimes.com
       speed_limit: 10000000
-    pac:
-      enabled: true
-    doh:
-      enabled: true
-      path: /dns-query
-      upstream: 'https://1.1.1.1/dns-query'
-      prelude:
-        example.com: ['93.184.216.34']
-        example.org: ['93.184.216.34']
-    pprof:
-      enabled: true
-    proxy:
-      pass: 'http://127.0.0.1:80'
+    web:
+      - location: /proxy.pac
+        pac:
+          enabled: true
+      - location: /dns-query
+        doh:
+          enabled: true
+          upstream: 'https://1.1.1.1/dns-query'
+          prelude:
+            example.com: ['93.184.216.34']
+            example.org: ['93.184.216.34']
+      - location: /debug/
+        pprof:
+          enabled: true
+      - location: /
+        proxy:
+          pass: 'http://127.0.0.1:80'
   - listen: [':443']
     server_name: ['fly.example.org']
     prefer_chacha20: true
@@ -140,10 +148,13 @@ http:
         {{else if ne (country .Request.Host) "CN"}}
           proxy2_example_com
         {{end}}
-    pac:
-      enabled: true
     web:
-      root: 'C:/Users/phuslu/Desktop'
+      - location: /
+        index:
+          root: 'C:/Users/phuslu/Desktop'
+      - location: /proxy.pac
+        pac:
+          enabled: true
 socks:
   - listen: [':1081']
     server_name: ['127.0.0.1']
