@@ -91,7 +91,7 @@ func (h *HTTPMainHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		Value()
 
 	req = req.WithContext(context.WithValue(req.Context(), RequestInfoContextKey, ri))
-	if req.Method == http.MethodConnect && !h.ServerNames.Contains(req.Host) {
+	if req.Method == http.MethodConnect || !h.ServerNames.Contains(req.Host) {
 		h.ForwardHandler.ServeHTTP(rw, req)
 	} else {
 		h.WebHandler.ServeHTTP(rw, req)
