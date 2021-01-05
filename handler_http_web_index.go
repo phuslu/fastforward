@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -19,19 +20,8 @@ import (
 	"github.com/tg123/go-htpasswd"
 )
 
-const defaultIndexBody = `<html>
-<head><title>Index of {{.Request.URL.Path}}</title></head>
-<body>
-<h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
-{{range .FileInfos -}}
-{{if .IsDir -}}
-<a href="{{.Name}}/">{{.Name}}/</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}       -
-{{else -}}
-<a href="{{.Name}}">{{.Name}}</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
-{{end -}}
-{{end}}</pre><hr></body>
-</html>
-`
+//go:embed autoindex.tmpl
+var autoindexTemplate []byte
 
 type HTTPWebIndexHandler struct {
 	Root         string
@@ -46,7 +36,7 @@ type HTTPWebIndexHandler struct {
 
 func (h *HTTPWebIndexHandler) Load() (err error) {
 	if h.Body == "" {
-		h.Body = defaultIndexBody
+		h.Body = string(autoindexTemplate)
 	}
 
 	h.headers, err = template.New(h.Headers).Funcs(h.Functions).Parse(h.Headers)
