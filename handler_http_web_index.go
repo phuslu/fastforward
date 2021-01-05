@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -74,7 +75,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		h.body.Execute(rw, struct {
 			WebRoot   string
 			Request   *http.Request
-			FileInfos []os.FileInfo
+			FileInfos []fs.FileInfo
 		}{h.Root, req, nil})
 		return
 	}
@@ -210,7 +211,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	infos2 := make([]os.FileInfo, 0, len(infos))
+	infos2 := make([]fs.FileInfo, 0, len(infos))
 	for i := range []int{0, 1} {
 		for _, info := range infos {
 			switch {
@@ -229,7 +230,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	err = h.body.Execute(&b, struct {
 		WebRoot   string
 		Request   *http.Request
-		FileInfos []os.FileInfo
+		FileInfos []fs.FileInfo
 	}{h.Root, req, infos2})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
@@ -252,7 +253,7 @@ func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Reque
 	h.headers.Execute(&sb, struct {
 		WebRoot   string
 		Request   *http.Request
-		FileInfos []os.FileInfo
+		FileInfos []fs.FileInfo
 	}{h.Root, req, nil})
 	for _, line := range strings.Split(sb.String(), "\n") {
 		parts := strings.Split(line, ":")
