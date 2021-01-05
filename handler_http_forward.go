@@ -31,7 +31,6 @@ type HTTPForwardHandler struct {
 	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
 
-	serverNames  StringSet
 	allowDomains StringSet
 	denyDomains  StringSet
 	policy       *template.Template
@@ -44,8 +43,6 @@ type HTTPForwardHandler struct {
 
 func (h *HTTPForwardHandler) Load() error {
 	var err error
-
-	h.serverNames = NewStringSet(h.Config.ServerName)
 
 	expandDomains := func(domains []string) (a []string) {
 		for _, s := range domains {
@@ -135,13 +132,6 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	var host = req.Host
 	if h, _, err := net.SplitHostPort(req.Host); err == nil {
 		host = h
-	}
-
-	// if h.serverNames.Contains(host) || net.ParseIP(ri.RemoteIP).IsLoopback() {
-	if h.serverNames.Contains(host) && req.Method != http.MethodConnect {
-		log.Debug().Context(ri.LogContext).Interface("forward_server_names", h.serverNames).Msg("fallback to next handler")
-		http.NotFound(rw, req)
-		return
 	}
 
 	var domain = host
