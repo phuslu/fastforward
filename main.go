@@ -304,7 +304,7 @@ func main() {
 			TLSConfigurator: tlsConfigurator,
 		}
 
-		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler} {
+		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler, handler} {
 			err = h.Load()
 			if err != nil {
 				log.Fatal().Err(err).Strs("server_name", server.ServerName).Msgf("%T.Load() return error: %+v", h, err)
@@ -415,7 +415,7 @@ func main() {
 			TLSConfigurator: tlsConfigurator,
 		}
 
-		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler} {
+		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler, handler} {
 			err = h.Load()
 			if err != nil {
 				log.Fatal().Err(err).Strs("server_name", httpConfig.ServerName).Msgf("%T.Load() return error: %+v", h, err)

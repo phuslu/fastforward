@@ -20,9 +20,6 @@ import (
 	"github.com/tg123/go-htpasswd"
 )
 
-//go:embed autoindex.tmpl
-var autoindexTemplate []byte
-
 type HTTPWebIndexHandler struct {
 	Root         string
 	Headers      string
@@ -33,6 +30,9 @@ type HTTPWebIndexHandler struct {
 	headers *template.Template
 	body    *template.Template
 }
+
+//go:embed autoindex.tmpl
+var autoindexTemplate []byte
 
 func (h *HTTPWebIndexHandler) Load() (err error) {
 	if h.Body == "" {
