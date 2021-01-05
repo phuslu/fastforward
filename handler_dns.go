@@ -78,7 +78,7 @@ func (h *DNSHandler) Load() error {
 	}
 	if len(h.resolvers) == 0 {
 		h.resolvers = []*net.Resolver{
-			&net.Resolver{PreferGo: true},
+			{PreferGo: true},
 		}
 	}
 	h.cache = shardmap.New(0)
