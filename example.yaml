@@ -32,7 +32,6 @@ https:
       - location: /
         index:
           root: /var/www/html
-          add_after_body: /.autoindex.html
   - listen: [':443']
     server_name: ['example.org']
     keyfile: example_org.pem
