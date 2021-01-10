@@ -102,7 +102,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		// .htpasswd
 		htfile := filepath.Join(fullname, ".htpasswd")
 		if err = HtpasswdVerify(htfile, req); err != nil && !os.IsNotExist(err) {
-			http.Error(rw, "500 internal server error", http.StatusInternalServerError)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		// index.html
