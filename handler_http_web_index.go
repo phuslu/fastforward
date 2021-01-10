@@ -83,7 +83,8 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	if h.Webdav && req.Method != http.MethodGet {
 		davfile := filepath.Join(h.Root, ".davpasswd")
 		if err := HtpasswdVerify(davfile, req); err != nil && !os.IsNotExist(err) {
-			http.Error(rw, "403 forbidden", http.StatusForbidden)
+			rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
+			http.Error(rw, "401 unauthorised: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 		h.webdav.ServeHTTP(rw, req)
@@ -102,7 +103,8 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		// .htpasswd
 		htfile := filepath.Join(fullname, ".htpasswd")
 		if err = HtpasswdVerify(htfile, req); err != nil && !os.IsNotExist(err) {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
+			http.Error(rw, "401 unauthorised: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 		// index.html

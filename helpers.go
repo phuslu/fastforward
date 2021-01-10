@@ -581,8 +581,11 @@ func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
 		return err
 	}
 	s := req.Header.Get("authorization")
-	if s == "" || !strings.HasPrefix(s, "Basic ") {
-		return fmt.Errorf("invalid authorization header: %+v", s)
+	if s == "" {
+		return errors.New("no authorization header")
+	}
+	if !strings.HasPrefix(s, "Basic ") {
+		return fmt.Errorf("unsupported authorization header: %+v", s)
 	}
 	data, err := base64.StdEncoding.DecodeString(s[6:])
 	if err != nil {
@@ -593,7 +596,7 @@ func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
 		return fmt.Errorf("invalid authorization header: %+v", s)
 	}
 
-	if htfile.Match(parts[0], parts[1]) {
+	if !htfile.Match(parts[0], parts[1]) {
 		return fmt.Errorf("wrong username or password: %+v", s)
 	}
 
