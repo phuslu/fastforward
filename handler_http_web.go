@@ -43,11 +43,10 @@ func (h *HTTPWebHandler) Load() error {
 			}
 		case web.Index.Root != "" || web.Index.Body != "":
 			handlers[web.Location] = &HTTPWebIndexHandler{
-				Functions:    h.Functions,
-				Root:         web.Index.Root,
-				Headers:      web.Index.Headers,
-				Body:         web.Index.Body,
-				AddAfterBody: web.Index.AddAfterBody,
+				Functions: h.Functions,
+				Root:      web.Index.Root,
+				Headers:   web.Index.Headers,
+				Body:      web.Index.Body,
 			}
 		}
 	}

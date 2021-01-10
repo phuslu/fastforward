@@ -21,11 +21,10 @@ import (
 )
 
 type HTTPWebIndexHandler struct {
-	Root         string
-	Headers      string
-	Body         string
-	AddAfterBody string
-	Functions    template.FuncMap
+	Root      string
+	Headers   string
+	Body      string
+	Functions template.FuncMap
 
 	headers *template.Template
 	body    *template.Template
@@ -225,12 +224,6 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
-	}
-	if h.AddAfterBody != "" {
-		filename := filepath.Join(h.Root, h.AddAfterBody)
-		if data, err := ioutil.ReadFile(filename); err == nil {
-			b.Write(data)
-		}
 	}
 
 	h.addHeaders(rw, req)
