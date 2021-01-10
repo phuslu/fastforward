@@ -30,6 +30,7 @@ import (
 
 	"github.com/google/shlex"
 	"github.com/phuslu/log"
+	"github.com/tg123/go-htpasswd"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/time/rate"
 )
@@ -572,6 +573,31 @@ func SplitCommandLine(command string) (string, []string, error) {
 	}
 
 	return command, parts[1:], nil
+}
+
+func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
+	htfile, err := htpasswd.New(htpasswdFile, htpasswd.DefaultSystems, nil)
+	if err != nil {
+		return err
+	}
+	s := req.Header.Get("authorization")
+	if s == "" || !strings.HasPrefix(s, "Basic ") {
+		return fmt.Errorf("invalid authorization header: %+v", s)
+	}
+	data, err := base64.StdEncoding.DecodeString(s[6:])
+	if err != nil {
+		return fmt.Errorf("invalid authorization header: %+v", s)
+	}
+	parts := strings.SplitN(string(data), ":", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid authorization header: %+v", s)
+	}
+
+	if htfile.Match(parts[0], parts[1]) {
+		return fmt.Errorf("wrong username or password: %+v", s)
+	}
+
+	return nil
 }
 
 func StartSupervisor() {
