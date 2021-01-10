@@ -47,6 +47,7 @@ func (h *HTTPWebHandler) Load() error {
 				Root:      web.Index.Root,
 				Headers:   web.Index.Headers,
 				Body:      web.Index.Body,
+				Webdav:    web.Index.Webdav,
 			}
 		}
 	}

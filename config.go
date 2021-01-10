@@ -34,6 +34,7 @@ type HTTPConfig struct {
 			Root    string `json:"root" yaml:"root"`
 			Headers string `json:"headers" yaml:"headers"`
 			Body    string `json:"body" yaml:"body"`
+			Webdav  bool   `json:"webdav" yaml:"webdav"`
 		} `json:"index" yaml:"index"`
 		Proxy struct {
 			Pass        string `json:"pass" yaml:"pass"`
