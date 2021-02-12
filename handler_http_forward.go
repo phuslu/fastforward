@@ -97,17 +97,16 @@ func (h *HTTPForwardHandler) Load() error {
 		}
 	}
 
-	if h.Config.Forward.OutboundIp != "" {
+	if h.Config.Forward.BindDevice != "" {
 		if runtime.GOOS != "linux" {
-			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option outbound_ip is only available on linux")
+			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is only available on linux")
 		}
 		if h.Config.Forward.Upstream != "" {
-			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option outbound_ip is confilict with option upstream")
+			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is confilict with option upstream")
 		}
 
 		var dialer = *h.LocalDialer
-		dialer.LocalAddr = &net.TCPAddr{IP: net.ParseIP(h.Config.Forward.OutboundIp)}
-		dialer.Control = (DailerController{BindAddressNoPort: true}).Control
+		dialer.Control = (DailerController{BindDevice: h.Config.Forward.BindDevice}).Control
 
 		h.Transport = &http.Transport{
 			DialContext:         dialer.DialContext,

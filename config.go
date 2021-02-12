@@ -25,7 +25,7 @@ type HTTPConfig struct {
 		AllowDomains []string `json:"allow_domains" yaml:"allow_domains"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
 		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
-		OutboundIp   string   `json:"outbound_ip" yaml:"outbound_ip"`
+		BindDevice   string   `json:"bind_device" yaml:"bind_device"`
 		Log          bool     `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
@@ -64,7 +64,7 @@ type SocksConfig struct {
 		AllowDomains []string `json:"allow_domain" yaml:"allow_domain"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
 		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
-		OutboundIp   string   `json:"outbound_ip" yaml:"outbound_ip"`
+		BindDevice   string   `json:"bind_device" yaml:"bind_device"`
 		Log          bool     `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 }

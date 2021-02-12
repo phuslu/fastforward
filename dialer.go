@@ -20,9 +20,8 @@ var PreferIPv6ContextKey = struct {
 }{"prefer-ipv6"}
 
 type LocalDialer struct {
-	Resolver  *Resolver
-	Control   func(network, address string, conn syscall.RawConn) error
-	LocalAddr *net.TCPAddr
+	Resolver *Resolver
+	Control  func(network, address string, conn syscall.RawConn) error
 
 	PreferIPv6    bool
 	DenyIntranet  bool

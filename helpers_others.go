@@ -29,7 +29,7 @@ func (ln ListenConfig) ListenPacket(ctx context.Context, network, address string
 }
 
 type DailerController struct {
-	BindAddressNoPort bool
+	BindDevice string
 }
 
 func (dc DailerController) Control(network, address string, c syscall.RawConn) error {
