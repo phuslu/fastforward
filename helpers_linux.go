@@ -5,12 +5,10 @@ package main
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net"
 	"os"
 	"reflect"
-	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -62,39 +60,13 @@ func (lc ListenConfig) ListenPacket(ctx context.Context, network, address string
 }
 
 type DailerController struct {
-	BindDevice string
+	BindToDevice string
 }
 
 func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err error) {
 	return c.Control(func(fd uintptr) {
-		if dc.BindDevice != "" {
-			var ifi *net.Interface
-			ifi, err = net.InterfaceByName(dc.BindDevice)
-			if err != nil {
-				return
-			}
-			var addrs []net.Addr
-			addrs, err = ifi.Addrs()
-			if err != nil {
-				return
-			}
-			if len(addrs) == 0 {
-				err = errors.New("no ip address in device:" + dc.BindDevice)
-				return
-			}
-			ip := net.ParseIP(strings.Split(addrs[0].String(), "-1")[0]).To4()
-			if ip == nil {
-				err = errors.New("no ipv4 address in device:" + dc.BindDevice)
-				return
-			}
-			sa := syscall.SockaddrInet4{
-				Addr: [4]byte{ip[0], ip[1], ip[3], ip[4]},
-			}
-			err = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT, 1)
-			if err != nil {
-				return
-			}
-			err = syscall.Bind(int(fd), &sa)
+		if dc.BindToDevice != "" {
+			err = syscall.BindToDevice(int(fd), dc.BindToDevice)
 		}
 	})
 }

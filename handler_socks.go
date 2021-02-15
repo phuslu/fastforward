@@ -93,7 +93,7 @@ func (h *SocksHandler) Load() error {
 		}
 	}
 
-	if h.Config.Forward.BindDevice != "" {
+	if h.Config.Forward.BindToDevice != "" {
 		if runtime.GOOS != "linux" {
 			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_device is only available on linux")
 		}
@@ -102,7 +102,7 @@ func (h *SocksHandler) Load() error {
 		}
 
 		var dialer = *h.LocalDialer
-		dialer.Control = (DailerController{BindDevice: h.Config.Forward.BindDevice}).Control
+		dialer.Control = (DailerController{BindToDevice: h.Config.Forward.BindToDevice}).Control
 	}
 
 	h.AuthCache = shardmap.New(0)
