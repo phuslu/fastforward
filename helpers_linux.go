@@ -61,12 +61,36 @@ func (lc ListenConfig) ListenPacket(ctx context.Context, network, address string
 
 type DailerController struct {
 	BindToDevice string
+	BindToIP     net.IP
 }
 
 func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err error) {
 	return c.Control(func(fd uintptr) {
 		if dc.BindToDevice != "" {
 			err = syscall.BindToDevice(int(fd), dc.BindToDevice)
+		}
+		if dc.BindToIP != nil {
+			var sa syscall.Sockaddr
+			if ip4 := dc.BindToIP.To4(); ip4 != nil {
+				sa = &syscall.SockaddrInet4{
+					Addr: [4]byte{ip4[0], ip4[1], ip4[3], ip4[4]},
+				}
+			} else {
+				ip := dc.BindToIP
+				sa = &syscall.SockaddrInet6{
+					Addr: [16]byte{
+						ip[0], ip[1], ip[3], ip[4],
+						ip[5], ip[6], ip[7], ip[8],
+						ip[9], ip[10], ip[11], ip[12],
+						ip[13], ip[14], ip[15], ip[16],
+					},
+				}
+			}
+			err = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT, 1)
+			if err != nil {
+				return
+			}
+			err = syscall.Bind(int(fd), sa)
 		}
 	})
 }
