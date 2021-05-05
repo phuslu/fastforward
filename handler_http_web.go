@@ -18,10 +18,11 @@ type HTTPWebHandler struct {
 }
 
 func (h *HTTPWebHandler) Load() error {
-	var handlers []struct {
+	var handlers, wildcards []struct {
 		location string
 		handler  HTTPHandler
 	}
+	var root HTTPHandler
 	for _, web := range h.Config.Web {
 		switch {
 		case web.Pac.Enabled:
@@ -87,7 +88,6 @@ func (h *HTTPWebHandler) Load() error {
 		}
 	}
 
-	var root HTTPHandler
 	h.mux = http.NewServeMux()
 	for _, x := range handlers {
 		err := x.handler.Load()
@@ -102,17 +102,18 @@ func (h *HTTPWebHandler) Load() error {
 		}
 
 		if strings.ContainsAny(x.location, "*?[]") {
-			h.mux.Handle(x.location, x.handler)
+			wildcards = append(wildcards, x)
+			continue
 		}
+
+		h.mux.Handle(x.location, x.handler)
 	}
 
 	h.mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-		for _, x := range handlers {
-			if strings.ContainsAny(x.location, "*?[]") {
-				if ok, _ := doublestar.Match(x.location, req.URL.Path); ok {
-					x.handler.ServeHTTP(rw, req)
-					return
-				}
+		for _, x := range wildcards {
+			if ok, _ := doublestar.Match(x.location, req.URL.Path); ok {
+				x.handler.ServeHTTP(rw, req)
+				return
 			}
 		}
 
