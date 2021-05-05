@@ -2,8 +2,10 @@ package main
 
 import (
 	"net/http"
+	"strings"
 	"text/template"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/phuslu/log"
 )
 
@@ -16,51 +18,111 @@ type HTTPWebHandler struct {
 }
 
 func (h *HTTPWebHandler) Load() error {
-	handlers := make(map[string]HTTPHandler)
+	var handlers []struct {
+		location string
+		handler  HTTPHandler
+	}
 	for _, web := range h.Config.Web {
 		switch {
 		case web.Pac.Enabled:
-			handlers[web.Location] = &HTTPWebPacHandler{
-				Functions: h.Functions,
-			}
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebPacHandler{
+					Functions: h.Functions,
+				},
+			})
 		case web.Doh.Enabled:
-			handlers[web.Location] = &HTTPWebDoHHandler{
-				Transport: h.Transport,
-				Upstream:  web.Doh.Upstream,
-				Prelude:   web.Doh.Prelude,
-			}
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebDoHHandler{
+					Transport: h.Transport,
+					Upstream:  web.Doh.Upstream,
+					Prelude:   web.Doh.Prelude,
+				},
+			})
 		case web.Pprof.Enabled:
-			handlers[web.Location] = &HTTPWebPprofHandler{
-				AllowPublicNet: false,
-			}
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebPprofHandler{
+					AllowPublicNet: false,
+				},
+			})
 		case web.Proxy.Pass != "":
-			handlers[web.Location] = &HTTPWebProxyHandler{
-				Transport:   h.Transport,
-				Functions:   h.Functions,
-				Pass:        web.Proxy.Pass,
-				SetHeaders:  web.Proxy.SetHeaders,
-				DumpFailure: web.Proxy.DumpFailure,
-			}
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebProxyHandler{
+					Transport:   h.Transport,
+					Functions:   h.Functions,
+					Pass:        web.Proxy.Pass,
+					SetHeaders:  web.Proxy.SetHeaders,
+					DumpFailure: web.Proxy.DumpFailure,
+				},
+			})
 		case web.Index.Root != "" || web.Index.Body != "":
-			handlers[web.Location] = &HTTPWebIndexHandler{
-				Functions: h.Functions,
-				Root:      web.Index.Root,
-				Headers:   web.Index.Headers,
-				Body:      web.Index.Body,
-				Webdav:    web.Index.Webdav,
-			}
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebIndexHandler{
+					Functions: h.Functions,
+					Root:      web.Index.Root,
+					Headers:   web.Index.Headers,
+					Body:      web.Index.Body,
+					Webdav:    web.Index.Webdav,
+				},
+			})
 		}
 	}
 
+	var root HTTPHandler
 	h.mux = http.NewServeMux()
-	for prefix, handler := range handlers {
-		err := handler.Load()
+	for _, x := range handlers {
+		err := x.handler.Load()
 		if err != nil {
-			log.Fatal().Err(err).Str("web_prefix", prefix).Msgf("%T.Load() return error: %+v", h, err)
+			log.Fatal().Err(err).Str("web_location", x.location).Msgf("%T.Load() return error: %+v", x.handler, err)
 		}
-		log.Info().Str("web_prefix", prefix).Msgf("%T.Load() ok", h)
-		h.mux.Handle(prefix, handler)
+		log.Info().Str("web_location", x.location).Msgf("%T.Load() ok", x.handler)
+
+		if x.location == "/" {
+			root = x.handler
+			continue
+		}
+
+		if strings.ContainsAny(x.location, "*?[]") {
+			h.mux.Handle(x.location, x.handler)
+		}
 	}
+
+	h.mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		for _, x := range handlers {
+			if strings.ContainsAny(x.location, "*?[]") {
+				if ok, _ := doublestar.Match(x.location, req.URL.Path); ok {
+					x.handler.ServeHTTP(rw, req)
+					return
+				}
+			}
+		}
+
+		if root != nil {
+			root.ServeHTTP(rw, req)
+			return
+		}
+
+		http.NotFound(rw, req)
+	})
 
 	return nil
 }

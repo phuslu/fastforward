@@ -60,10 +60,13 @@ https:
       upstream: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
       log: true
-    pac:
-      enabled: true
-    proxy:
-      pass: 'http://127.0.0.1:80'
+    web:
+      - location: /*.pac
+        pac:
+          enabled: true
+      - location: /
+        proxy:
+          pass: 'http://127.0.0.1:80'
 EOF
 
 cat <<EOF > liner.service

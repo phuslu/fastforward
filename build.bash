@@ -21,10 +21,10 @@ function build() {
 		exit 1
 	fi
 
-	if [ "$(gofmt -l .)" != "" ]; then
-		echo -e "\e[1;31mPlease run 'gofmt -s -w .' for go source files\e[0m"
-		exit 1
-	fi
+	# if [ "$(gofmt -l .)" != "" ]; then
+	# 	echo -e "\e[1;31mPlease run 'gofmt -s -w .' for go source files\e[0m"
+	# 	exit 1
+	# fi
 
 	go version
 	go env
