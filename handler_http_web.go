@@ -57,6 +57,18 @@ func (h *HTTPWebHandler) Load() error {
 					AllowPublicNet: false,
 				},
 			})
+		case web.Fcgi.Pass != "":
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebFcgiHandler{
+					Root:   web.Fcgi.Root,
+					Pass:   web.Fcgi.Pass,
+					Params: web.Fcgi.Params,
+				},
+			})
 		case web.Proxy.Pass != "":
 			handlers = append(handlers, struct {
 				location string

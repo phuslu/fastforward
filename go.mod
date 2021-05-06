@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/bmatcuk/doublestar v1.3.4
+	github.com/go-ini/ini v1.38.1 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
@@ -19,6 +20,7 @@ require (
 	github.com/tg123/go-htpasswd v1.0.0
 	github.com/tidwall/rhh v1.1.1 // indirect
 	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211
+	github.com/yookoala/gofast v0.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20210503195802-e9a32991a82e
 	golang.org/x/net v0.0.0-20210505024714-0287a6fb4125
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
