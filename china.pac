@@ -15,8 +15,6 @@ var prelude = {
 	"gtimg.com":0,
 	"icloud-content.com":0,
 	"mzstatic.com":0,
-	"notepad.nz":0,
-	"phus.lu":0,
 	"ykimg.com":0,
 	// proxy doamins
 	"amazon.com":1,
@@ -36,6 +34,8 @@ var prelude = {
 	"githubusercontent.com":1,
 	"google.com":1,
 	"google.com.hk":1,
+	"google.com.sg":1,
+	"google.co.jp":1,
 	"googleapis.com":1,
 	"googleusercontent.com":1,
 	"googlevideo.com":1,
