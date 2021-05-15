@@ -18,12 +18,10 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 	"unicode"
 	"unsafe"
@@ -601,70 +599,6 @@ func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
 	}
 
 	return nil
-}
-
-func StartSupervisor() {
-	switch os.Getenv("supervisor") {
-	case "1":
-		break
-	case "0":
-		executable, _ := os.Executable()
-		SetProcessName(filepath.Base(executable) + ": worker process " + executable)
-		return
-	case "":
-		return
-	}
-
-	executable, _ := os.Executable()
-	os.Chdir(filepath.Dir(executable))
-
-	// deep copy os.Args & os.Environ
-	osArgs := strings.Split(strings.Join(os.Args, "\x00"), "\x00")
-	osEnviron := strings.Split(strings.Replace(strings.Join(os.Environ(), "\x00"), "supervisor=1", "supervisor=0", -1), "\x00")
-
-	var child *os.Process
-	var supervisor func()
-	supervisor = func() {
-		p, err := os.StartProcess(executable, osArgs, &os.ProcAttr{
-			Dir:   ".",
-			Env:   osEnviron,
-			Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
-		})
-		if err != nil {
-			panic("os.StartProcess error: " + err.Error())
-		}
-
-		if child != nil {
-			child.Signal(syscall.SIGHUP)
-		}
-
-		child = p
-
-		SetProcessName(filepath.Base(executable) + ": master process " + executable)
-
-		ps, err := p.Wait()
-		if ps != nil && !ps.Success() {
-			go supervisor()
-		}
-
-		return
-	}
-
-	go supervisor()
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGHUP)
-	signal.Notify(c, syscall.SIGTERM)
-
-	for {
-		switch sig := <-c; sig {
-		case syscall.SIGHUP:
-			go supervisor()
-		case syscall.SIGTERM:
-			child.Signal(sig)
-			os.Exit(0)
-		}
-	}
 }
 
 func GetOCSPStaple(cert *x509.Certificate) ([]byte, error) {

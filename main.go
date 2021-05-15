@@ -37,7 +37,11 @@ func main() {
 		return
 	}
 
-	StartSupervisor()
+	if !IsWorkerProcess() {
+		go StartWorkerProcess(0, os.Args[0], os.Args[1:], ".", nil)
+		StartWorkerSupervisor()
+		return
+	}
 
 	executable, err := os.Executable()
 	if err != nil {

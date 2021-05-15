@@ -25,7 +25,7 @@ test -f .env && . $(pwd -P)/.env
 
 _start() {
     test $(ulimit -n) -lt 100000 && ulimit -n 100000
-    (env ENV=${ENV:-development} supervisor=1 ./liner) <&- >liner.error.log 2>&1 &
+    (env ENV=${ENV:-development} ./liner) <&- >liner.error.log 2>&1 &
     local pid=$!
     echo -n "Starting liner(${pid}): "
     sleep 1
