@@ -15,8 +15,8 @@ type workerCmd struct {
 
 var workerChan = make(chan workerCmd, 1)
 
-func IsWorkerProcess() bool {
-	return os.Getenv("is_worker_process") == "1"
+func IsSupervisorProcess() bool {
+	return os.Getenv("is_supervisor_process") == "1"
 }
 
 func StartWorkerProcess(delay time.Duration, executable string, arguments []string, workDir string, environ []string) {
@@ -25,7 +25,7 @@ func StartWorkerProcess(delay time.Duration, executable string, arguments []stri
 	ac.cmd = exec.Command(executable, arguments...) //nolint:gosec
 	ac.cmd.Stdout = os.Stdout
 	ac.cmd.Stderr = os.Stderr
-	ac.cmd.Env = append([]string{"is_worker_process=1"}, os.Environ()...)
+	ac.cmd.Env = append([]string{"is_supervisor_process=0"}, os.Environ()...)
 	ac.cmd.Dir = workDir
 
 	if len(environ) != 0 {

@@ -37,7 +37,7 @@ func main() {
 		return
 	}
 
-	if !IsWorkerProcess() {
+	if IsSupervisorProcess() {
 		go StartWorkerProcess(0, os.Args[0], os.Args[1:], ".", nil)
 		StartWorkerSupervisor()
 		return
