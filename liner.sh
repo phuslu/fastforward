@@ -25,7 +25,7 @@ test -f .env && . $(pwd -P)/.env
 
 _start() {
     test $(ulimit -n) -lt 100000 && ulimit -n 100000
-    (env ENV=${ENV:-development} ./liner) <&- >liner.error.log 2>&1 &
+    (env ENV=${ENV:-development} $(pwd)/liner) <&- >liner.error.log 2>&1 &
     local pid=$!
     echo -n "Starting liner(${pid}): "
     sleep 1
@@ -49,11 +49,6 @@ _stop() {
 }
 
 _restart() {
-    if ! ./liner -validate ${ENV:-development}.yaml >/dev/null 2>&1; then
-        echo "Cannot restart liner, please correct liner yaml file"
-        echo "Run './liner -validate' for details"
-        exit 1
-    fi
     _stop
     sleep 1
     _start

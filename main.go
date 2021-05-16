@@ -49,10 +49,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var validate bool
-	flag.BoolVar(&validate, "validate", false, "parse the liner conf and exit")
 	flag.Parse()
-
 	config, err := NewConfig(flag.Arg(0))
 	if err != nil {
 		log.Fatal().Err(err).Str("filename", flag.Arg(0)).Msg("NewConfig() error")
@@ -563,10 +560,6 @@ func main() {
 				}
 			}(conn, h)
 		}
-	}
-
-	if validate {
-		os.Exit(0)
 	}
 
 	var cronOptions = []cron.Option{
