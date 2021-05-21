@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -25,9 +26,15 @@ func StartWorkerProcess(delay time.Duration, executable string, arguments []stri
 	ac.cmd = exec.Command(executable, arguments...) //nolint:gosec
 	ac.cmd.Stdout = os.Stdout
 	ac.cmd.Stderr = os.Stderr
-	ac.cmd.Env = append([]string{"is_supervisor_process=0"}, os.Environ()...)
+	ac.cmd.Env = append([]string{}, os.Environ()...)
 	ac.cmd.Dir = workDir
+	ac.cmd.Env = []string{"is_supervisor_process=0"}
 
+	for _, s := range os.Environ() {
+		if !strings.HasPrefix(s, "is_supervisor_process=") {
+			ac.cmd.Env = append(ac.cmd.Env, s)
+		}
+	}
 	if len(environ) != 0 {
 		ac.cmd.Env = append(ac.cmd.Env, environ...)
 	}
