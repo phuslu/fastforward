@@ -32,6 +32,14 @@ var (
 )
 
 func main() {
+	executable, err := os.Executable()
+	if err != nil {
+		println("cannot get executable path")
+		os.Exit(1)
+	}
+
+	os.Chdir(filepath.Dir(executable))
+
 	if len(os.Args) > 1 && os.Args[1] == "-version" {
 		println(version)
 		return
@@ -41,12 +49,6 @@ func main() {
 		go StartWorkerProcess(0, os.Args[0], os.Args[1:], ".", nil)
 		StartWorkerSupervisor()
 		return
-	}
-
-	executable, err := os.Executable()
-	if err != nil {
-		println("cannot get executable path")
-		os.Exit(1)
 	}
 
 	flag.Parse()
