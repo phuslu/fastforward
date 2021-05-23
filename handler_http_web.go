@@ -67,18 +67,6 @@ func (h *HTTPWebHandler) Load() error {
 					Root: web.Location,
 				},
 			})
-		case web.Fcgi.Pass != "":
-			handlers = append(handlers, struct {
-				location string
-				handler  HTTPHandler
-			}{
-				web.Location,
-				&HTTPWebFcgiHandler{
-					Root:   web.Fcgi.Root,
-					Pass:   web.Fcgi.Pass,
-					Params: web.Fcgi.Params,
-				},
-			})
 		case web.Proxy.Pass != "":
 			handlers = append(handlers, struct {
 				location string
@@ -100,10 +88,12 @@ func (h *HTTPWebHandler) Load() error {
 			}{
 				web.Location,
 				&HTTPWebIndexHandler{
-					Functions: h.Functions,
-					Root:      web.Index.Root,
-					Headers:   web.Index.Headers,
-					Body:      web.Index.Body,
+					Functions:   h.Functions,
+					Root:        web.Index.Root,
+					Headers:     web.Index.Headers,
+					Body:        web.Index.Body,
+					FcgiEnabled: web.Index.Fcgi.Enabled,
+					FcgiPass:    web.Index.Fcgi.Pass,
 				},
 			})
 		}

@@ -16,16 +16,20 @@ import (
 	"text/template"
 
 	"github.com/phuslu/log"
+	"github.com/yookoala/gofast"
 )
 
 type HTTPWebIndexHandler struct {
-	Root      string
-	Headers   string
-	Body      string
-	Functions template.FuncMap
+	Root        string
+	Headers     string
+	Body        string
+	Functions   template.FuncMap
+	FcgiEnabled bool
+	FcgiPass    string
 
 	headers *template.Template
 	body    *template.Template
+	fcgi    gofast.ConnFactory
 }
 
 //go:embed autoindex.tmpl
@@ -44,6 +48,10 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 	h.body, err = template.New(h.Body).Funcs(h.Functions).Parse(h.Body)
 	if err != nil {
 		return
+	}
+
+	if h.FcgiEnabled {
+		h.fcgi = gofast.SimpleConnFactory("tcp", h.FcgiPass)
 	}
 
 	return
@@ -66,6 +74,14 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			Request   *http.Request
 			FileInfos []fs.FileInfo
 		}{h.Root, req, nil})
+		return
+	}
+
+	if h.FcgiEnabled && strings.HasSuffix(req.URL.Path, ".php") {
+		gofast.NewHandler(
+			gofast.NewFileEndpoint(h.Root+req.URL.Path)(gofast.BasicSession),
+			gofast.SimpleClientFactory(h.fcgi),
+		).ServeHTTP(rw, req)
 		return
 	}
 

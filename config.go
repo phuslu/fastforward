@@ -34,6 +34,10 @@ type HTTPConfig struct {
 			Root    string `json:"root" yaml:"root"`
 			Headers string `json:"headers" yaml:"headers"`
 			Body    string `json:"body" yaml:"body"`
+			Fcgi    struct {
+				Enabled bool   `json:"enabled" yaml:"enabled"`
+				Pass    string `json:"pass" yaml:"pass"`
+			} `json:"fcgi" yaml:"fcgi"`
 		} `json:"index" yaml:"index"`
 		Dav struct {
 			Enabled bool `json:"enabled" yaml:"enabled"`
@@ -43,11 +47,6 @@ type HTTPConfig struct {
 			SetHeaders  string `json:"set_headers" yaml:"set_headers"`
 			DumpFailure bool   `json:"dump_failure" yaml:"dump_failure"`
 		} `json:"proxy" yaml:"proxy"`
-		Fcgi struct {
-			Root   string            `json:"root" yaml:"root"`
-			Pass   string            `json:"pass" yaml:"pass"`
-			Params map[string]string `json:"param" yaml:"param"`
-		} `json:"fcgi" yaml:"fcgi"`
 		Pprof struct {
 			Enabled bool `json:"enabled" yaml:"enabled"`
 		} `json:"pprof" yaml:"pprof"`
