@@ -57,6 +57,16 @@ func (h *HTTPWebHandler) Load() error {
 					AllowPublicNet: false,
 				},
 			})
+		case web.Dav.Enabled:
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebDavHandler{
+					Root: web.Location,
+				},
+			})
 		case web.Fcgi.Pass != "":
 			handlers = append(handlers, struct {
 				location string
@@ -94,7 +104,6 @@ func (h *HTTPWebHandler) Load() error {
 					Root:      web.Index.Root,
 					Headers:   web.Index.Headers,
 					Body:      web.Index.Body,
-					Webdav:    web.Index.Webdav,
 				},
 			})
 		}

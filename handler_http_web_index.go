@@ -16,19 +16,16 @@ import (
 	"text/template"
 
 	"github.com/phuslu/log"
-	"golang.org/x/net/webdav"
 )
 
 type HTTPWebIndexHandler struct {
 	Root      string
 	Headers   string
 	Body      string
-	Webdav    bool
 	Functions template.FuncMap
 
 	headers *template.Template
 	body    *template.Template
-	webdav  *webdav.Handler
 }
 
 //go:embed autoindex.tmpl
@@ -47,16 +44,6 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 	h.body, err = template.New(h.Body).Funcs(h.Functions).Parse(h.Body)
 	if err != nil {
 		return
-	}
-
-	if h.Webdav && h.Root != "" {
-		davfile := filepath.Join(h.Root, ".davpasswd")
-		if _, err := os.Stat(davfile); err == nil {
-			h.webdav = &webdav.Handler{
-				FileSystem: webdav.Dir(h.Root),
-				LockSystem: webdav.NewMemLS(),
-			}
-		}
 	}
 
 	return
@@ -79,17 +66,6 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			Request   *http.Request
 			FileInfos []fs.FileInfo
 		}{h.Root, req, nil})
-		return
-	}
-
-	if h.Webdav && req.Method != http.MethodGet {
-		davfile := filepath.Join(h.Root, ".davpasswd")
-		if err := HtpasswdVerify(davfile, req); err != nil && !os.IsNotExist(err) {
-			rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
-			http.Error(rw, "401 unauthorised: "+err.Error(), http.StatusUnauthorized)
-			return
-		}
-		h.webdav.ServeHTTP(rw, req)
 		return
 	}
 
