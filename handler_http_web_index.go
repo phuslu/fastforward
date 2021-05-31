@@ -17,6 +17,7 @@ import (
 
 	"github.com/phuslu/log"
 	"github.com/yookoala/gofast"
+	"golang.org/x/net/webdav"
 )
 
 type HTTPWebIndexHandler struct {
@@ -24,11 +25,14 @@ type HTTPWebIndexHandler struct {
 	Headers     string
 	Body        string
 	Functions   template.FuncMap
+	DavEnabled  bool
+	DavPrefixs  []string
 	FcgiEnabled bool
 	FcgiPass    string
 
 	headers *template.Template
 	body    *template.Template
+	dav     *webdav.Handler
 	fcgi    gofast.ConnFactory
 }
 
@@ -52,6 +56,13 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 
 	if h.FcgiEnabled {
 		h.fcgi = gofast.SimpleConnFactory("tcp", h.FcgiPass)
+	}
+
+	if h.DavEnabled {
+		h.dav = &webdav.Handler{
+			FileSystem: webdav.Dir(h.Root),
+			LockSystem: webdav.NewMemLS(),
+		}
 	}
 
 	return
@@ -78,11 +89,49 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	}
 
 	if h.FcgiEnabled && strings.HasSuffix(req.URL.Path, ".php") {
+		log.Info().Context(ri.LogContext).Interface("headers", req.Header).Msg("web fastcgi request")
+
 		gofast.NewHandler(
 			gofast.NewFileEndpoint(h.Root+req.URL.Path)(gofast.BasicSession),
 			gofast.SimpleClientFactory(h.fcgi),
 		).ServeHTTP(rw, req)
+
 		return
+	}
+
+	if h.DavEnabled {
+		if req.Method == http.MethodOptions {
+			h.dav.ServeHTTP(rw, req)
+
+			return
+		}
+
+		prefix := ""
+		for _, s := range h.DavPrefixs {
+			if strings.HasPrefix(req.URL.Path, s) {
+				prefix = s
+				break
+			}
+		}
+		if prefix != "" {
+			log.Info().Context(ri.LogContext).Interface("headers", req.Header).Msg("web dav request")
+
+			davfile := filepath.Join(h.Root, prefix+"/.davpasswd")
+			if err := HtpasswdVerify(davfile, req); err != nil && !os.IsNotExist(err) {
+				log.Error().Context(ri.LogContext).Err(err).Msg("web dav auth error")
+				rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
+				http.Error(rw, "401 unauthorised: "+err.Error(), http.StatusUnauthorized)
+
+				return
+			}
+
+			// fixup path/raw_path for dav handler
+			// req.URL.Path = req.URL.Path[len(h.Root):]
+			// req.URL.RawPath = req.URL.RawPath[len(h.Root):]
+			h.dav.ServeHTTP(rw, req)
+
+			return
+		}
 	}
 
 	fullname := filepath.Join(h.Root, req.URL.Path)
