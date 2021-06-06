@@ -587,6 +587,7 @@ func main() {
 			}
 			log.Info().Str("cron_command", command).Msg("exec cron_command OK")
 		})
+		log.Info().Str("cron_spec", spec).Str("cron_command", command).Msg("add cron job OK")
 	}
 	go runner.Run()
 
