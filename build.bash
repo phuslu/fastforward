@@ -128,10 +128,10 @@ EOF
 function release() {
 	pushd build
 
-	local ssh_host=63.223.66.20
+	local ssh_host=phus.lu
 	ssh-keyscan -H ${ssh_host} | tee -a ~/.ssh/known_hosts
-	sshpass -p "${SSH_PASSWORD}" ssh phuslu@${ssh_host} 'rm -rf /home/phuslu/web/liner_*'
-	sshpass -p "${SSH_PASSWORD}" rsync --progress -avz liner_* "phuslu@${ssh_host}:/home/phuslu/web/"
+	sshpass -p "${SSH_PASSWORD}" ssh phuslu@${ssh_host} 'rm -rf /home/phuslu/web/liner/liner_*'
+	sshpass -p "${SSH_PASSWORD}" rsync --progress -avz liner_* "phuslu@${ssh_host}:/home/phuslu/web/liner/"
 
 	popd
 }

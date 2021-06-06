@@ -14,21 +14,21 @@ esac
 
 ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
-filename=$(curl golab.cc | egrep -o "liner_linux_${arch}-r[0-9]+.tar.xz"  | head -1)
-pacfile=$(head -c 6 /dev/urandom | base64 | tr -d =/+).pac
+filename=$(curl https://phus.lu/liner/ | egrep -o "liner_linux_${arch}-r[0-9]+.tar.xz"  | head -1)
+pacfile=$(xxd -l 3 -p /dev/urandom | tr -d a-f).pac
 
 if test -d liner; then
-	cd liner
+  cd liner
 elif test -x liner.sh; then
-	true
+  true
 else
-	mkdir liner && cd liner
+  mkdir liner && cd liner
 fi
 
-curl golab.cc/$filename | tar xvJ
+curl https://phus.lu/liner/$filename | tar xvJ
 
 if test -f production.yaml; then
-	exit 0
+  exit 0
 fi
 
 cat <<EOF > production.yaml
@@ -78,8 +78,6 @@ Description=liner
 [Service]
 Type=forking
 KillMode=process
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-User=$(whoami)
 WorkingDirectory=$(pwd)
 ExecStart=$(pwd)/liner.sh start
 ExecStop=$(pwd)/liner.sh stop

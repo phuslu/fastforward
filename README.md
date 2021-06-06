@@ -1,4 +1,4 @@
 ### Installation
 ```
-curl golab.cc/get.sh | bash
+curl phus.lu/liner | bash
 ```
