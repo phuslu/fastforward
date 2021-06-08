@@ -14,7 +14,8 @@ esac
 
 ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
-filename=$(curl https://phus.lu/liner/ | egrep -o "liner_linux_${arch}-r[0-9]+.tar.xz"  | head -1)
+checksum=$(curl https://phus.lu/liner/checksums.txt | egrep "liner_linux_${arch}-r[0-9]+.tar.xz")
+filename=$(echo $checksum | awk '{print $2}')
 pacfile=$(xxd -l 3 -p /dev/urandom | tr -d a-f).pac
 
 if test -d liner; then
@@ -25,7 +26,15 @@ else
   mkdir liner && cd liner
 fi
 
-curl https://phus.lu/liner/$filename | tar xvJ
+curl http://phus.lu/liner/$filename > $filename
+if test "$(sha1sum $filename)" != "$checksum"; then
+  echo "$filename sha1sum mismatched, please check your network!"
+  rm -rf $filename
+  exit 1
+fi
+
+tar xvJf $filename
+rm -rf $filename
 
 if test -f production.yaml; then
   exit 0
