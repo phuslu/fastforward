@@ -16,7 +16,7 @@ ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
 checksum=$(curl https://phus.lu/liner/checksums.txt | egrep "liner_linux_${arch}-r[0-9]+.tar.xz")
 filename=$(echo $checksum | awk '{print $2}')
-pacfile=$(xxd -l 3 -p /dev/urandom | tr -d a-f).pac
+pacfile=$(shuf -zer -n16 1 2 3 4 5 6 7 8 9 a b c d e f).pac
 
 if test -d liner; then
   cd liner
