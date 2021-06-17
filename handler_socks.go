@@ -298,6 +298,9 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	if err != nil {
 		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("connect remote host failed")
 		WriteSocks5Status(conn, Socks5StatusNetworkUnreachable)
+		if rconn != nil {
+			rconn.Close()
+		}
 		return
 	}
 	defer rconn.Close()
