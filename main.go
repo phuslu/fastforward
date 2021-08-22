@@ -377,13 +377,16 @@ func main() {
 			ErrorLog:  log.DefaultLogger.Std(log.ErrorLevel, log.NewContext(nil).Str("proto", "http2").Str("addr", addr).Value(), "", 0),
 		}
 
-		http2.ConfigureServer(server, &http2.Server{})
+		http2.ConfigureServer(server, &http2.Server{
+			MaxUploadBufferPerConnection: 2 * 1024 * 1024,
+			MaxUploadBufferPerStream:     2 * 1024 * 1024,
+		})
 
 		go server.Serve(tls.NewListener(TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
 			KeepAlivePeriod: 3 * time.Minute,
-			ReadBufferSize:  32 * 1024,
-			WriteBufferSize: 32 * 1024,
+			ReadBufferSize:  2 * 1024 * 1024,
+			WriteBufferSize: 2 * 1024 * 1024,
 		}, server.TLSConfig))
 
 		servers = append(servers, server)

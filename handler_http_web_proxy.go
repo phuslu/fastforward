@@ -68,7 +68,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
-	req.Host = u.Host
+	// req.Host = u.Host
 
 	if s := req.Header.Get("x-forwarded-for"); s != "" {
 		req.Header.Set("x-forwarded-for", s+", "+ri.RemoteIP)
