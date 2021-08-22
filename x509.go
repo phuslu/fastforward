@@ -12,7 +12,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"os/exec"
@@ -48,7 +47,7 @@ func (ca *RootCA) init() error {
 	if _, err := os.Stat(ca.DirName); os.IsNotExist(err) {
 		os.Mkdir(ca.DirName, 0755)
 		if ca.Password != "" {
-			ioutil.WriteFile(filepath.Join(ca.DirName, "readme.txt"), []byte(`The password of pfx files is 123456`), 0644)
+			os.WriteFile(filepath.Join(ca.DirName, "readme.txt"), []byte(`The password of pfx files is 123456`), 0644)
 		}
 	}
 
@@ -113,13 +112,13 @@ func (ca *RootCA) init() error {
 			pem.Encode(&b, &pem.Block{Type: "CERTIFICATE", Bytes: der})
 		}
 
-		err = ioutil.WriteFile(rootFile, b.Bytes(), 0644)
+		err = os.WriteFile(rootFile, b.Bytes(), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
-	data, err := ioutil.ReadFile(rootFile)
+	data, err := os.ReadFile(rootFile)
 	if err != nil {
 		return err
 	}
@@ -219,7 +218,7 @@ func (ca *RootCA) Issue(commonName string) error {
 		pem.Encode(&b, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 	}
 
-	err = ioutil.WriteFile(filepath.Join(ca.DirName, commonName+ca.ext()), b.Bytes(), 0644)
+	err = os.WriteFile(filepath.Join(ca.DirName, commonName+ca.ext()), b.Bytes(), 0644)
 	if err != nil {
 		return err
 	}

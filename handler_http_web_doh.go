@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -121,7 +120,7 @@ func (h *HTTPWebDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	case http.MethodGet:
 		data, err = base64.URLEncoding.DecodeString(req.URL.Query().Get("dns"))
 	default:
-		data, err = ioutil.ReadAll(req.Body)
+		data, err = io.ReadAll(req.Body)
 	}
 	if err != nil {
 		log.Error().Err(err).Context(ri.LogContext).Msg("doh read body error")
@@ -181,7 +180,7 @@ func (h *HTTPWebDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 	defer resp.Body.Close()
 
-	data, err = ioutil.ReadAll(resp.Body)
+	data, err = io.ReadAll(resp.Body)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadGateway)
 		return

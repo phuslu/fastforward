@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -48,7 +48,7 @@ func (h *HTTPForwardHandler) Load() error {
 		for _, s := range domains {
 			switch {
 			case strings.HasPrefix(s, "@"):
-				data, err := ioutil.ReadFile(s[1:])
+				data, err := os.ReadFile(s[1:])
 				if err != nil {
 					log.Error().Err(err).Str("forward_domain_file", s[1:]).Msg("read forward domain error")
 					continue
@@ -198,7 +198,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				},
 				Request:       req,
 				ContentLength: int64(len(authText)),
-				Body:          ioutil.NopCloser(strings.NewReader(authText)),
+				Body:          io.NopCloser(strings.NewReader(authText)),
 			}
 			for key, values := range resp.Header {
 				for _, value := range values {
@@ -348,7 +348,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 
 		if req.ContentLength == 0 {
-			io.Copy(ioutil.Discard, req.Body)
+			io.Copy(io.Discard, req.Body)
 			req.Body.Close()
 			req.Body = nil
 		}

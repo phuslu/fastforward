@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
@@ -239,24 +238,25 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	infos, err := ioutil.ReadDir(fullname)
+	entries, err := os.ReadDir(fullname)
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	infos2 := make([]fs.FileInfo, 0, len(infos))
+	infos := make([]fs.FileInfo, 0, len(entries))
 	for i := range []int{0, 1} {
-		for _, info := range infos {
+		for _, entry := range entries {
 			switch {
-			case info.Name()[0] == '.':
+			case entry.Name()[0] == '.':
 				continue
-			case i == 0 && !info.IsDir():
+			case i == 0 && !entry.IsDir():
 				continue
-			case i == 1 && info.IsDir():
+			case i == 1 && entry.IsDir():
 				continue
 			}
-			infos2 = append(infos2, info)
+			info, _ := entry.Info()
+			infos = append(infos, info)
 		}
 	}
 
@@ -265,7 +265,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		WebRoot   string
 		Request   *http.Request
 		FileInfos []fs.FileInfo
-	}{h.Root, req, infos2})
+	}{h.Root, req, infos})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return

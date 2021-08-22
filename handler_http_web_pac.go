@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/tls"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -39,7 +38,7 @@ func (h *HTTPWebPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	log.Info().Context(ri.LogContext).Msg("pac request")
 
-	data, err := ioutil.ReadFile(req.URL.Path[1:])
+	data, err := os.ReadFile(req.URL.Path[1:])
 	if err != nil {
 		log.Error().Context(ri.LogContext).Err(err).Msg("read pac error")
 		http.NotFound(rw, req)

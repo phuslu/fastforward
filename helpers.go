@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -529,13 +528,13 @@ func ReadFile(s string) (body []byte, err error) {
 
 	switch u.Scheme {
 	case "":
-		body, err = ioutil.ReadFile(s)
+		body, err = os.ReadFile(s)
 	case "http", "https":
 		var resp *http.Response
 		resp, err = http.Get(s)
 		if err == nil {
 			defer resp.Body.Close()
-			body, err = ioutil.ReadAll(resp.Body)
+			body, err = io.ReadAll(resp.Body)
 		}
 	default:
 		err = errors.New("unsupported url: " + s)
@@ -620,7 +619,7 @@ func GetOCSPStaple(cert *x509.Certificate) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	b, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 	if err != nil {
 		return nil, fmt.Errorf("reading issuer certificate: %w", err)
 	}
@@ -645,7 +644,7 @@ func GetOCSPStaple(cert *x509.Certificate) ([]byte, error) {
 		return nil, err
 	}
 
-	raw, err := ioutil.ReadAll(resp.Body)
+	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

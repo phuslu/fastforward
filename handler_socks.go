@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -58,7 +58,7 @@ func (h *SocksHandler) Load() error {
 		for _, s := range domains {
 			switch {
 			case strings.HasPrefix(s, "@"):
-				data, err := ioutil.ReadFile(s[1:])
+				data, err := os.ReadFile(s[1:])
 				if err != nil {
 					log.Error().Err(err).Str("forward_domain_file", s[1:]).Msg("read forward domain error")
 					continue
