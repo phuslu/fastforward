@@ -378,15 +378,15 @@ func main() {
 		}
 
 		http2.ConfigureServer(server, &http2.Server{
-			MaxUploadBufferPerConnection: 2 * 1024 * 1024,
-			MaxUploadBufferPerStream:     2 * 1024 * 1024,
+			MaxUploadBufferPerConnection: 1 << 20,
+			MaxUploadBufferPerStream:     1 << 20,
 		})
 
 		go server.Serve(tls.NewListener(TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
 			KeepAlivePeriod: 3 * time.Minute,
-			ReadBufferSize:  2 * 1024 * 1024,
-			WriteBufferSize: 2 * 1024 * 1024,
+			ReadBufferSize:  1 << 20,
+			WriteBufferSize: 1 << 20,
 		}, server.TLSConfig))
 
 		servers = append(servers, server)
