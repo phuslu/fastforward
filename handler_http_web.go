@@ -78,14 +78,12 @@ func (h *HTTPWebHandler) Load() error {
 			}{
 				web.Location,
 				&HTTPWebIndexHandler{
-					Functions:   h.Functions,
-					Root:        web.Index.Root,
-					Headers:     web.Index.Headers,
-					Body:        web.Index.Body,
-					DavEnabled:  web.Index.Dav.Enabled,
-					DavPrefixs:  web.Index.Dav.Prefixs,
-					FcgiEnabled: web.Index.Fcgi.Enabled,
-					FcgiPass:    web.Index.Fcgi.Pass,
+					Functions:  h.Functions,
+					Root:       web.Index.Root,
+					Headers:    web.Index.Headers,
+					Body:       web.Index.Body,
+					DavEnabled: web.Index.Dav.Enabled,
+					DavPrefixs: web.Index.Dav.Prefixs,
 				},
 			})
 		}
