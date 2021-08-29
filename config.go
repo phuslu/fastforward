@@ -96,15 +96,16 @@ type Config struct {
 		Localtime bool   `json:"localtime" yaml:"localtime"`
 	} `json:"log" yaml:"log"`
 	Global struct {
-		DenyIntranet    bool   `json:"deny_intranet" yaml:"deny_intranet"`
-		DialTimeout     int    `json:"dial_timeout" yaml:"dial_timeout"`
-		TcpFastopen     bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
-		PreferIpv6      bool   `json:"perfer_ipv6" yaml:"perfer_ipv6"`
-		DnsServer       string `json:"dns_server" yaml:"dns_server"`
-		DnsTtl          uint32 `json:"dns_ttl" yaml:"dns_ttl"`
-		IdleConnTimeout int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
-		MaxIdleConns    int    `json:"max_idle_conns" yaml:"max_idle_conns"`
-		GracefulTimeout int    `json:"graceful_timeout" yaml:"graceful_timeout"`
+		DenyIntranet            bool   `json:"deny_intranet" yaml:"deny_intranet"`
+		DialTimeout             int    `json:"dial_timeout" yaml:"dial_timeout"`
+		TcpFastopen             bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
+		PreferIpv6              bool   `json:"perfer_ipv6" yaml:"perfer_ipv6"`
+		AllowUnknownHttpsDomain bool   `json:"allow_unknown_https_domain" yaml:"allow_unknown_https_domain"`
+		DnsServer               string `json:"dns_server" yaml:"dns_server"`
+		DnsTtl                  uint32 `json:"dns_ttl" yaml:"dns_ttl"`
+		IdleConnTimeout         int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
+		MaxIdleConns            int    `json:"max_idle_conns" yaml:"max_idle_conns"`
+		GracefulTimeout         int    `json:"graceful_timeout" yaml:"graceful_timeout"`
 	} `json:"global" yaml:"global"`
 	Cron []struct {
 		Spec    string `json:"spec" yaml:"spec"`

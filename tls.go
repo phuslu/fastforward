@@ -23,7 +23,8 @@ type TLSConfiguratorEntry struct {
 }
 
 type TLSConfigurator struct {
-	DefaultServername string
+	DefaultServername      string
+	AllowUnknownServerName bool
 
 	Entries          map[string]TLSConfiguratorEntry
 	AutoCert         *autocert.Manager
@@ -108,7 +109,9 @@ func (m *TLSConfigurator) HostPolicy(ctx context.Context, host string) error {
 func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	entry, ok := m.Entries[hello.ServerName]
 	if !ok {
-		return nil, errors.New("server_name(" + hello.ServerName + ") is not allowed")
+		if !m.AllowUnknownServerName {
+			return nil, errors.New("server_name(" + hello.ServerName + ") is not allowed")
+		}
 	}
 
 	if entry.KeyFile != "" {

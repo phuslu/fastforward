@@ -285,7 +285,9 @@ func main() {
 	servers := make([]*http.Server, 0)
 
 	// listen and serve https
-	tlsConfigurator := &TLSConfigurator{}
+	tlsConfigurator := &TLSConfigurator{
+		AllowUnknownServerName: config.Global.AllowUnknownHttpsDomain,
+	}
 	h2handlers := map[string]map[string]HTTPHandler{}
 	for _, server := range config.Https {
 		handler := &HTTPMainHandler{
