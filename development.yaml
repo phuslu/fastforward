@@ -20,8 +20,3 @@ socks:
     server_name: ['127.0.0.1']
     forward:
       policy: bypass_auth
-dns:
-  - listen: [':53']
-    server_name: ['127.0.0.1']
-    upstream:
-      - '114.114.114.114'

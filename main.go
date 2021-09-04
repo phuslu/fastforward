@@ -59,7 +59,7 @@ func main() {
 	}
 
 	// main logger
-	var forwardLogger, dnsLogger log.Logger
+	var forwardLogger log.Logger
 	if log.IsTerminal(os.Stderr.Fd()) {
 		log.DefaultLogger = log.Logger{
 			Level:      log.ParseLevel(config.Log.Level),
@@ -71,10 +71,6 @@ func main() {
 			},
 		}
 		forwardLogger = log.Logger{
-			Level:  log.ParseLevel(config.Log.Level),
-			Writer: log.DefaultLogger.Writer,
-		}
-		dnsLogger = log.Logger{
 			Level:  log.ParseLevel(config.Log.Level),
 			Writer: log.DefaultLogger.Writer,
 		}
@@ -94,16 +90,6 @@ func main() {
 			Level: log.ParseLevel(config.Log.Level),
 			Writer: &log.FileWriter{
 				Filename:   "forward.log",
-				MaxBackups: config.Log.Backups,
-				MaxSize:    config.Log.Maxsize,
-				LocalTime:  config.Log.Localtime,
-			},
-		}
-		// dns logger
-		dnsLogger = log.Logger{
-			Level: log.ParseLevel(config.Log.Level),
-			Writer: &log.FileWriter{
-				Filename:   "dns.log",
 				MaxBackups: config.Log.Backups,
 				MaxSize:    config.Log.Maxsize,
 				LocalTime:  config.Log.Localtime,
@@ -532,40 +518,6 @@ func main() {
 					go h.ServeConn(conn)
 				}
 			}(ln, h)
-		}
-	}
-
-	// dns handler
-	for _, dnsConfig := range config.Dns {
-		for _, addr := range dnsConfig.Listen {
-			var conn net.PacketConn
-
-			if conn, err = lc.ListenPacket(context.Background(), "udp", addr); err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("net.ListenPacket error")
-			}
-
-			log.Info().Str("version", version).Str("address", conn.LocalAddr().String()).Msg("liner listen and serve dns")
-
-			h := &DNSHandler{
-				Config:    dnsConfig,
-				DNSLogger: dnsLogger,
-			}
-
-			if err = h.Load(); err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("socks hanlder load error")
-			}
-
-			go func(conn net.PacketConn, h *DNSHandler) {
-				for {
-					buf := make([]byte, 1024)
-					n, addr, err := conn.ReadFrom(buf)
-					if err != nil {
-						log.Debug().Err(err).Str("version", version).Str("address", conn.LocalAddr().String()).Msg("liner accept socks connection error")
-						continue
-					}
-					go h.ServePacketConn(conn, addr, buf[:n])
-				}
-			}(conn, h)
 		}
 	}
 

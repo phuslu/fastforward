@@ -83,11 +83,6 @@ type RelayConfig struct {
 	Log        bool     `json:"log" yaml:"log"`
 }
 
-type DNSConfig struct {
-	Listen   []string `json:"listen" yaml:"listen"`
-	Upstream []string `json:"upstream" yaml:"upstream"`
-}
-
 type Config struct {
 	Log struct {
 		Level     string `json:"level" yaml:"level"`
@@ -123,7 +118,6 @@ type Config struct {
 	Http  []HTTPConfig  `json:"http" yaml:"http"`
 	Socks []SocksConfig `json:"socks" yaml:"socks"`
 	Relay []RelayConfig `json:"relay" yaml:"relay"`
-	Dns   []DNSConfig   `json:"dns" yaml:"dns"`
 }
 
 func NewConfig(filename string) (*Config, error) {
