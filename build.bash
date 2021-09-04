@@ -62,12 +62,7 @@ global:
   dns_ttl: 900
   prefer_ipv6: false
 upstream:
-  https_hk:
-    scheme: https
-    username: leader.one
-    password: '123456'
-    host: flyspace.hk
-    port: 443
+  https_hk: https://leaderone:123456@flyspace.hk:443
 http:
   - listen: ['127.0.0.1:8087']
     server_name: ['localhost']
@@ -101,12 +96,7 @@ global:
   dns_ttl: 900
   prefer_ipv6: false
 upstream:
-  https_hk:
-    scheme: https
-    username: leader.one
-    password: '123456'
-    host: flyspace.hk
-    port: 443
+  https_hk: https://leaderone:123456@flyspace.hk:443
 http:
   - listen: ['127.0.0.1:8087']
     server_name: ['localhost']

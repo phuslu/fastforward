@@ -10,22 +10,9 @@ log:
   maxsize: 1073741824
   localtime: true
 upstream:
-  torsocks:
-    scheme: socks5h
-    host: 127.0.0.1
-    port: 9050
-  proxy1_example_org:
-    scheme: https
-    username: user
-    password: password
-    host: proxy1.example.org
-    port: 443
-  proxy2_example_com:
-    scheme: https
-    username: foobar
-    password: 123456
-    host: proxy2.example.com
-    port: 443
+  torsocks: socks5h://127.0.0.1:9050
+  proxy1_example_org: https://user:passwd@proxy1.example.org:443
+  proxy2_example_com: https://foobar:123456@proxy2.example.com:443
 https:
   - listen: [':443']
     web:

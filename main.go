@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -189,47 +188,58 @@ func main() {
 
 	upstreams := make(map[string]Dialer)
 	for name, upstream := range config.Upstream {
-		switch upstream.Scheme {
+		parts := strings.Split(upstream, "\n")
+		u, err := url.Parse(parts[0])
+		if err != nil {
+			log.Fatal().Err(err).Str("upstream", parts[0]).Msg("parse upstream url failed")
+		}
+		ua := ""
+		if len(parts) > 1 {
+			ua = parts[1]
+		}
+		username := u.User.Username()
+		password, _ := u.User.Password()
+		switch u.Scheme {
 		case "http", "http1":
 			upstreams[name] = &HTTPDialer{
-				Username:  upstream.Username,
-				Password:  upstream.Password,
-				Host:      upstream.Host,
-				Port:      strconv.Itoa(upstream.Port),
-				UserAgent: upstream.UserAgent,
+				Username:  username,
+				Password:  password,
+				Host:      u.Hostname(),
+				Port:      u.Port(),
+				UserAgent: ua,
 				Resolver:  resolver,
 				Dialer:    dialer,
 			}
 		case "https", "http2":
 			upstreams[name] = &HTTP2Dialer{
-				Username:  upstream.Username,
-				Password:  upstream.Password,
-				Host:      upstream.Host,
-				Port:      strconv.Itoa(upstream.Port),
-				UserAgent: upstream.UserAgent,
+				Username:  username,
+				Password:  password,
+				Host:      u.Hostname(),
+				Port:      u.Port(),
+				UserAgent: ua,
 			}
 		case "socks", "socks5", "socks5h":
 			upstreams[name] = &Socks5Dialer{
-				Username: upstream.Username,
-				Password: upstream.Password,
-				Host:     upstream.Host,
-				Port:     strconv.Itoa(upstream.Port),
-				Socsk5H:  upstream.Scheme == "socks5h",
+				Username: username,
+				Password: password,
+				Host:     u.Hostname(),
+				Port:     u.Port(),
+				Socsk5H:  u.Scheme == "socks5h",
 				Resolver: resolver,
 				Dialer:   dialer,
 			}
 		case "socks4", "socks4a":
 			upstreams[name] = &Socks4Dialer{
-				Username: upstream.Username,
-				Password: upstream.Password,
-				Host:     upstream.Host,
-				Port:     strconv.Itoa(upstream.Port),
-				Socks4A:  upstream.Scheme == "socks4a",
+				Username: username,
+				Password: password,
+				Host:     u.Hostname(),
+				Port:     u.Port(),
+				Socks4A:  u.Scheme == "socks4a",
 				Resolver: resolver,
 				Dialer:   dialer,
 			}
 		default:
-			log.Fatal().Str("upstream_scheme", upstream.Scheme).Msgf("unsupported upstream=%+v", upstream)
+			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)
 		}
 	}
 
