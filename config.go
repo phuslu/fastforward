@@ -111,11 +111,6 @@ type Config struct {
 		Spec    string `json:"spec" yaml:"spec"`
 		Command string `json:"command" yaml:"command"`
 	} `json:"cron" yaml:"cron"`
-	Https    []HTTPConfig  `json:"https" yaml:"https"`
-	Http     []HTTPConfig  `json:"http" yaml:"http"`
-	Socks    []SocksConfig `json:"socks" yaml:"socks"`
-	Relay    []RelayConfig `json:"relay" yaml:"relay"`
-	Dns      []DNSConfig   `json:"dns" yaml:"dns"`
 	Upstream map[string]struct {
 		Scheme    string `json:"scheme" yaml:"scheme"`
 		Username  string `json:"username" yaml:"username"`
@@ -124,6 +119,11 @@ type Config struct {
 		Port      int    `json:"port" yaml:"port"`
 		UserAgent string `json:"user_agent" yaml:"user_agent"`
 	} `json:"upstream" yaml:"upstream"`
+	Https []HTTPConfig  `json:"https" yaml:"https"`
+	Http  []HTTPConfig  `json:"http" yaml:"http"`
+	Socks []SocksConfig `json:"socks" yaml:"socks"`
+	Relay []RelayConfig `json:"relay" yaml:"relay"`
+	Dns   []DNSConfig   `json:"dns" yaml:"dns"`
 }
 
 func NewConfig(filename string) (*Config, error) {
