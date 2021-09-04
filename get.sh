@@ -16,7 +16,7 @@ ip=$(curl whatismyip.akamai.com)
 domain=$(echo $ip | tr . -).nip.io
 checksum=$(curl https://phus.lu/liner/checksums.txt | egrep "liner_linux_${arch}-r[0-9]+.tar.xz")
 filename=$(echo $checksum | awk '{print $2}')
-pacfile=$(shuf -zer -n16 1 2 3 4 5 6 7 8 9 a b c d e f).pac
+pacfile=$(shuf -er -n7 1 2 3 4 5 6 7 8 9 a b c d e f | tr -d '\n').pac
 
 if test -d liner; then
   cd liner
@@ -41,16 +41,16 @@ if test -f production.yaml; then
 fi
 
 cat <<EOF > production.yaml
-log:
-  level: info
-  backups: 2
-  maxsize: 1073741824
-  localtime: true
 global:
   max_idle_conns: 100
   dial_timeout: 30
   dns_ttl: 1800
   prefer_ipv6: false
+log:
+  level: info
+  backups: 2
+  maxsize: 1073741824
+  localtime: true
 https:
   - listen: [':443', ':8443']
     server_name: ['$domain']
