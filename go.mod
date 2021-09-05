@@ -12,7 +12,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.8.0
-	github.com/phuslu/iploc v1.0.20210730
+	github.com/phuslu/iploc v1.0.20210831-0.20210905164143-0782767a1007
 	github.com/phuslu/log v1.0.74
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cast v1.4.1 // indirect
