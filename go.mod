@@ -11,6 +11,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
+	github.com/mithrandie/csvq-driver v1.4.3
 	github.com/oschwald/maxminddb-golang v1.8.0
 	github.com/phuslu/iploc v1.0.20210831-0.20210905164143-0782767a1007
 	github.com/phuslu/log v1.0.74

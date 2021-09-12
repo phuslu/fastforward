@@ -8,7 +8,7 @@ BUILDROOT=build
 
 REVSION=r$(git rev-list --count HEAD)
 LDFLAGS="-s -w -X main.version=${REVSION}"
-SOURCES="README.md china.pac example.yaml auth.py liner.sh"
+SOURCES="README.md china.pac example.yaml liner.sh"
 
 GOOS=${GOOS:-$(go env GOOS)}
 GOARCH=${GOARCH:-$(go env GOARCH)}
@@ -20,7 +20,7 @@ if [ "${GOOS}" == "windows" ]; then
     DISTFILE=${PROJECT}_${GOOS}_${GOARCH}-${REVSION}
     GOEXE=.exe
 elif [ "${GOOS}" == "darwin" ]; then
-    SOURCES="README.md china.pac example.yaml auth.py liner-gui.command"
+    SOURCES="README.md china.pac example.yaml liner-gui.command"
     BUILDDIR=${BUILDROOT}/${GOOS}_${GOARCH}
     DISTFILE=${PROJECT}_${GOOS}_${GOARCH}-${REVSION}
 elif [ "${GOARCH:0:3}" == "arm" ]; then

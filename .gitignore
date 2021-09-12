@@ -2,7 +2,6 @@ certs/*
 pki/*
 .env
 liner
-auth.csv
 production*.yaml
 debug.yaml
 go.mod

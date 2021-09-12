@@ -1,22 +1,21 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
+	"database/sql"
+	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"text/template"
-	"time"
 
+	_ "github.com/mithrandie/csvq-driver"
 	"github.com/phuslu/log"
-	"github.com/tidwall/shardmap"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -44,10 +43,9 @@ type SocksHandler struct {
 	AllowDomains     StringSet
 	DenyDomains      StringSet
 	PolicyTemplate   *template.Template
-	AuthTemplate     *template.Template
+	AuthDB           *sql.DB
+	AuthTable        string
 	UpstreamTemplate *template.Template
-	AuthCache        *shardmap.Map
-	AllowIPCache     *shardmap.Map
 }
 
 func (h *SocksHandler) Load() error {
@@ -81,8 +79,28 @@ func (h *SocksHandler) Load() error {
 		}
 	}
 
-	if s := h.Config.Forward.Auth; s != "" {
-		if h.AuthTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+	if s := h.Config.Forward.AuthDB; s != "" {
+		u, err := url.Parse(h.Config.Forward.AuthDB)
+		if err != nil {
+			return err
+		}
+		switch u.Scheme {
+		case "csvq":
+			path, err := filepath.Abs(u.Path[1:])
+			if err != nil {
+				return err
+			}
+			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+				h.AuthTable = filepath.Base(path)
+				path = filepath.Dir(path)
+			} else {
+				h.AuthTable = "auth.csv"
+			}
+			h.AuthDB, err = sql.Open("csvq", path+"?"+u.RawQuery)
+		default:
+			err = fmt.Errorf("unsupported auth_db scheme: %s", u.Scheme)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -104,9 +122,6 @@ func (h *SocksHandler) Load() error {
 		var dialer = *h.LocalDialer
 		dialer.Control = (DailerController{BindToDevice: h.Config.Forward.BindToDevice}).Control
 	}
-
-	h.AuthCache = shardmap.New(0)
-	h.AllowIPCache = shardmap.New(4096)
 
 	return nil
 }
@@ -158,20 +173,6 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 			break
 		case "bypass_auth":
 			bypassAuth = true
-		case "allow_ip":
-			bypassAuth = true
-			h.AllowIPCache.Set(req.RemoteIP, timeNow().Add(6*time.Hour))
-			log.Info().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy_output", output).Msg("allow_ip ok")
-		}
-	}
-
-	if !bypassAuth {
-		if v, ok := h.AllowIPCache.Get(req.RemoteIP); ok {
-			if timeNow().After(v.(time.Time)) {
-				bypassAuth = true
-			} else {
-				h.AllowIPCache.Delete(req.RemoteIP)
-			}
 		}
 	}
 
@@ -191,7 +192,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		req.Username = string(b[2 : 2+int(b[1])])
 		req.Password = string(b[3+int(b[1]) : 3+int(b[1])+int(b[2+int(b[1])])])
 		// auth plugin
-		if h.AuthTemplate != nil && !bypassAuth {
+		if h.AuthDB != nil && !bypassAuth {
 			ai, err = h.GetAuthInfo(req)
 			if err != nil {
 				log.Warn().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Int("socks_version", int(req.Version)).Msg("auth error")
@@ -323,64 +324,20 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	return
 }
 
-func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err error) {
-	var b bytes.Buffer
+func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ForwardAuthInfo, error) {
+	username, password := req.Username, req.Password
 
-	err = h.AuthTemplate.Execute(&b, struct {
-		Request SocksRequest
-	}{req})
+	var ai ForwardAuthInfo
+	err := h.AuthDB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.AuthTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
 	if err != nil {
-		log.Error().Err(err).Str("forward_auth", h.Config.Forward.Auth).Msg("execute forward_auth error")
-		return
+		return ForwardAuthInfo{}, err
 	}
 
-	commandLine := strings.TrimSpace(b.String())
-	if v, ok := h.AuthCache.Get(commandLine); ok {
-		ai = v.(ForwardAuthInfo)
-		if ai.expires > unix() {
-			return
-		}
-		h.AuthCache.Delete(commandLine)
+	if ai.Password != password {
+		return ForwardAuthInfo{}, fmt.Errorf("wrong username='%s' or password='%s'", username, password)
 	}
 
-	var command string
-	var arguments []string
-	command, arguments, err = SplitCommandLine(commandLine)
-	if err != nil {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	b.Reset()
-	cmd := exec.CommandContext(ctx, command, arguments...)
-	cmd.Stdout = &b
-	cmd.Stderr = &b
-
-	err = cmd.Run()
-	if err != nil {
-		log.Warn().Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Str("remote_ip", req.RemoteIP).Err(err).Msg("exec auth command error")
-		return
-	}
-
-	log.Debug().Str("remote_ip", req.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("exec auth command ok")
-
-	err = json.NewDecoder(&b).Decode(&ai)
-	if ai.Error != "" {
-		err = errors.New(ai.Error)
-	}
-	if err != nil {
-		log.Error().Err(err).Str("remote_ip", req.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("parse auth raw info error")
-		return
-	}
-
-	if ai.Ttl > 0 {
-		ai.expires = unix() + int64(ai.Ttl)
-		h.AuthCache.Set(commandLine, ai)
-	}
-
-	return
+	return ai, nil
 }
 
 func WriteSocks5Status(conn net.Conn, status Socks5Status) (int, error) {

@@ -1,24 +1,24 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
-	"errors"
+	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"text/template"
 	"time"
 
+	_ "github.com/mithrandie/csvq-driver"
 	"github.com/phuslu/log"
-	"github.com/tidwall/shardmap"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -34,11 +34,10 @@ type HTTPForwardHandler struct {
 	allowDomains StringSet
 	denyDomains  StringSet
 	policy       *template.Template
-	auth         *template.Template
+	authDB       *sql.DB
+	authTable    string
 	upstream     *template.Template
 	transports   map[string]*http.Transport
-	authCache    *shardmap.Map
-	allowIPCache *shardmap.Map
 }
 
 func (h *HTTPForwardHandler) Load() error {
@@ -71,8 +70,28 @@ func (h *HTTPForwardHandler) Load() error {
 		}
 	}
 
-	if s := h.Config.Forward.Auth; s != "" {
-		if h.auth, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+	if s := h.Config.Forward.AuthDB; s != "" {
+		u, err := url.Parse(h.Config.Forward.AuthDB)
+		if err != nil {
+			return err
+		}
+		switch u.Scheme {
+		case "csvq":
+			path, err := filepath.Abs(u.Path[1:])
+			if err != nil {
+				return err
+			}
+			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+				h.authTable = filepath.Base(path)
+				path = filepath.Dir(path)
+			} else {
+				h.authTable = "auth.csv"
+			}
+			h.authDB, err = sql.Open("csvq", path+"?"+u.RawQuery)
+		default:
+			err = fmt.Errorf("unsupported auth_db scheme: %s", u.Scheme)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -117,9 +136,6 @@ func (h *HTTPForwardHandler) Load() error {
 			DisableCompression:  h.Transport.DisableCompression,
 		}
 	}
-
-	h.authCache = shardmap.New(0)
-	h.allowIPCache = shardmap.New(4096)
 
 	return nil
 }
@@ -210,26 +226,12 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			return
 		case "bypass_auth":
 			bypassAuth = true
-		case "allow_ip":
-			bypassAuth = true
-			h.allowIPCache.Set(ri.RemoteIP, unix()+6*3600)
-			log.Info().Context(ri.LogContext).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("allow_ip ok")
-		}
-	}
-
-	if !bypassAuth {
-		if v, ok := h.allowIPCache.Get(ri.RemoteIP); ok {
-			if v.(int64) > unix() {
-				bypassAuth = true
-			} else {
-				h.allowIPCache.Delete(ri.RemoteIP)
-			}
 		}
 	}
 
 	var ai ForwardAuthInfo
-	if h.auth != nil && !bypassAuth {
-		ai, err = h.GetAuthInfo(ri, req)
+	if h.authDB != nil && !bypassAuth {
+		ai, err := h.GetAuthInfo(ri, req)
 		if err != nil {
 			log.Warn().Err(err).Context(ri.LogContext).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
 			RejectRequest(rw, req)
@@ -418,73 +420,44 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 type ForwardAuthInfo struct {
 	Username   string
+	Password   string
 	SpeedLimit int64
 	VIP        int
-	Error      string
-	Ttl        int
-
-	expires int64
 }
 
-func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
-	var b bytes.Buffer
+func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ForwardAuthInfo, error) {
+	authorization := req.Header.Get("proxy-authorization")
+	parts := strings.SplitN(authorization, " ", 2)
+	if len(parts) == 1 {
+		return ForwardAuthInfo{}, fmt.Errorf("invaild auth header: %s", authorization)
+	}
+	if parts[0] != "Basic" {
+		return ForwardAuthInfo{}, fmt.Errorf("unsupported auth header: %s", authorization)
+	}
 
-	err = h.auth.Execute(&b, struct {
-		Request         *http.Request
-		ClientHelloInfo *tls.ClientHelloInfo
-	}{req, ri.ClientHelloInfo})
+	data, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
-		log.Error().Err(err).Str("forward_auth", h.Config.Forward.Auth).Msg("execute forward_auth error")
-		return
+		return ForwardAuthInfo{}, err
 	}
 
-	commandLine := strings.TrimSpace(b.String())
-	if v, ok := h.authCache.Get(commandLine); ok {
-		ai = v.(ForwardAuthInfo)
-		if ai.expires > unix() {
-			return
-		}
-		h.authCache.Delete(commandLine)
+	parts = strings.SplitN(string(data), ":", 2)
+	if len(parts) == 1 {
+		return ForwardAuthInfo{}, fmt.Errorf("invaild auth header: %s", authorization)
 	}
 
-	var command string
-	var arguments []string
-	command, arguments, err = SplitCommandLine(commandLine)
+	username, password := parts[0], parts[1]
+
+	var ai ForwardAuthInfo
+	err = h.authDB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.authTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
 	if err != nil {
-		return
+		return ai, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	b.Reset()
-	cmd := exec.CommandContext(ctx, command, arguments...)
-	cmd.Stdout = &b
-	// cmd.Stderr = &b
-
-	err = cmd.Run()
-	if err != nil {
-		log.Warn().Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Str("remote_ip", ri.RemoteIP).Err(err).Msg("exec auth command error")
-		return
+	if ai.Password != password {
+		return ai, fmt.Errorf("wrong username='%s' or password='%s'", username, password)
 	}
 
-	log.Debug().Str("remote_ip", ri.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("exec auth command ok")
-
-	err = json.NewDecoder(&b).Decode(&ai)
-	if ai.Error != "" {
-		err = errors.New(ai.Error)
-	}
-	if err != nil {
-		log.Error().Err(err).Str("remote_ip", ri.RemoteIP).Strs("cmd_args", cmd.Args).Bytes("output", b.Bytes()).Err(err).Msg("parse auth info error")
-		return
-	}
-
-	if ai.Ttl > 0 {
-		ai.expires = unix() + int64(ai.Ttl)
-		h.authCache.Set(commandLine, ai)
-	}
-
-	return
+	return ai, nil
 }
 
 func RejectRequest(rw http.ResponseWriter, req *http.Request) {

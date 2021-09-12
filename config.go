@@ -19,7 +19,7 @@ type HTTPConfig struct {
 	Mimes          map[string]string `json:"mimes" yaml:"mimes"`
 	Forward        struct {
 		Policy       string   `json:"policy" yaml:"policy"`
-		Auth         string   `json:"auth" yaml:"auth"`
+		AuthDB       string   `json:"auth_db" yaml:"auth_db"`
 		Upstream     string   `json:"upstream" yaml:"upstream"`
 		AllowDomains []string `json:"allow_domains" yaml:"allow_domains"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
@@ -65,7 +65,7 @@ type SocksConfig struct {
 	Listen  []string `json:"listen" yaml:"listen"`
 	Forward struct {
 		Policy       string   `json:"policy" yaml:"policy"`
-		Auth         string   `json:"auth" yaml:"auth"`
+		AuthDB       string   `json:"auth_db" yaml:"auth_db"`
 		Upstream     string   `json:"upstream" yaml:"upstream"`
 		AllowDomains []string `json:"allow_domain" yaml:"allow_domain"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`

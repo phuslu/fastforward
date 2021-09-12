@@ -69,8 +69,7 @@ https:
         {{else}}
           proxy_pass
         {{end}}
-      auth: |
-        python auth.py {{.Request.Header.Get "proxy-authorization"}} {{.Request.RemoteAddr}}
+      auth_db: csvq://./auth.csv
       upstream: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
       deny_domains:
@@ -126,8 +125,7 @@ http:
         {{else}}
           bypass_auth
         {{end}}
-      auth: |
-        python auth.py {{.Request.Header.Get "proxy-authorization"}} {{.Request.RemoteAddr}}
+      auth_db: csvq://./auth.csv
       upstream: |
         {{if hasPrefix "scholar.google.com" .Request.Host}}
           proxy1_example_org
@@ -157,8 +155,7 @@ socks:
         {{else}}
           reject
         {{end}}
-      auth: |
-        python auth.py socks "{{.Request.Username}}" "{{.Request.Password}}" {{.Request.RemoteAddr}}
+      auth_db: csvq://./auth.csv
       deny_domains:
         - facebook.com
         - nytimes.com
