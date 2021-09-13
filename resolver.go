@@ -3,22 +3,16 @@ package main
 import (
 	"context"
 	"net"
+	"time"
 
+	"github.com/cloudflare/golibs/lrucache"
 	"github.com/phuslu/log"
-	"github.com/tidwall/shardmap"
 )
 
 type Resolver struct {
 	*net.Resolver
-	DNSCacheTTL uint32
-
-	cache shardmap.Map
-}
-
-type ResolverCacheItem struct {
-	A []net.IP
-
-	expires int64
+	LRUCache      lrucache.Cache
+	CacheDuration time.Duration
 }
 
 func (r *Resolver) LookupIP(ctx context.Context, name string) ([]net.IP, error) {
@@ -26,12 +20,10 @@ func (r *Resolver) LookupIP(ctx context.Context, name string) ([]net.IP, error) 
 }
 
 func (r *Resolver) lookupIP(ctx context.Context, name string) ([]net.IP, error) {
-	if v, ok := r.cache.Get(name); ok {
-		item := v.(ResolverCacheItem)
-		if item.expires > unix() {
-			return item.A, nil
+	if r.LRUCache != nil {
+		if v, ok := r.LRUCache.GetNotStale(name); ok {
+			return v.([]net.IP), nil
 		}
-		r.cache.Delete(name)
 	}
 
 	if ip := net.ParseIP(name); ip != nil {
@@ -48,8 +40,8 @@ func (r *Resolver) lookupIP(ctx context.Context, name string) ([]net.IP, error) 
 		ips[i] = ia.IP
 	}
 
-	if r.DNSCacheTTL > 0 && len(ips) > 0 {
-		r.cache.Set(name, ResolverCacheItem{ips, unix() + int64(r.DNSCacheTTL)})
+	if r.LRUCache != nil && r.CacheDuration > 0 && len(ips) > 0 {
+		r.LRUCache.Set(name, ips, timeNow().Add(r.CacheDuration))
 	}
 
 	log.Debug().Msgf("lookupIP(%#v) return %+v", name, ips)

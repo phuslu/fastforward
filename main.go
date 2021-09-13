@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cloudflare/golibs/lrucache"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/robfig/cron/v3"
@@ -101,11 +102,12 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: false,
 		},
-		DNSCacheTTL: 600,
+		LRUCache:      lrucache.NewLRUCache(32 * 1024),
+		CacheDuration: time.Minute,
 	}
 
 	if config.Global.DnsTtl > 0 {
-		resolver.DNSCacheTTL = config.Global.DnsTtl
+		resolver.CacheDuration, _ = time.ParseDuration("1m")
 	}
 
 	if dnsServer := config.Global.DnsServer; dnsServer != "" {

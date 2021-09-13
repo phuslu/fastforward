@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
-	"github.com/tidwall/shardmap"
 	"golang.org/x/net/dns/dnsmessage"
 )
 
@@ -22,12 +21,10 @@ type HTTPWebDoHHandler struct {
 
 	upstream *url.URL
 	prelude  map[string][]dnsmessage.Resource
-	cache    *shardmap.Map
 }
 
 func (h *HTTPWebDoHHandler) Load() (err error) {
 	h.upstream, err = url.Parse(h.Upstream)
-	h.cache = shardmap.New(0)
 
 	// prelude to cache
 	h.prelude = make(map[string][]dnsmessage.Resource)
@@ -156,19 +153,6 @@ func (h *HTTPWebDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	// hit cache?
-	v, ok := h.cache.Get(cacheKey)
-	if ok {
-		item := v.(DoHCacheItem)
-		if timeNow().Sub(item.Time) < 10*time.Minute {
-			rw.Header().Set("content-type", "application/dns-message")
-			rw.WriteHeader(http.StatusOK)
-			rw.Write(item.Data)
-			return
-		}
-		h.cache.Delete(cacheKey)
-	}
-
 	req.Host = h.upstream.Host
 	req.URL.Host = h.upstream.Host
 	req.URL.Path = h.upstream.Path
@@ -200,6 +184,6 @@ func (h *HTTPWebDoHHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	// update cache
 	if resp.StatusCode == http.StatusOK {
-		h.cache.Set(cacheKey, DoHCacheItem{time.Now(), data})
+		// h.cache.Set(cacheKey, DoHCacheItem{time.Now(), data})
 	}
 }

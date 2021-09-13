@@ -83,8 +83,8 @@ func (h *HTTPMainHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	ri.ClientHelloInfo = nil
-	if h.TLSConfigurator != nil && h.TLSConfigurator.ClientHelloCache != nil {
-		if v, ok := h.TLSConfigurator.ClientHelloCache.Get(req.RemoteAddr); ok {
+	if h.TLSConfigurator != nil {
+		if v, ok := h.TLSConfigurator.ClientHelloCache.Load(req.RemoteAddr); ok {
 			ri.ClientHelloInfo = v.(*tls.ClientHelloInfo)
 		}
 	}

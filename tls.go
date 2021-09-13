@@ -7,9 +7,10 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"sync"
 	"time"
 
-	"github.com/tidwall/shardmap"
+	"github.com/cloudflare/golibs/lrucache"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sys/cpu"
 )
@@ -29,21 +30,9 @@ type TLSConfigurator struct {
 	Entries          map[string]TLSConfiguratorEntry
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
-	ConfigCache      *shardmap.Map
-	CertCache        *shardmap.Map
-	ClientHelloCache *shardmap.Map
-}
-
-type TLSConfigCacheItem struct {
-	Config *tls.Config
-
-	expires int64
-}
-
-type TLSCertCacheItem struct {
-	Certificate *tls.Certificate
-
-	expires int64
+	ConfigCache      lrucache.Cache
+	CertCache        lrucache.Cache
+	ClientHelloCache sync.Map
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
@@ -52,15 +41,11 @@ func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 	}
 
 	if m.ConfigCache == nil {
-		m.ConfigCache = shardmap.New(0)
+		m.ConfigCache = lrucache.NewLRUCache(1024)
 	}
 
 	if m.CertCache == nil {
-		m.CertCache = shardmap.New(0)
-	}
-
-	if m.ClientHelloCache == nil {
-		m.ClientHelloCache = shardmap.New(0)
+		m.CertCache = lrucache.NewLRUCache(1024)
 	}
 
 	if m.AutoCert == nil {
@@ -117,12 +102,8 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 	if entry.KeyFile != "" {
 		cacheKey := "cert:" + entry.ServerName
 
-		if v, ok := m.CertCache.Get(cacheKey); ok {
-			item := v.(TLSCertCacheItem)
-			if item.expires > unix() {
-				return item.Certificate, nil
-			}
-			m.CertCache.Delete(cacheKey)
+		if v, ok := m.CertCache.GetNotStale(cacheKey); ok {
+			return v.(*tls.Certificate), nil
 		}
 
 		cert, err := tls.LoadX509KeyPair(entry.CertFile, entry.KeyFile)
@@ -130,7 +111,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertCache.Set(cacheKey, TLSCertCacheItem{&cert, unix() + 24*3600})
+		m.CertCache.Set(cacheKey, cert, timeNow().Add(24*time.Hour))
 
 		return &cert, nil
 	}
@@ -139,7 +120,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 }
 
 func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
-	m.ClientHelloCache.Set(hello.Conn.RemoteAddr().String(), hello)
+	m.ClientHelloCache.Store(hello.Conn.RemoteAddr().String(), hello)
 
 	if host, _, err := net.SplitHostPort(hello.ServerName); err == nil {
 		hello.ServerName = host
@@ -188,12 +169,8 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		cacheKey += ":chacha20"
 	}
 
-	if v, ok := m.ConfigCache.Get(cacheKey); ok {
-		item := v.(TLSConfigCacheItem)
-		if item.expires > unix() {
-			return item.Config, nil
-		}
-		m.ConfigCache.Delete(cacheKey)
+	if v, ok := m.ConfigCache.GetNotStale(cacheKey); ok {
+		return v.(*tls.Config), nil
 	}
 
 	cert, err := m.GetCertificate(hello)
@@ -226,7 +203,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.ConfigCache.Set(cacheKey, TLSConfigCacheItem{config, unix() + 72*3600})
+	m.ConfigCache.Set(cacheKey, config, timeNow().Add(24*time.Hour))
 
 	return config, nil
 }

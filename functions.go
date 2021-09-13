@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -11,16 +10,16 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/cloudflare/golibs/lrucache"
 	"github.com/phuslu/iploc"
 	"github.com/phuslu/log"
-	"github.com/tidwall/shardmap"
 	"golang.org/x/sync/singleflight"
 )
 
 type Functions struct {
 	Singleflight   *singleflight.Group
 	RegionResolver *RegionResolver
-	shardmap       shardmap.Map
+	LRUCache       lrucache.Cache
 }
 
 func (f *Functions) FuncMap() template.FuncMap {
@@ -115,32 +114,23 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 	return c&0x0f0f == 0x0a0a && c&0xff == c>>8
 }
 
-type IPListItem struct {
-	Time time.Time
-	Data string
-}
-
 func (f *Functions) iplist(iplistUrl string) string {
-	v, ok := f.shardmap.Get(iplistUrl)
-	if ok {
-		item := v.(IPListItem)
-		if timeNow().Sub(item.Time) < 12*time.Hour {
-			return item.Data
+	var err error
+
+	v, ok := f.LRUCache.GetNotStale(iplistUrl)
+	if !ok {
+		v, err, _ = f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
+			return ReadFile(iplistUrl)
+		})
+		if err != nil {
+			log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
+			return "[]"
 		}
-		f.shardmap.Delete(iplistUrl)
 	}
 
-	v, err, _ := f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
-		return ReadFile(iplistUrl)
-	})
-	if err != nil {
-		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
-		return "[]"
-	}
+	body := v.(string)
 
-	body := v.([]byte)
-
-	iplist, err := MergeCIDRToIPList(bytes.NewReader(body))
+	iplist, err := MergeCIDRToIPList(strings.NewReader(body))
 	if err != nil {
 		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("parse iplist url error")
 		return "[]"
@@ -161,7 +151,7 @@ func (f *Functions) iplist(iplistUrl string) string {
 	sb.WriteByte(']')
 
 	data := sb.String()
-	f.shardmap.Set(iplistUrl, IPListItem{timeNow(), data})
+	f.LRUCache.Set(iplistUrl, data, time.Now().Add(12*time.Hour))
 
 	return data
 }
