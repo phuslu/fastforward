@@ -231,7 +231,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	var ai ForwardAuthInfo
 	if h.authDB != nil && !bypassAuth {
-		ai, err := h.GetAuthInfo(ri, req)
+		ai, err = h.GetAuthInfo(ri, req)
 		if err != nil {
 			log.Warn().Err(err).Context(ri.LogContext).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
 			RejectRequest(rw, req)
