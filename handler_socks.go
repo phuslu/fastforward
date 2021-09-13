@@ -40,7 +40,6 @@ type SocksHandler struct {
 	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
 
-	AllowDomains     StringSet
 	DenyDomains      StringSet
 	PolicyTemplate   *template.Template
 	AuthDB           *sql.DB
@@ -70,7 +69,6 @@ func (h *SocksHandler) Load() error {
 		return domains
 	}
 
-	h.AllowDomains = NewStringSet(expandDomains(h.Config.Forward.AllowDomains))
 	h.DenyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
 
 	if s := h.Config.Forward.Policy; s != "" {
@@ -227,12 +225,8 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	req.Port = int(b[n-2])<<8 | int(b[n-1])
 
 	if ai.VIP > 0 {
-		if addressType == Socks5DomainName && (!h.AllowDomains.Empty() || !h.DenyDomains.Empty()) {
+		if addressType == Socks5DomainName && !h.DenyDomains.Empty() {
 			if s, err := publicsuffix.EffectiveTLDPlusOne(req.Host); err == nil {
-				if !h.AllowDomains.Empty() && !h.AllowDomains.Contains(s) {
-					WriteSocks5Status(conn, Socks5StatusConnectionNotAllowedByRuleset)
-					return
-				}
 				if h.DenyDomains.Contains(s) {
 					WriteSocks5Status(conn, Socks5StatusConnectionNotAllowedByRuleset)
 					return

@@ -21,7 +21,6 @@ type HTTPConfig struct {
 		Policy       string   `json:"policy" yaml:"policy"`
 		AuthDB       string   `json:"auth_db" yaml:"auth_db"`
 		Upstream     string   `json:"upstream" yaml:"upstream"`
-		AllowDomains []string `json:"allow_domains" yaml:"allow_domains"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
 		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
 		BindToDevice string   `json:"bind_to_device" yaml:"bind_to_device"`
@@ -67,7 +66,6 @@ type SocksConfig struct {
 		Policy       string   `json:"policy" yaml:"policy"`
 		AuthDB       string   `json:"auth_db" yaml:"auth_db"`
 		Upstream     string   `json:"upstream" yaml:"upstream"`
-		AllowDomains []string `json:"allow_domain" yaml:"allow_domain"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
 		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
 		BindToDevice string   `json:"bind_to_device" yaml:"bind_to_device"`

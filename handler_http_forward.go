@@ -61,7 +61,6 @@ func (h *HTTPForwardHandler) Load() error {
 		return
 	}
 
-	h.allowDomains = NewStringSet(expandDomains(h.Config.Forward.AllowDomains))
 	h.denyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
 
 	if s := h.Config.Forward.Policy; s != "" {

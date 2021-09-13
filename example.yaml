@@ -103,8 +103,6 @@ https:
         {{else}}
             proxy_pass
         {{end}}
-      allow_domains:
-        - github.com
 http:
   - listen: [':123']
     server_name: ['127.0.0.1', '192.168.50.7']
