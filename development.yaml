@@ -1,7 +1,7 @@
 global:
   max_idle_conns: 100
   dial_timeout: 30
-  dns_ttl: 1800
+  dns_cache_duration: 1m
   prefer_ipv6: false
 log:
   level: debug

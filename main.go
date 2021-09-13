@@ -106,8 +106,12 @@ func main() {
 		CacheDuration: time.Minute,
 	}
 
-	if config.Global.DnsTtl > 0 {
-		resolver.CacheDuration, _ = time.ParseDuration("1m")
+	if config.Global.DnsCacheDuration != "" {
+		dur, err := time.ParseDuration(config.Global.DnsCacheDuration)
+		if dur == 0 || err != nil {
+			log.Fatal().Err(err).Str("dns_cache_duration", config.Global.DnsCacheDuration).Msg("invalid dns_cache_duration")
+		}
+		resolver.CacheDuration = dur
 	}
 
 	if dnsServer := config.Global.DnsServer; dnsServer != "" {
@@ -271,6 +275,7 @@ func main() {
 
 	functions := (&Functions{
 		RegionResolver: regionResolver,
+		LRUCache:       lrucache.NewLRUCache(128),
 		Singleflight:   &singleflight.Group{},
 	}).FuncMap()
 

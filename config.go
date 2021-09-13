@@ -97,7 +97,7 @@ type Config struct {
 		PreferIpv6              bool   `json:"perfer_ipv6" yaml:"perfer_ipv6"`
 		AllowUnknownHttpsDomain bool   `json:"allow_unknown_https_domain" yaml:"allow_unknown_https_domain"`
 		DnsServer               string `json:"dns_server" yaml:"dns_server"`
-		DnsTtl                  uint32 `json:"dns_ttl" yaml:"dns_ttl"`
+		DnsCacheDuration        string `json:"dns_cache_duration" yaml:"dns_cache_duration"`
 		IdleConnTimeout         int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
 		MaxIdleConns            int    `json:"max_idle_conns" yaml:"max_idle_conns"`
 		GracefulTimeout         int    `json:"graceful_timeout" yaml:"graceful_timeout"`

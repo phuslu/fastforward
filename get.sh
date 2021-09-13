@@ -43,7 +43,7 @@ cat <<EOF > production.yaml
 global:
   max_idle_conns: 100
   dial_timeout: 30
-  dns_ttl: 1800
+  dns_cache_duration: 15m
   prefer_ipv6: false
 log:
   level: info

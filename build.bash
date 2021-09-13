@@ -59,7 +59,7 @@ log:
 global:
   max_idle_conns: 16
   dial_timeout: 30
-  dns_ttl: 900
+  dns_cache_duration: 15m
   prefer_ipv6: false
 upstream:
   https_hk: https://leaderone:123456@flyspace.hk:443
@@ -93,7 +93,7 @@ log:
 global:
   max_idle_conns: 16
   dial_timeout: 30
-  dns_ttl: 900
+  dns_cache_duration: 15m
   prefer_ipv6: false
 upstream:
   https_hk: https://leaderone:123456@flyspace.hk:443
