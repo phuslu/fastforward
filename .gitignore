@@ -1,7 +1,7 @@
 certs/*
 pki/*
 .env
-auth.csv
+users.csv
 liner
 production*.yaml
 debug.yaml

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"flag"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/golibs/lrucache"
+	_ "github.com/mithrandie/csvq-driver"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/robfig/cron/v3"
@@ -94,6 +96,16 @@ func main() {
 				MaxSize:    config.Log.Maxsize,
 				LocalTime:  config.Log.Localtime,
 			},
+		}
+	}
+
+	// global database
+	var db *sql.DB
+	if config.Global.DatabaseSource != "" {
+		parts := strings.SplitN(config.Global.DatabaseSource, "://", 2)
+		db, err = sql.Open(parts[0], parts[1])
+		if err != nil {
+			log.Fatal().Err(err).Str("database_source", config.Global.DatabaseSource).Msg("invalid database_source")
 		}
 	}
 
@@ -302,6 +314,7 @@ func main() {
 				Transport:      transport,
 				Upstreams:      upstreams,
 				Functions:      functions,
+				DB:             db,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    server,
@@ -416,6 +429,7 @@ func main() {
 				Transport:      transport,
 				Upstreams:      upstreams,
 				Functions:      functions,
+				DB:             db,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    httpConfig,
@@ -483,6 +497,7 @@ func main() {
 				LocalDialer:    dialer,
 				Upstreams:      upstreams,
 				Functions:      functions,
+				DB:             db,
 			}
 
 			if err = h.Load(); err != nil {

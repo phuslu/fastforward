@@ -4,6 +4,7 @@ global:
   dns_cache_duration: 15m
   prefer_ipv6: false
   dns_server: https://1.1.1.1/dns-query
+  database_source: csvq://.
 log:
   level: info
   backups: 2
@@ -69,7 +70,7 @@ https:
         {{else}}
           proxy_pass
         {{end}}
-      auth_db: csvq://./auth.csv
+      auth_table: auth.csv
       upstream: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
       deny_domains:
@@ -123,7 +124,7 @@ http:
         {{else}}
           bypass_auth
         {{end}}
-      auth_db: csvq://./auth.csv
+      auth_table: auth.csv
       upstream: |
         {{if hasPrefix "scholar.google.com" .Request.Host}}
           proxy1_example_org
@@ -153,7 +154,7 @@ socks:
         {{else}}
           reject
         {{end}}
-      auth_db: csvq://./auth.csv
+      auth_table: auth.csv
       deny_domains:
         - facebook.com
         - nytimes.com

@@ -9,16 +9,14 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"text/template"
 	"time"
 
-	_ "github.com/mithrandie/csvq-driver"
 	"github.com/phuslu/log"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -30,12 +28,11 @@ type HTTPForwardHandler struct {
 	Transport      *http.Transport
 	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
+	DB             *sql.DB
 
 	allowDomains StringSet
 	denyDomains  StringSet
 	policy       *template.Template
-	authDB       *sql.DB
-	authTable    string
 	upstream     *template.Template
 	transports   map[string]*http.Transport
 }
@@ -65,32 +62,6 @@ func (h *HTTPForwardHandler) Load() error {
 
 	if s := h.Config.Forward.Policy; s != "" {
 		if h.policy, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
-			return err
-		}
-	}
-
-	if s := h.Config.Forward.AuthDB; s != "" {
-		u, err := url.Parse(h.Config.Forward.AuthDB)
-		if err != nil {
-			return err
-		}
-		switch u.Scheme {
-		case "csvq":
-			path, err := filepath.Abs(u.Path[1:])
-			if err != nil {
-				return err
-			}
-			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
-				h.authTable = filepath.Base(path)
-				path = filepath.Dir(path)
-			} else {
-				h.authTable = "auth.csv"
-			}
-			h.authDB, err = sql.Open("csvq", path+"?"+u.RawQuery)
-		default:
-			err = fmt.Errorf("unsupported auth_db scheme: %s", u.Scheme)
-		}
-		if err != nil {
 			return err
 		}
 	}
@@ -229,7 +200,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	var ai ForwardAuthInfo
-	if h.authDB != nil && !bypassAuth {
+	if h.Config.Forward.AuthTable != "" && !bypassAuth {
 		ai, err = h.GetAuthInfo(ri, req)
 		if err != nil {
 			log.Warn().Err(err).Context(ri.LogContext).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
@@ -447,12 +418,21 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 	username, password := parts[0], parts[1]
 
 	var ai ForwardAuthInfo
-	err = h.authDB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.authTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
+	err = h.DB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.Config.Forward.AuthTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
 	if err != nil {
 		return ai, err
 	}
 
-	if ai.Password != password {
+	switch {
+	case strings.HasPrefix(ai.Password, "$2a$"):
+		err = bcrypt.CompareHashAndPassword([]byte(ai.Password), []byte(password))
+	default:
+		if ai.Password != password {
+			err = fmt.Errorf("plain password mismatch")
+		}
+	}
+
+	if err != nil {
 		return ai, fmt.Errorf("wrong username='%s' or password='%s'", username, password)
 	}
 

@@ -19,7 +19,7 @@ type HTTPConfig struct {
 	Mimes          map[string]string `json:"mimes" yaml:"mimes"`
 	Forward        struct {
 		Policy       string   `json:"policy" yaml:"policy"`
-		AuthDB       string   `json:"auth_db" yaml:"auth_db"`
+		AuthTable    string   `json:"auth_table" yaml:"auth_table"`
 		Upstream     string   `json:"upstream" yaml:"upstream"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
 		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
@@ -64,7 +64,7 @@ type SocksConfig struct {
 	Listen  []string `json:"listen" yaml:"listen"`
 	Forward struct {
 		Policy       string   `json:"policy" yaml:"policy"`
-		AuthDB       string   `json:"auth_db" yaml:"auth_db"`
+		AuthTable    string   `json:"auth_table" yaml:"auth_table"`
 		Upstream     string   `json:"upstream" yaml:"upstream"`
 		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
 		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
@@ -99,6 +99,7 @@ type Config struct {
 		IdleConnTimeout         int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
 		MaxIdleConns            int    `json:"max_idle_conns" yaml:"max_idle_conns"`
 		GracefulTimeout         int    `json:"graceful_timeout" yaml:"graceful_timeout"`
+		DatabaseSource          string `json:"database_source" yaml:"database_source"`
 	} `json:"global" yaml:"global"`
 	Cron []struct {
 		Spec    string `json:"spec" yaml:"spec"`
