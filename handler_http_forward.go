@@ -9,7 +9,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"strings"
 	"text/template"
@@ -30,35 +29,13 @@ type HTTPForwardHandler struct {
 	Functions      template.FuncMap
 	DB             *sql.DB
 
-	allowDomains StringSet
-	denyDomains  StringSet
-	policy       *template.Template
-	upstream     *template.Template
-	transports   map[string]*http.Transport
+	policy     *template.Template
+	upstream   *template.Template
+	transports map[string]*http.Transport
 }
 
 func (h *HTTPForwardHandler) Load() error {
 	var err error
-
-	expandDomains := func(domains []string) (a []string) {
-		for _, s := range domains {
-			switch {
-			case strings.HasPrefix(s, "@"):
-				data, err := os.ReadFile(s[1:])
-				if err != nil {
-					log.Error().Err(err).Str("forward_domain_file", s[1:]).Msg("read forward domain error")
-					continue
-				}
-				lines := strings.Split(strings.Replace(string(data), "\r\n", "\n", -1), "\n")
-				a = append(a, lines...)
-			default:
-				a = append(a, s)
-			}
-		}
-		return
-	}
-
-	h.denyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
 
 	if s := h.Config.Forward.Policy; s != "" {
 		if h.policy, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
@@ -209,13 +186,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	if ai.VIP > 0 {
-		if !h.allowDomains.Empty() || !h.denyDomains.Empty() {
-			if !h.allowDomains.Empty() && !h.allowDomains.Contains(domain) {
-				RejectRequest(rw, req)
-				return
-			}
-			if h.denyDomains.Contains(domain) {
+	if ai.VIP == 0 {
+		if h.Config.Forward.DenyDomainsTable != "" {
+			err = h.DB.QueryRow("SELECT domain FROM `"+h.Config.Forward.AuthTable+"` WHERE domain=? LIMIT 1", domain).Err()
+			if err != nil {
 				RejectRequest(rw, req)
 				return
 			}

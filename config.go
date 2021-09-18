@@ -18,13 +18,13 @@ type HTTPConfig struct {
 	PreferChacha20 bool              `json:"perfer_chacha20" yaml:"perfer_chacha20"`
 	Mimes          map[string]string `json:"mimes" yaml:"mimes"`
 	Forward        struct {
-		Policy       string   `json:"policy" yaml:"policy"`
-		AuthTable    string   `json:"auth_table" yaml:"auth_table"`
-		Upstream     string   `json:"upstream" yaml:"upstream"`
-		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
-		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
-		BindToDevice string   `json:"bind_to_device" yaml:"bind_to_device"`
-		Log          bool     `json:"log" yaml:"log"`
+		Policy           string `json:"policy" yaml:"policy"`
+		AuthTable        string `json:"auth_table" yaml:"auth_table"`
+		Upstream         string `json:"upstream" yaml:"upstream"`
+		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
+		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
+		BindToDevice     string `json:"bind_to_device" yaml:"bind_to_device"`
+		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`
@@ -63,13 +63,13 @@ type HTTPConfig struct {
 type SocksConfig struct {
 	Listen  []string `json:"listen" yaml:"listen"`
 	Forward struct {
-		Policy       string   `json:"policy" yaml:"policy"`
-		AuthTable    string   `json:"auth_table" yaml:"auth_table"`
-		Upstream     string   `json:"upstream" yaml:"upstream"`
-		DenyDomains  []string `json:"deny_domains" yaml:"deny_domains"`
-		SpeedLimit   int64    `json:"speed_limit" yaml:"speed_limit"`
-		BindToDevice string   `json:"bind_to_device" yaml:"bind_to_device"`
-		Log          bool     `json:"log" yaml:"log"`
+		Policy           string `json:"policy" yaml:"policy"`
+		AuthTable        string `json:"auth_table" yaml:"auth_table"`
+		Upstream         string `json:"upstream" yaml:"upstream"`
+		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
+		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
+		BindToDevice     string `json:"bind_to_device" yaml:"bind_to_device"`
+		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 }
 

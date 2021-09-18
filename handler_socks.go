@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -39,34 +38,12 @@ type SocksHandler struct {
 	Functions      template.FuncMap
 	DB             *sql.DB
 
-	DenyDomains      StringSet
 	PolicyTemplate   *template.Template
 	UpstreamTemplate *template.Template
 }
 
 func (h *SocksHandler) Load() error {
 	var err error
-
-	expandDomains := func(domains []string) []string {
-		var a []string
-		for _, s := range domains {
-			switch {
-			case strings.HasPrefix(s, "@"):
-				data, err := os.ReadFile(s[1:])
-				if err != nil {
-					log.Error().Err(err).Str("forward_domain_file", s[1:]).Msg("read forward domain error")
-					continue
-				}
-				lines := strings.Split(strings.Replace(string(data), "\r\n", "\n", -1), "\n")
-				a = append(a, lines...)
-			default:
-				a = append(a, s)
-			}
-		}
-		return domains
-	}
-
-	h.DenyDomains = NewStringSet(expandDomains(h.Config.Forward.DenyDomains))
 
 	if s := h.Config.Forward.Policy; s != "" {
 		if h.PolicyTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
@@ -195,10 +172,11 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	}
 	req.Port = int(b[n-2])<<8 | int(b[n-1])
 
-	if ai.VIP > 0 {
-		if addressType == Socks5DomainName && !h.DenyDomains.Empty() {
-			if s, err := publicsuffix.EffectiveTLDPlusOne(req.Host); err == nil {
-				if h.DenyDomains.Contains(s) {
+	if ai.VIP == 0 {
+		if addressType == Socks5DomainName && h.Config.Forward.DenyDomainsTable != "" {
+			if domain, err := publicsuffix.EffectiveTLDPlusOne(req.Host); err == nil {
+				err = h.DB.QueryRow("SELECT domain FROM `"+h.Config.Forward.AuthTable+"` WHERE domain=? LIMIT 1", domain).Err()
+				if err != nil {
 					WriteSocks5Status(conn, Socks5StatusConnectionNotAllowedByRuleset)
 					return
 				}

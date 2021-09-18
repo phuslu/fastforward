@@ -73,9 +73,7 @@ https:
       auth_table: auth.csv
       upstream: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
-      deny_domains:
-        - facebook.com
-        - nytimes.com
+      deny_domains_table: deny_domains.csv
       speed_limit: 10000000
     web:
       - location: /proxy.pac
