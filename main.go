@@ -19,6 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lucas-clemente/quic-go"
+	"github.com/lucas-clemente/quic-go/http3"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/robfig/cron/v3"
@@ -400,7 +402,7 @@ func main() {
 				GetConfigForClient: tlsConfigurator.GetConfigForClient,
 			},
 			ConnState: tlsConfigurator.ConnState,
-			ErrorLog:  log.DefaultLogger.Std(log.ErrorLevel, log.NewContext(nil).Str("proto", "http2").Str("addr", addr).Value(), "", 0),
+			ErrorLog:  log.DefaultLogger.Std("", 0),
 		}
 
 		http2.ConfigureServer(server, &http2.Server{
@@ -414,6 +416,18 @@ func main() {
 			ReadBufferSize:  1 << 20,
 			WriteBufferSize: 1 << 20,
 		}, server.TLSConfig))
+
+		servers = append(servers, server)
+
+		// start http3 server
+		go (&http3.Server{
+			Addr:      addr,
+			Handler:   server.Handler,
+			TLSConfig: server.TLSConfig,
+			QuicConfig: &quic.Config{
+				EnableDatagrams: true,
+			},
+		}).ListenAndServe()
 
 		servers = append(servers, server)
 	}
@@ -474,7 +488,7 @@ func main() {
 
 		server := &http.Server{
 			Handler:  handler,
-			ErrorLog: log.DefaultLogger.Std(log.ErrorLevel, log.NewContext(nil).Str("proto", "http2").Str("addr", addr).Value(), "", 0),
+			ErrorLog: log.DefaultLogger.Std("", 0),
 		}
 
 		go server.Serve(TCPListener{
