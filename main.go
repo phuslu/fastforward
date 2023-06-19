@@ -204,14 +204,14 @@ func main() {
 
 	upstreams := make(map[string]Dialer)
 	for name, upstream := range config.Upstream {
-		parts := strings.Split(upstream, "\n")
+		parts := strings.SplitN(upstream, "\n", 2)
 		u, err := url.Parse(parts[0])
 		if err != nil {
 			log.Fatal().Err(err).Str("upstream", parts[0]).Msg("parse upstream url failed")
 		}
-		ua := ""
+		extra := ""
 		if len(parts) > 1 {
-			ua = parts[1]
+			extra = strings.TrimSpace(parts[1])
 		}
 		username := u.User.Username()
 		password, _ := u.User.Password()
@@ -222,7 +222,7 @@ func main() {
 				Password:  password,
 				Host:      u.Hostname(),
 				Port:      u.Port(),
-				UserAgent: ua,
+				UserAgent: extra,
 				Resolver:  resolver,
 				Dialer:    dialer,
 			}
@@ -232,7 +232,7 @@ func main() {
 				Password:  password,
 				Host:      u.Hostname(),
 				Port:      u.Port(),
-				UserAgent: ua,
+				UserAgent: extra,
 			}
 		case "socks", "socks5", "socks5h":
 			upstreams[name] = &Socks5Dialer{
@@ -253,6 +253,15 @@ func main() {
 				Socks4A:  u.Scheme == "socks4a",
 				Resolver: resolver,
 				Dialer:   dialer,
+			}
+		case "ssh", "ssh2":
+			upstreams[name] = &SSHDialer{
+				Username:   username,
+				Password:   password,
+				PrivateKey: extra,
+				Host:       u.Hostname(),
+				Port:       u.Port(),
+				Dialer:     dialer,
 			}
 		default:
 			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)
