@@ -117,16 +117,18 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 func (f *Functions) iplist(iplistUrl string) string {
 	var err error
 
-	v, ok := f.LRUCache.Get(iplistUrl)
-	if !ok {
-		v, err, _ = f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
-			body, err := ReadFile(iplistUrl)
-			return string(body), err
-		})
-		if err != nil {
-			log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
-			return "[]"
-		}
+	v, ok := f.LRUCache.GetNotStale(iplistUrl)
+	if ok {
+		return v.(string)
+	}
+
+	v, err, _ = f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
+		body, err := ReadFile(iplistUrl)
+		return string(body), err
+	})
+	if err != nil {
+		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
+		return "[]"
 	}
 
 	body := v.(string)
