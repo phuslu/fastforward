@@ -141,7 +141,7 @@ socks:
     server_name: ['127.0.0.1']
     forward:
       policy: |
-        {{if ne .Request.Host ""}}
+        {{if ne .Request.RemoteIP ""}}
           bypass_auth
         {{else if eq .Request.Version 5}}
           require_auth
