@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net"
-	"os"
 	"sync"
 	"time"
 
@@ -72,11 +71,10 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 	}
 
 	conn, err := d.client.Dial(network, addr)
-	if err != nil && os.IsTimeout(err) {
-		if err = dial(); err != nil {
-			return conn, err
+	if err != nil {
+		if err = dial(); err == nil {
+			conn, err = d.client.Dial(network, addr)
 		}
-		conn, err = d.client.Dial(network, addr)
 	}
 
 	return conn, err
