@@ -81,7 +81,7 @@ https:
       - location: /dns-query
         doh:
           enabled: true
-          upstream: 'https://1.1.1.1/dns-query'
+          upstream: 'https://dns.google/dns-query'
           prelude:
             example.com: ['93.184.216.34']
             example.org: ['93.184.216.34']
