@@ -12,8 +12,6 @@ import (
 
 var _ Dialer = (*SSHDialer)(nil)
 
-const MaxClients = 8
-
 type SSHDialer struct {
 	Username   string
 	Password   string
@@ -22,9 +20,10 @@ type SSHDialer struct {
 	Port       string
 	Timeout    time.Duration
 	Dialer     Dialer
+	MaxClients int
 
-	mutexes [MaxClients]sync.Mutex
-	clients [MaxClients]*ssh.Client
+	mutexes [64]sync.Mutex
+	clients [64]*ssh.Client
 }
 
 func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -61,7 +60,11 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 		return ssh.NewClient(c, chans, reqs), nil
 	}
 
-	n := int(log.Fastrandn(MaxClients))
+	n := 1
+	if 0 < d.MaxClients && d.MaxClients < len(d.clients) {
+		n = d.MaxClients
+	}
+	n = int(log.Fastrandn(uint32(n)))
 
 	if d.clients[n] == nil {
 		d.mutexes[n].Lock()
