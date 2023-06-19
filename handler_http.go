@@ -103,8 +103,13 @@ func (h *HTTPMainHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		Str("http_url", req.URL.String()).
 		Value()
 
+	hostname := req.Host
+	if h, _, err := net.SplitHostPort(req.Host); err == nil {
+		hostname = h
+	}
+
 	req = req.WithContext(context.WithValue(req.Context(), RequestInfoContextKey, ri))
-	if req.Method == http.MethodConnect || !h.ServerNames.Contains(req.Host) {
+	if req.Method == http.MethodConnect || !h.ServerNames.Contains(hostname) {
 		h.ForwardHandler.ServeHTTP(rw, req)
 	} else {
 		h.WebHandler.ServeHTTP(rw, req)
