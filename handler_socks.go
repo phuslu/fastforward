@@ -98,34 +98,8 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		}
 	}
 
-	var bypassAuth bool
-
-	var sb strings.Builder
-	if h.PolicyTemplate != nil {
-		sb.Reset()
-		err := h.PolicyTemplate.Execute(&sb, struct {
-			Request SocksRequest
-		}{req})
-		if err != nil {
-			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("execute forward_policy error")
-			return
-		}
-
-		output := strings.TrimSpace(sb.String())
-		log.Debug().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy_output", output).Msg("execute forward_policy ok")
-
-		switch output {
-		case "reject", "deny":
-			return
-		case "require_auth", "require_socks_auth":
-			break
-		case "bypass_auth":
-			bypassAuth = true
-		}
-	}
-
 	var ai ForwardAuthInfo
-	if !bypassAuth {
+	if h.Config.Forward.AuthTable != "" {
 		if !req.SupportAuth {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("socks client not support auth")
 			return
@@ -140,13 +114,11 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		req.Username = string(b[2 : 2+int(b[1])])
 		req.Password = string(b[3+int(b[1]) : 3+int(b[1])+int(b[2+int(b[1])])])
 		// auth plugin
-		if h.Config.Forward.AuthTable != "" && !bypassAuth {
-			ai, err = h.GetAuthInfo(req)
-			if err != nil {
-				log.Warn().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Int("socks_version", int(req.Version)).Msg("auth error")
-				conn.Write([]byte{VersionSocks5, byte(Socks5StatusGeneralFailure)})
-				return
-			}
+		ai, err = h.GetAuthInfo(req)
+		if err != nil || ai.Username != req.Username {
+			log.Warn().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Int("socks_version", int(req.Version)).Msg("auth error")
+			conn.Write([]byte{VersionSocks5, byte(Socks5StatusGeneralFailure)})
+			return
 		}
 	}
 
@@ -188,6 +160,8 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 			ai.SpeedLimit = h.Config.Forward.SpeedLimit
 		}
 	}
+
+	var sb strings.Builder
 
 	if h.PolicyTemplate != nil {
 		sb.Reset()
