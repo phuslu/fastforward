@@ -72,6 +72,11 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 
 	conn, err := d.client.Dial(network, addr)
 	if err != nil {
+		if terr, ok := err.(interface {
+			Timeout() bool
+		}); !(ok && terr.Timeout()) {
+			time.Sleep(100 * time.Millisecond)
+		}
 		if err = dial(); err == nil {
 			conn, err = d.client.Dial(network, addr)
 		}
