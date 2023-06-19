@@ -6,10 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/phuslu/log"
 	"golang.org/x/crypto/ssh"
 )
 
 var _ Dialer = (*SSHDialer)(nil)
+
+const MaxClients = 8
 
 type SSHDialer struct {
 	Username   string
@@ -20,12 +23,12 @@ type SSHDialer struct {
 	Timeout    time.Duration
 	Dialer     Dialer
 
-	mu     sync.Mutex
-	client *ssh.Client
+	mutexes [MaxClients]sync.Mutex
+	clients [MaxClients]*ssh.Client
 }
 
 func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	dial := func() error {
+	connect := func() (*ssh.Client, error) {
 		config := &ssh.ClientConfig{
 			User: d.Username,
 			Auth: []ssh.AuthMethod{
@@ -37,7 +40,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 		if d.PrivateKey != "" {
 			signer, err := ssh.ParsePrivateKey([]byte(d.PrivateKey))
 			if err != nil {
-				return err
+				return nil, err
 			}
 			config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
 		}
@@ -49,36 +52,39 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 		defer cancel()
 		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, d.Port))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		d.client = ssh.NewClient(c, chans, reqs)
-		return nil
+		return ssh.NewClient(c, chans, reqs), nil
 	}
 
-	if d.client == nil {
-		d.mu.Lock()
-		if d.client == nil {
-			if err := dial(); err != nil {
-				d.mu.Unlock()
-				return nil, err
-			}
+	n := int(log.Fastrandn(MaxClients))
+
+	if d.clients[n] == nil {
+		d.mutexes[n].Lock()
+		c, err := connect()
+		if err != nil {
+			d.mutexes[n].Unlock()
+			return nil, err
 		}
-		d.mu.Unlock()
+		d.clients[n] = c
+		d.mutexes[n].Unlock()
 	}
 
-	conn, err := d.client.Dial(network, addr)
+	conn, err := d.clients[n].Dial(network, addr)
 	if err != nil {
-		if terr, ok := err.(interface {
-			Timeout() bool
-		}); !(ok && terr.Timeout()) {
-			time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Duration(100+log.Fastrandn(200)) * time.Millisecond)
+		old := d.clients[n]
+		d.mutexes[n].Lock()
+		if d.clients[n] == old {
+			d.clients[n], err = connect()
 		}
-		if err = dial(); err == nil {
-			conn, err = d.client.Dial(network, addr)
+		d.mutexes[n].Unlock()
+		if c := d.clients[n]; c != nil && c != old {
+			conn, err = c.Dial(network, addr)
 		}
 	}
 
