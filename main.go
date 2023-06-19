@@ -413,8 +413,8 @@ func main() {
 		go server.Serve(tls.NewListener(TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
 			KeepAlivePeriod: 3 * time.Minute,
-			ReadBufferSize:  1 << 20,
-			WriteBufferSize: 1 << 20,
+			// ReadBufferSize:  1 << 20,
+			// WriteBufferSize: 1 << 20,
 		}, server.TLSConfig))
 
 		servers = append(servers, server)
