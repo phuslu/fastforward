@@ -96,14 +96,25 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 		return nil, errors.New("server_name(" + hello.ServerName + ") is not allowed")
 	}
 
+	hasTLS13, _ := LookupEcdsaCiphers(hello)
+
 	if entry.KeyFile != "" {
 		cacheKey := "cert:" + entry.ServerName
+		if !hasTLS13 {
+			cacheKey += "!tls13"
+		}
 
 		if v, ok := m.CertCache.GetNotStale(cacheKey); ok {
 			return v.(*tls.Certificate), nil
 		}
 
-		cert, err := tls.LoadX509KeyPair(entry.CertFile, entry.KeyFile)
+		var cert tls.Certificate
+		var err error
+		if !hasTLS13 {
+			cert, err = tls.LoadX509KeyPair(entry.CertFile+"+rsa", entry.KeyFile+"+rsa")
+		} else {
+			cert, err = tls.LoadX509KeyPair(entry.CertFile, entry.KeyFile)
+		}
 		if err != nil {
 			return nil, err
 		}
