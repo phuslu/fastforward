@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"net"
 	"net/http"
@@ -187,7 +188,11 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		return nil, err
 	}
 
-	cert.OCSPStaple, err = GetOCSPStaple(cert.Leaf)
+	cacert := cert.Leaf
+	if n := len(cert.Certificate); cacert == nil && n >= 2 {
+		cacert, _ = x509.ParseCertificate(cert.Certificate[n-2])
+	}
+	cert.OCSPStaple, err = GetOCSPStaple(cacert)
 	if err != nil {
 		// log error
 	}
