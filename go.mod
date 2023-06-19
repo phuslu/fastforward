@@ -16,7 +16,7 @@ require (
 	github.com/mithrandie/csvq-driver v1.4.3
 	github.com/mithrandie/go-text v1.4.2 // indirect
 	github.com/oschwald/maxminddb-golang v1.8.0
-	github.com/phuslu/iploc v1.0.20210908
+	github.com/phuslu/iploc v1.0.20211030-0.20211108134456-6db4d8763e31
 	github.com/phuslu/log v1.0.74
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cast v1.4.1 // indirect
