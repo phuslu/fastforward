@@ -65,11 +65,13 @@ func (h *HTTPWebHandler) Load() error {
 			}{
 				web.Location,
 				&HTTPWebProxyHandler{
-					Transport:   h.Transport,
-					Functions:   h.Functions,
-					Pass:        web.Proxy.Pass,
-					SetHeaders:  web.Proxy.SetHeaders,
-					DumpFailure: web.Proxy.DumpFailure,
+					Transport:         h.Transport,
+					Functions:         h.Functions,
+					Pass:              web.Proxy.Pass,
+					AuthBasic:         web.Proxy.AuthBasic,
+					AuthBasicUserFile: web.Proxy.AuthBasicUserFile,
+					SetHeaders:        web.Proxy.SetHeaders,
+					DumpFailure:       web.Proxy.DumpFailure,
 				},
 			})
 		case web.Dav.Enabled:

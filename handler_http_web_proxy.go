@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"text/template"
 
@@ -14,11 +15,13 @@ import (
 )
 
 type HTTPWebProxyHandler struct {
-	Transport   *http.Transport
-	Functions   template.FuncMap
-	Pass        string
-	SetHeaders  string
-	DumpFailure bool
+	Transport         *http.Transport
+	Functions         template.FuncMap
+	Pass              string
+	AuthBasic         string
+	AuthBasicUserFile string
+	SetHeaders        string
+	DumpFailure       bool
 
 	upstream *template.Template
 	headers  *template.Template
@@ -47,6 +50,16 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	// 	RejectRequest(rw, req)
 	// 	return
 	// }
+
+	if h.AuthBasicUserFile != "" {
+		if err := HtpasswdVerify(h.AuthBasicUserFile, req); err != nil && !os.IsNotExist(err) {
+			log.Error().Context(ri.LogContext).Err(err).Msg("web dav auth error")
+			rw.Header().Set("www-authenticate", `Basic realm="`+h.AuthBasic+`"`)
+			http.Error(rw, "401 unauthorised: "+err.Error(), http.StatusUnauthorized)
+
+			return
+		}
+	}
 
 	var sb strings.Builder
 	h.upstream.Execute(&sb, struct {

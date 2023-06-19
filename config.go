@@ -46,9 +46,11 @@ type HTTPConfig struct {
 			AuthBasicUserFile string `json:"auth_basic_user_file" yaml:"auth_basic_user_file"`
 		} `json:"dav" yaml:"dav"`
 		Proxy struct {
-			Pass        string `json:"pass" yaml:"pass"`
-			SetHeaders  string `json:"set_headers" yaml:"set_headers"`
-			DumpFailure bool   `json:"dump_failure" yaml:"dump_failure"`
+			Pass              string `json:"pass" yaml:"pass"`
+			AuthBasic         string `json:"auth_basic" yaml:"auth_basic"`
+			AuthBasicUserFile string `json:"auth_basic_user_file" yaml:"auth_basic_user_file"`
+			SetHeaders        string `json:"set_headers" yaml:"set_headers"`
+			DumpFailure       bool   `json:"dump_failure" yaml:"dump_failure"`
 		} `json:"proxy" yaml:"proxy"`
 		Pprof struct {
 			Enabled bool `json:"enabled" yaml:"enabled"`
