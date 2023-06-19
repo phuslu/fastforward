@@ -428,8 +428,6 @@ func main() {
 				EnableDatagrams: true,
 			},
 		}).ListenAndServe()
-
-		servers = append(servers, server)
 	}
 
 	// listen and serve http

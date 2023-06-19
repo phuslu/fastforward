@@ -15,6 +15,7 @@ type HTTPConfig struct {
 	Keyfile        string            `json:"keyfile" yaml:"keyfile"`
 	Certfile       string            `json:"certfile" yaml:"certfile"`
 	DisableHttp2   bool              `json:"disable_http2" yaml:"disable_http2"`
+	DisableHttp3   bool              `json:"disable_http3" yaml:"disable_http3"`
 	DisableTls11   bool              `json:"disable_tls11" yaml:"disable_tls11"`
 	PreferChacha20 bool              `json:"perfer_chacha20" yaml:"perfer_chacha20"`
 	Mimes          map[string]string `json:"mimes" yaml:"mimes"`
