@@ -406,6 +406,7 @@ func main() {
 		http2.ConfigureServer(server, &http2.Server{
 			MaxUploadBufferPerConnection: 1 << 20,
 			MaxUploadBufferPerStream:     1 << 20,
+			MaxReadFrameSize:             1 << 20, // 256K read frame, https://github.com/golang/go/issues/47840
 		})
 
 		go server.Serve(tls.NewListener(TCPListener{
