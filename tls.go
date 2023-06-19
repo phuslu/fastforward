@@ -108,7 +108,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertCache.Set(cacheKey, cert, timeNow().Add(24*time.Hour))
+		m.CertCache.Set(cacheKey, &cert, timeNow().Add(24*time.Hour))
 
 		return &cert, nil
 	}
