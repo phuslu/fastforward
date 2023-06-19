@@ -21,8 +21,6 @@ import (
 
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
-	"github.com/quic-go/quic-go"
-	"github.com/quic-go/quic-go/http3"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
 	"golang.org/x/sync/singleflight"
@@ -418,17 +416,6 @@ func main() {
 		}, server.TLSConfig))
 
 		servers = append(servers, server)
-
-		// start http3 server
-		go (&http3.Server{
-			Addr:      addr,
-			Handler:   server.Handler,
-			TLSConfig: server.TLSConfig,
-			QuicConfig: &quic.Config{
-				EnableDatagrams: true,
-				Allow0RTT:       func(net.Addr) bool { return true },
-			},
-		}).ListenAndServe()
 	}
 
 	// listen and serve http
