@@ -156,7 +156,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	}
 
 	n, err = io.ReadAtLeast(conn, b[:], 8)
-	if err != nil || n == 0 {
+	if (err != nil && !strings.HasSuffix(err.Error(), " EOF")) || n == 0 {
 		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("socks read address error")
 		return
 	}
