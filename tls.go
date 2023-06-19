@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -108,13 +109,13 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return v.(*tls.Certificate), nil
 		}
 
-		var cert tls.Certificate
-		var err error
+		certfile, keyfile := entry.CertFile, entry.KeyFile
 		if !hasTLS13 {
-			cert, err = tls.LoadX509KeyPair(entry.CertFile+"+rsa", entry.KeyFile+"+rsa")
-		} else {
-			cert, err = tls.LoadX509KeyPair(entry.CertFile, entry.KeyFile)
+			if _, err := os.Stat(certfile + "+rsa"); err == nil {
+				certfile, keyfile = certfile+"+rsa", keyfile+"+rsa"
+			}
 		}
+		cert, err := tls.LoadX509KeyPair(certfile, keyfile)
 		if err != nil {
 			return nil, err
 		}
