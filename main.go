@@ -262,6 +262,7 @@ func main() {
 				Host:       u.Hostname(),
 				Port:       u.Port(),
 				Dialer:     dialer,
+				Timeout:    10 * time.Second,
 			}
 		default:
 			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)

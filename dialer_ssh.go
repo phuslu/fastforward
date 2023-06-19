@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"net"
+	"os"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -16,6 +18,7 @@ type SSHDialer struct {
 	PrivateKey string
 	Host       string
 	Port       string
+	Timeout    time.Duration
 	Dialer     Dialer
 
 	mu     sync.Mutex
@@ -23,41 +26,58 @@ type SSHDialer struct {
 }
 
 func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	dial := func() error {
+		config := &ssh.ClientConfig{
+			User: d.Username,
+			Auth: []ssh.AuthMethod{
+				ssh.Password(d.Password),
+			},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Timeout:         d.Timeout,
+		}
+		if d.PrivateKey != "" {
+			signer, err := ssh.ParsePrivateKey([]byte(d.PrivateKey))
+			if err != nil {
+				return err
+			}
+			config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
+		}
+		dialer := d.Dialer
+		if dialer == nil {
+			dialer = &net.Dialer{Timeout: d.Timeout}
+		}
+		ctx, cancel := context.WithTimeout(ctx, config.Timeout)
+		defer cancel()
+		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, d.Port))
+		if err != nil {
+			return err
+		}
+		c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
+		if err != nil {
+			return err
+		}
+		d.client = ssh.NewClient(c, chans, reqs)
+		return nil
+	}
+
 	if d.client == nil {
 		d.mu.Lock()
 		if d.client == nil {
-			config := &ssh.ClientConfig{
-				User: d.Username,
-				Auth: []ssh.AuthMethod{
-					ssh.Password(d.Password),
-				},
-			}
-			if d.PrivateKey != "" {
-				signer, err := ssh.ParsePrivateKey([]byte(d.PrivateKey))
-				if err != nil {
-					d.mu.Unlock()
-					return nil, err
-				}
-				config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
-			}
-			dial := (&net.Dialer{}).DialContext
-			if d.Dialer != nil {
-				dial = d.Dialer.DialContext
-			}
-			conn, err := dial(ctx, network, addr)
-			if err != nil {
+			if err := dial(); err != nil {
 				d.mu.Unlock()
 				return nil, err
 			}
-			c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
-			if err != nil {
-				d.mu.Unlock()
-				return nil, err
-			}
-			d.client = ssh.NewClient(c, chans, reqs)
 		}
 		d.mu.Unlock()
 	}
 
-	return d.client.Dial(network, addr)
+	conn, err := d.client.Dial(network, addr)
+	if err != nil && os.IsTimeout(err) {
+		if err = dial(); err != nil {
+			return conn, err
+		}
+		conn, err = d.client.Dial(network, addr)
+	}
+
+	return conn, err
 }
