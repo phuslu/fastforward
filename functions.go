@@ -120,7 +120,8 @@ func (f *Functions) iplist(iplistUrl string) string {
 	v, ok := f.LRUCache.GetNotStale(iplistUrl)
 	if !ok {
 		v, err, _ = f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
-			return ReadFile(iplistUrl)
+			body, err := ReadFile(iplistUrl)
+			return string(body), err
 		})
 		if err != nil {
 			log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
