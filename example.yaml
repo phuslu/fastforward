@@ -141,11 +141,7 @@ socks:
     server_name: ['127.0.0.1']
     forward:
       policy: |
-        {{if regexMatch `^(153.3.130.101|153.3.130.102):` .Request.RemoteAddr}}
-          bypass_auth
-        {{else if has (region .Request.RemoteAddr) (list "Jiangsu" "Zhejiang" "Shanghai")}}
-          bypass_auth
-        {{else if has (city .Request.RemoteAddr) (list "Nanjing" "Shanghai")}}
+        {{if ne .Request.Host ""}}
           bypass_auth
         {{else if eq .Request.Version 5}}
           require_auth
