@@ -16,17 +16,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unsafe"
 
-	"github.com/google/shlex"
-	"github.com/phuslu/log"
+	"github.com/cloudflare/golibs/lrucache"
 	"github.com/tg123/go-htpasswd"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/time/rate"
@@ -73,6 +71,14 @@ func NewIPInt(ip string) IPInt {
 		return 0
 	}
 	return i*256 + j
+}
+
+func NewLRUCache(capacity uint) lrucache.Cache {
+	if n := uint(runtime.NumCPU()); n >= 4 {
+		return lrucache.NewMultiLRUCache(n, capacity/n)
+	} else {
+		return lrucache.NewLRUCache(capacity)
+	}
 }
 
 type ByteSliceWriter struct {
@@ -508,16 +514,6 @@ func NewLimiterReader(r io.Reader, limit int64) io.Reader {
 	return r
 }
 
-type LevelWriter struct {
-	Logger log.Logger
-	Level  log.Level
-}
-
-func (w LevelWriter) Write(p []byte) (int, error) {
-	w.Logger.WithLevel(w.Level).Msg(b2s(p))
-	return len(p), nil
-}
-
 func ReadFile(s string) (body []byte, err error) {
 	var u *url.URL
 
@@ -541,35 +537,6 @@ func ReadFile(s string) (body []byte, err error) {
 	}
 
 	return
-}
-
-func SplitCommandLine(command string) (string, []string, error) {
-	parts, err := shlex.Split(command)
-	if err != nil {
-		return "", nil, err
-	}
-
-	command = parts[0]
-
-	if strings.HasPrefix(command, "./") {
-		exe, err := os.Executable()
-		if err != nil {
-			return "", nil, err
-		}
-
-		command = filepath.Join(filepath.Dir(exe), command[2:])
-	}
-
-	if !strings.Contains(command, "/") {
-		cmd, err := exec.LookPath(command)
-		if err != nil {
-			return "", nil, err
-		}
-
-		command = cmd
-	}
-
-	return command, parts[1:], nil
 }
 
 func HtpasswdVerify(htpasswdFile string, req *http.Request) error {

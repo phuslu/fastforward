@@ -19,7 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cloudflare/golibs/lrucache"
 	_ "github.com/mithrandie/csvq-driver"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
@@ -114,7 +113,7 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: false,
 		},
-		LRUCache:      lrucache.NewLRUCache(32 * 1024),
+		LRUCache:      NewLRUCache(32 * 1024),
 		CacheDuration: time.Minute,
 	}
 
@@ -287,7 +286,7 @@ func main() {
 
 	functions := (&Functions{
 		RegionResolver: regionResolver,
-		LRUCache:       lrucache.NewLRUCache(128),
+		LRUCache:       NewLRUCache(128),
 		Singleflight:   &singleflight.Group{},
 	}).FuncMap()
 

@@ -40,11 +40,11 @@ func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 	}
 
 	if m.ConfigCache == nil {
-		m.ConfigCache = lrucache.NewLRUCache(1024)
+		m.ConfigCache = NewLRUCache(1024)
 	}
 
 	if m.CertCache == nil {
-		m.CertCache = lrucache.NewLRUCache(1024)
+		m.CertCache = NewLRUCache(1024)
 	}
 
 	if m.AutoCert == nil {
