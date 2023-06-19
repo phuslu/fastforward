@@ -240,7 +240,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			dialer = h.LocalDialer
 		}
 
-		conn, err := dialer.DialContext(req.Context(), "tcp", req.URL.Host)
+		conn, err := dialer.DialContext(req.Context(), "tcp", req.Host)
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Msg("dial host error")
 			http.Error(rw, err.Error(), http.StatusBadGateway)
@@ -278,7 +278,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			w = lconn
 			r = lconn
 
-			io.WriteString(lconn, "HTTP/1.1 200 OK\r\n\r\n")
+			io.WriteString(lconn, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
 		}
 
 		defer conn.Close()

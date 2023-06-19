@@ -48,7 +48,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		return nil, errors.New("proxy: no support for HTTP proxy connections of type " + network)
 	}
 
-	conn, err := d.DialContext(ctx, network, net.JoinHostPort(d.Host, d.Port))
+	conn, err := d.Dialer.DialContext(ctx, network, net.JoinHostPort(d.Host, d.Port))
 	if err != nil {
 		return nil, err
 	}
