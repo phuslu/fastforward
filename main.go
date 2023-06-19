@@ -426,6 +426,7 @@ func main() {
 			TLSConfig: server.TLSConfig,
 			QuicConfig: &quic.Config{
 				EnableDatagrams: true,
+				Allow0RTT:       func(net.Addr) bool { return true },
 			},
 		}).ListenAndServe()
 	}
