@@ -83,21 +83,20 @@ type RelayConfig struct {
 
 type Config struct {
 	Global struct {
-		LogLevel                string `json:"log_level" yaml:"log_level"`
-		LogBackups              int    `json:"log_backups" yaml:"log_backups"`
-		LogMaxsize              int64  `json:"log_maxsize" yaml:"log_maxsize"`
-		LogLocaltime            bool   `json:"log_localtime" yaml:"log_localtime"`
-		DenyIntranet            bool   `json:"deny_intranet" yaml:"deny_intranet"`
-		DialTimeout             int    `json:"dial_timeout" yaml:"dial_timeout"`
-		TcpFastopen             bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
-		PreferIpv6              bool   `json:"perfer_ipv6" yaml:"perfer_ipv6"`
-		AllowUnknownHttpsDomain bool   `json:"allow_unknown_https_domain" yaml:"allow_unknown_https_domain"`
-		DnsServer               string `json:"dns_server" yaml:"dns_server"`
-		DnsCacheDuration        string `json:"dns_cache_duration" yaml:"dns_cache_duration"`
-		IdleConnTimeout         int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
-		MaxIdleConns            int    `json:"max_idle_conns" yaml:"max_idle_conns"`
-		GracefulTimeout         int    `json:"graceful_timeout" yaml:"graceful_timeout"`
-		DatabaseSource          string `json:"database_source" yaml:"database_source"`
+		LogLevel         string `json:"log_level" yaml:"log_level"`
+		LogBackups       int    `json:"log_backups" yaml:"log_backups"`
+		LogMaxsize       int64  `json:"log_maxsize" yaml:"log_maxsize"`
+		LogLocaltime     bool   `json:"log_localtime" yaml:"log_localtime"`
+		DenyIntranet     bool   `json:"deny_intranet" yaml:"deny_intranet"`
+		DialTimeout      int    `json:"dial_timeout" yaml:"dial_timeout"`
+		TcpFastopen      bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
+		PreferIpv6       bool   `json:"perfer_ipv6" yaml:"perfer_ipv6"`
+		DnsServer        string `json:"dns_server" yaml:"dns_server"`
+		DnsCacheDuration string `json:"dns_cache_duration" yaml:"dns_cache_duration"`
+		IdleConnTimeout  int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
+		MaxIdleConns     int    `json:"max_idle_conns" yaml:"max_idle_conns"`
+		GracefulTimeout  int    `json:"graceful_timeout" yaml:"graceful_timeout"`
+		DatabaseSource   string `json:"database_source" yaml:"database_source"`
 	} `json:"global" yaml:"global"`
 	Cron []struct {
 		Spec    string `json:"spec" yaml:"spec"`
