@@ -43,8 +43,8 @@ github.com/oschwald/maxminddb-golang v1.10.0 h1:Xp1u0ZhqkSuopaKmk1WwHtjF0H9Hd918
 github.com/oschwald/maxminddb-golang v1.10.0/go.mod h1:Y2ELenReaLAZ0b400URyGwvYxHV1dLIxBuyOsyYjHK0=
 github.com/phuslu/iploc v1.0.20230531 h1:VWbZb42MNZSaXtp4Yve3cUurqxkwyKfKQ0nLwWMI11k=
 github.com/phuslu/iploc v1.0.20230531/go.mod h1:gsgExGWldwv1AEzZm+Ki9/vGfyjkL33pbSr9HGpt2Xg=
-github.com/phuslu/log v1.0.86 h1:38OYo81WmHF+q0VJKPRpcg+zYwlQRysDUOBvHpdf+UA=
-github.com/phuslu/log v1.0.86/go.mod h1:F8osGJADo5qLK/0F88djWwdyoZZ9xDJQL1HYRHFEkS0=
+github.com/phuslu/log v1.0.87 h1:NpQQzepT/NvYcxz6jD/NR+12BOCm9++ju1FxlE3sjhc=
+github.com/phuslu/log v1.0.87/go.mod h1:F8osGJADo5qLK/0F88djWwdyoZZ9xDJQL1HYRHFEkS0=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

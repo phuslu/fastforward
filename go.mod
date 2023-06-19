@@ -14,7 +14,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.10.0
 	github.com/phuslu/iploc v1.0.20230531
-	github.com/phuslu/log v1.0.86
+	github.com/phuslu/log v1.0.87
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
