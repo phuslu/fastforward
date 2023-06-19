@@ -31,6 +31,7 @@ var prelude = {
 	"ggpht.com":1,
 	"github.com":1,
 	"github.io":1,
+	"githubassets.com":1,
 	"githubusercontent.com":1,
 	"google.co.jp":1,
 	"google.com":1,
