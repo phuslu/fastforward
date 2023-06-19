@@ -10,13 +10,17 @@
 {{end -}}
 {{end}}</pre><hr></body>
 </html>
+
+<!-- autoindex.html 20221104 for nginx, see https://phus.lu -->
 <script>
 !function(){
 	var website_title = ''
+	var max_name_length = 60
 	var datetime_format = '%d-%b-%Y %H:%M'
-	var show_readme_md = true
+	var enable_readme_md = true
 	var enable_footer_js = true
-	var max_name_length = 50
+	var marked_js = 'https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/marked/4.0.2/marked.min.js'
+	var github_markdown_css = 'https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/github-markdown-css/5.1.0/github-markdown-light.min.css'
 
 	var dom = {
 		element: null,
@@ -48,12 +52,29 @@
 	head.add('meta').attr('charset', 'utf-8')
 	head.add('meta').attr('name', 'viewport').attr('content', 'width=device-width,initial-scale=1')
 
+	if (!document.title) {
+		document.write(["<div class=\"container\">",
+		"<h3>nginx.conf</h3>",
+		"<textarea rows=8 cols=50>",
+		"# download autoindex.html to /wwwroot/",
+		"location ~ ^(.*)/$ {",
+		"    charset utf-8;",
+		"    autoindex on;",
+		"    autoindex_localtime on;",
+		"    autoindex_exact_size off;",
+		"    add_after_body /autoindex.html;",
+		"}",
+		"</textarea>",
+		"</div>"].join("\n"))
+		return
+	}
+
 	var bodylines = document.body.innerHTML.split('\n')
 	document.body.innerHTML = ''
 
-	var titlehtml = document.title.replace(/\/$/, '').split('/').slice(1).reduce(function(acc, v, i, a) {
+	titlehtml = document.title.replace(/\/$/, '').split('/').slice(1).reduce(function(acc, v, i, a) {
 		return acc + '<a href="/' + a.slice(0, i+1).join('/') + '/">' + v + '</a>/'
-	}, 'Index of /')
+	}, '<a href="/">Index</a> of /')
 	if (website_title) {
 		document.title = website_title + ' - ' + document.title
 	}
@@ -127,9 +148,10 @@
 		}
 	}
 
+	document.documentElement.lang = navigator.language
 	document.body.appendChild(div.element)
 
-	if (show_readme_md && readme !== '') {
+	if (enable_readme_md && readme !== '') {
 		tbody = div.add('table').add('tbody');
 		tbody.add('tr').add('th').attr('class', 'octicon octicon-book').text(readme)
 		tbody.add('tr').add('td').add('div').attr('id', 'readme').attr('class', 'markdown-body')
@@ -149,13 +171,13 @@
 				}, interval)
 			}
 			wait('marked', function() {
-				document.getElementById("readme").innerHTML = marked(xhr.responseText)
+				document.getElementById("readme").innerHTML = marked.parse(xhr.responseText)
 			})
 		}
 		xhr.send()
 
-		div.add('script').attr('src', 'https://cdn.staticfile.org/marked/0.7.0/marked.min.js')
-		div.add('link').attr('rel', 'stylesheet').attr('href', 'https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css')
+		div.add('script').attr('src', marked_js)
+		div.add('link').attr('rel', 'stylesheet').attr('href', github_markdown_css)
 	}
 
 	if (enable_footer_js && footer !== '') {
