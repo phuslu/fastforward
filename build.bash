@@ -6,7 +6,7 @@ function setup() {
 	mkdir -p ~/.ssh
 	ssh-keyscan -H github.com | tee -a ~/.ssh/known_hosts
 
-	curl -L https://dl.google.com/go/go1.18.1.linux-amd64.tar.gz | \
+	curl -L https://dl.google.com/go/go1.20.linux-amd64.tar.gz | \
 	tar xvz -C /tmp/
 }
 

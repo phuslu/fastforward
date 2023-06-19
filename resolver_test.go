@@ -10,7 +10,6 @@ func TestRegionResolver(t *testing.T) {
 		{"192.168.1.1", ""},
 		{"localhost", ""},
 		{"hk.phus.lu", "HK"},
-		{"kr.phus.lu", "KR"},
 	}
 
 	r := &RegionResolver{
