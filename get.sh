@@ -4,6 +4,9 @@ set -x
 
 arch=amd64
 case $(uname -m) in
+  aarch64 )
+    arch=arm64
+    ;;
   arm* )
     arch=armv5
     if readelf -A /bin/sh | grep -q 'VFP registers'; then
