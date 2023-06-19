@@ -19,12 +19,10 @@ import (
 )
 
 type HTTPWebIndexHandler struct {
-	Root       string
-	Headers    string
-	Body       string
-	Functions  template.FuncMap
-	DavEnabled bool
-	DavPrefixs []string
+	Root      string
+	Headers   string
+	Body      string
+	Functions template.FuncMap
 
 	headers *template.Template
 	body    *template.Template
@@ -49,13 +47,6 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 		return
 	}
 
-	if h.DavEnabled {
-		h.dav = &webdav.Handler{
-			FileSystem: webdav.Dir(h.Root),
-			LockSystem: webdav.NewMemLS(),
-		}
-	}
-
 	return
 }
 
@@ -77,41 +68,6 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			FileInfos []fs.FileInfo
 		}{h.Root, req, nil})
 		return
-	}
-
-	if h.DavEnabled {
-		if req.Method == http.MethodOptions {
-			h.dav.ServeHTTP(rw, req)
-
-			return
-		}
-
-		prefix := ""
-		for _, s := range h.DavPrefixs {
-			if strings.HasPrefix(req.URL.Path, s) {
-				prefix = s
-				break
-			}
-		}
-		if prefix != "" {
-			log.Info().Context(ri.LogContext).Interface("headers", req.Header).Msg("web dav request")
-
-			davfile := filepath.Join(h.Root, prefix+"/.davpasswd")
-			if err := HtpasswdVerify(davfile, req); err != nil && !os.IsNotExist(err) {
-				log.Error().Context(ri.LogContext).Err(err).Msg("web dav auth error")
-				rw.Header().Set("www-authenticate", `Basic realm="Authentication Required"`)
-				http.Error(rw, "401 unauthorised: "+err.Error(), http.StatusUnauthorized)
-
-				return
-			}
-
-			// fixup path/raw_path for dav handler
-			// req.URL.Path = req.URL.Path[len(h.Root):]
-			// req.URL.RawPath = req.URL.RawPath[len(h.Root):]
-			h.dav.ServeHTTP(rw, req)
-
-			return
-		}
 	}
 
 	fullname := filepath.Join(h.Root, req.URL.Path)

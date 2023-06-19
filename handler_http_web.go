@@ -71,6 +71,18 @@ func (h *HTTPWebHandler) Load() error {
 					DumpFailure: web.Proxy.DumpFailure,
 				},
 			})
+		case web.Dav.Enabled:
+			handlers = append(handlers, struct {
+				location string
+				handler  HTTPHandler
+			}{
+				web.Location,
+				&HTTPWebDavHandler{
+					Root:              web.Dav.Root,
+					AuthBasic:         web.Dav.AuthBasic,
+					AuthBasicUserFile: web.Dav.AuthBasicUserFile,
+				},
+			})
 		case web.Index.Root != "" || web.Index.Body != "":
 			handlers = append(handlers, struct {
 				location string
@@ -78,12 +90,10 @@ func (h *HTTPWebHandler) Load() error {
 			}{
 				web.Location,
 				&HTTPWebIndexHandler{
-					Functions:  h.Functions,
-					Root:       web.Index.Root,
-					Headers:    web.Index.Headers,
-					Body:       web.Index.Body,
-					DavEnabled: web.Index.Dav.Enabled,
-					DavPrefixs: web.Index.Dav.Prefixs,
+					Functions: h.Functions,
+					Root:      web.Index.Root,
+					Headers:   web.Index.Headers,
+					Body:      web.Index.Body,
 				},
 			})
 		}

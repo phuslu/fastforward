@@ -37,11 +37,13 @@ type HTTPConfig struct {
 				Enabled bool   `json:"enabled" yaml:"enabled"`
 				Pass    string `json:"pass" yaml:"pass"`
 			} `json:"fcgi" yaml:"fcgi"`
-			Dav struct {
-				Enabled bool     `json:"enabled" yaml:"enabled"`
-				Prefixs []string `json:"prefixs" yaml:"prefixs"`
-			} `json:"dav" yaml:"dav"`
 		} `json:"index" yaml:"index"`
+		Dav struct {
+			Enabled           bool   `json:"enabled" yaml:"enabled"`
+			Root              string `json:"root" yaml:"root"`
+			AuthBasic         string `json:"auth_basic" yaml:"auth_basic"`
+			AuthBasicUserFile string `json:"auth_basic_user_file" yaml:"auth_basic_user_file"`
+		} `json:"dav" yaml:"dav"`
 		Proxy struct {
 			Pass        string `json:"pass" yaml:"pass"`
 			SetHeaders  string `json:"set_headers" yaml:"set_headers"`
