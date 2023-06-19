@@ -22,6 +22,7 @@ type TLSConfiguratorEntry struct {
 	KeyFile        string
 	CertFile       string
 	DisableHTTP2   bool
+	DisableTLS11   bool
 	PreferChacha20 bool
 }
 
@@ -141,10 +142,11 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		serverName = m.DefaultServername
 	}
 
-	var preferChacha20, disableHTTP2 bool
+	var preferChacha20, disableTLS11, disableHTTP2 bool
 	if entry, ok := m.Entries[hello.ServerName]; ok {
 		preferChacha20 = entry.PreferChacha20
 		disableHTTP2 = entry.DisableHTTP2
+		disableTLS11 = entry.DisableTLS11
 	}
 
 	hasAES := (cpu.X86.HasAES && cpu.X86.HasPCLMULQDQ) || (cpu.ARM64.HasAES && cpu.ARM64.HasPMULL)
@@ -163,6 +165,9 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 	}
 
 	cacheKey := serverName
+	if disableTLS11 {
+		cacheKey += "!tls11"
+	}
 	if disableHTTP2 {
 		cacheKey += "!h2"
 	}
@@ -203,6 +208,10 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		Certificates:             []tls.Certificate{*cert},
 		PreferServerCipherSuites: true,
 		NextProtos:               []string{"h2", "http/1.1", "acme-tls/1"},
+	}
+
+	if disableTLS11 {
+		config.MinVersion = tls.VersionTLS12
 	}
 
 	if disableHTTP2 {

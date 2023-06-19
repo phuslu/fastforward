@@ -342,6 +342,7 @@ func main() {
 					KeyFile:        server.Keyfile,
 					CertFile:       server.Certfile,
 					DisableHTTP2:   server.DisableHttp2,
+					DisableTLS11:   server.DisableTls11,
 					PreferChacha20: server.PreferChacha20,
 				})
 				if tlsConfigurator.DefaultServername == "" {
