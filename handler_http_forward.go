@@ -5,11 +5,14 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"encoding/base64"
+	"encoding/csv"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -392,9 +395,32 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 	username, password := parts[0], parts[1]
 
 	var ai ForwardAuthInfo
-	err = h.DB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.Config.Forward.AuthTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
-	if err != nil {
-		return ai, err
+	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
+		data, err := os.ReadFile(h.Config.Forward.AuthTable)
+		if err != nil {
+			return ai, err
+		}
+		records, err := csv.NewReader(strings.NewReader(string(data))).ReadAll()
+		if err != nil {
+			return ai, err
+		}
+		if len(records) < 2 || len(records[0]) < 4 || !(records[0][0] == "username" && records[0][1] == "password" && records[0][2] == "speedlimit" && records[0][3] == "vip") {
+			return ai, fmt.Errorf("invaild csv records")
+		}
+		for _, record := range records[1:] {
+			if record[0] != username {
+				continue
+			}
+			ai.Username = record[0]
+			ai.Password = record[1]
+			ai.SpeedLimit, _ = strconv.ParseInt(record[2], 10, 64)
+			ai.VIP, _ = strconv.Atoi(record[3])
+		}
+	} else {
+		err = h.DB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.Config.Forward.AuthTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
+		if err != nil {
+			return ai, err
+		}
 	}
 
 	switch {

@@ -19,7 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/mithrandie/csvq-driver"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/robfig/cron/v3"
@@ -100,7 +99,7 @@ func main() {
 
 	// global database
 	var db *sql.DB
-	if config.Global.DatabaseSource != "" {
+	if config.Global.DatabaseSource != "" && !strings.HasPrefix(config.Global.DatabaseSource, "csvq://") {
 		parts := strings.SplitN(config.Global.DatabaseSource, "://", 2)
 		db, err = sql.Open(parts[0], parts[1])
 		if err != nil {
