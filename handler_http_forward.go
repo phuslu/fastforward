@@ -432,7 +432,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 		}
 	}
 
-	if err != nil {
+	if err != nil || ai.Username == "" {
 		return ai, fmt.Errorf("wrong username='%s' or password='%s'", username, password)
 	}
 
