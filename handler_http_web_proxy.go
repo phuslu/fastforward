@@ -196,12 +196,15 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			r = lconn
 		}
 
-		b1, b2 := bbpool.Get().(*[]byte), bbpool.Get().(*[]byte)
-		defer bbpool.Put(b1)
-		defer bbpool.Put(b2)
+		// b1, b2 := bbpool.Get().(*[]byte), bbpool.Get().(*[]byte)
+		// defer bbpool.Put(b1)
+		// defer bbpool.Put(b2)
 
-		go io.CopyBuffer(w, conn, *b1)
-		io.CopyBuffer(conn, r, *b2)
+		// go io.CopyBuffer(w, conn, *b1)
+		// io.CopyBuffer(conn, r, *b2)
+
+		go io.Copy(w, conn)
+		io.Copy(conn, r)
 	} else {
 		for key, values := range resp.Header {
 			for _, value := range values {
