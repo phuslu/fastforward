@@ -21,11 +21,11 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/tg123/go-htpasswd v1.1.0
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/net v0.0.0-20210908191846-a5e095526f91
+	golang.org/x/crypto v0.0.0-20210915214749-c084706c2272
+	golang.org/x/net v0.0.0-20210917221730-978cfadd31cf
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	golang.org/x/sys v0.0.0-20210917161153-d61c044b1678
+	golang.org/x/term v0.0.0-20210916214954-140adaaadfaf // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
