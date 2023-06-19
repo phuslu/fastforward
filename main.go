@@ -263,7 +263,7 @@ func main() {
 				Port:       u.Port(),
 				Dialer:     dialer,
 				Timeout:    10 * time.Second,
-				MaxClients: 8,
+				MaxClients: 4,
 			}
 		default:
 			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)
