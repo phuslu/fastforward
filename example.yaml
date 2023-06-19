@@ -1,15 +1,14 @@
 global:
+  log_level: info
+  log_backups: 2
+  log_maxsize: 1073741824
+  log_localtime: true
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 15m
   prefer_ipv6: false
   dns_server: https://1.1.1.1/dns-query
   database_source: csvq://.
-log:
-  level: info
-  backups: 2
-  maxsize: 1073741824
-  localtime: true
 upstream:
   torsocks: socks5h://127.0.0.1:9050
   proxy1_example_org: https://user:passwd@proxy1.example.org:443

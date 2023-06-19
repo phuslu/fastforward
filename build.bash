@@ -54,9 +54,8 @@ function packaging_macos() {
 	mkdir -p liner
 	tar xvpf liner_darwin_amd64-${revison}.tar.xz -C liner
 	cat <<EOF > liner/production.yaml
-log:
-  level: debug
 global:
+  log_level: debug
   max_idle_conns: 16
   dial_timeout: 30
   dns_cache_duration: 15m
@@ -88,9 +87,8 @@ function packaging_windows() {
 		mkdir -p liner
 		tar xvpf liner_windows_${arch}-${revison}.tar.xz -C liner
 		cat <<EOF > liner/production.yaml
-log:
-  level: debug
 global:
+  log_level: debug
   max_idle_conns: 16
   dial_timeout: 30
   dns_cache_duration: 15m

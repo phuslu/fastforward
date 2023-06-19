@@ -64,7 +64,7 @@ func main() {
 	var forwardLogger log.Logger
 	if log.IsTerminal(os.Stderr.Fd()) {
 		log.DefaultLogger = log.Logger{
-			Level:      log.ParseLevel(config.Log.Level),
+			Level:      log.ParseLevel(config.Global.LogLevel),
 			Caller:     1,
 			TimeFormat: "15:04:05",
 			Writer: &log.ConsoleWriter{
@@ -73,28 +73,28 @@ func main() {
 			},
 		}
 		forwardLogger = log.Logger{
-			Level:  log.ParseLevel(config.Log.Level),
+			Level:  log.ParseLevel(config.Global.LogLevel),
 			Writer: log.DefaultLogger.Writer,
 		}
 	} else {
 		// main logger
 		log.DefaultLogger = log.Logger{
-			Level: log.ParseLevel(config.Log.Level),
+			Level: log.ParseLevel(config.Global.LogLevel),
 			Writer: &log.FileWriter{
 				Filename:   executable + ".log",
 				MaxBackups: 1,
-				MaxSize:    config.Log.Maxsize,
-				LocalTime:  config.Log.Localtime,
+				MaxSize:    config.Global.LogMaxsize,
+				LocalTime:  config.Global.LogLocaltime,
 			},
 		}
 		// forward logger
 		forwardLogger = log.Logger{
-			Level: log.ParseLevel(config.Log.Level),
+			Level: log.ParseLevel(config.Global.LogLevel),
 			Writer: &log.FileWriter{
 				Filename:   "forward.log",
-				MaxBackups: config.Log.Backups,
-				MaxSize:    config.Log.Maxsize,
-				LocalTime:  config.Log.Localtime,
+				MaxBackups: config.Global.LogBackups,
+				MaxSize:    config.Global.LogMaxsize,
+				LocalTime:  config.Global.LogLocaltime,
 			},
 		}
 	}
@@ -557,7 +557,7 @@ func main() {
 		cron.WithSeconds(),
 		cron.WithLogger(cron.PrintfLogger(&log.DefaultLogger)),
 	}
-	if !config.Log.Localtime {
+	if !config.Global.LogLocaltime {
 		cronOptions = append(cronOptions, cron.WithLocation(time.UTC))
 	}
 	runner := cron.New(cronOptions...)

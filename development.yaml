@@ -1,13 +1,10 @@
 global:
+  log_level: debug
+  log_localtime: true
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 1m
   prefer_ipv6: false
-log:
-  level: debug
-  backups: 2
-  maxsize: 1073741824
-  localtime: true
 http:
   - listen: [':80']
     server_name: ['127.0.0.1']

@@ -41,15 +41,14 @@ fi
 
 cat <<EOF > production.yaml
 global:
+  log_level: info
+  log_backups: 2
+  log_maxsize: 1073741824
+  log_localtime: true
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 15m
   prefer_ipv6: false
-log:
-  level: info
-  backups: 2
-  maxsize: 1073741824
-  localtime: true
 https:
   - listen: [':443', ':8443']
     server_name: ['$domain']

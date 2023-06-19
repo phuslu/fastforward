@@ -82,13 +82,11 @@ type RelayConfig struct {
 }
 
 type Config struct {
-	Log struct {
-		Level     string `json:"level" yaml:"level"`
-		Backups   int    `json:"backups" yaml:"backups"`
-		Maxsize   int64  `json:"maxsize" yaml:"maxsize"`
-		Localtime bool   `json:"localtime" yaml:"localtime"`
-	} `json:"log" yaml:"log"`
 	Global struct {
+		LogLevel                string `json:"log_level" yaml:"log_level"`
+		LogBackups              int    `json:"log_backups" yaml:"log_backups"`
+		LogMaxsize              int64  `json:"log_maxsize" yaml:"log_maxsize"`
+		LogLocaltime            bool   `json:"log_localtime" yaml:"log_localtime"`
 		DenyIntranet            bool   `json:"deny_intranet" yaml:"deny_intranet"`
 		DialTimeout             int    `json:"dial_timeout" yaml:"dial_timeout"`
 		TcpFastopen             bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
