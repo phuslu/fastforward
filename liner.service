@@ -7,9 +7,12 @@ Description=liner
 Type=forking
 KillMode=process
 WorkingDirectory=/home/phuslu/liner
+AmbientCapabilities=CAP_NET_BIND_SERVIC
 ExecStart=/home/phuslu/liner/liner.sh start
 ExecStop=/home/phuslu/liner/liner.sh stop
 ExecReload=/home/phuslu/liner/liner.sh reload
+User=phuslu
+Group=phuslu
 
 [Install]
 WantedBy=multi-user.target
