@@ -1,3 +1,4 @@
+//go:build !linux
 // +build !linux
 
 package main
@@ -26,15 +27,6 @@ func (ln ListenConfig) ListenPacket(ctx context.Context, network, address string
 	}
 
 	return net.ListenUDP(network, laddr)
-}
-
-type DailerController struct {
-	BindToDevice string
-	BindToIP     net.IP
-}
-
-func (dc DailerController) Control(network, address string, c syscall.RawConn) error {
-	return nil
 }
 
 func SetProcessName(name string) error {

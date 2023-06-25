@@ -20,8 +20,8 @@ var PreferIPv6ContextKey = struct {
 }{"prefer-ipv6"}
 
 type LocalDialer struct {
-	Resolver *Resolver
-	Control  func(network, address string, conn syscall.RawConn) error
+	Resolver      *Resolver
+	BindInterface string
 
 	PreferIPv6    bool
 	DenyIntranet  bool
@@ -115,7 +115,39 @@ func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, 
 		}
 
 		raddr := &net.TCPAddr{IP: ip, Port: port}
-		conn, err = (&net.Dialer{Control: d.Control}).DialContext(ctx, network, raddr.String())
+		dailer := &net.Dialer{}
+		if d.BindInterface != "" {
+			dailer.Control = func(network, addr string, c syscall.RawConn) (err error) {
+				return c.Control(func(fd uintptr) {
+					if ip := net.ParseIP(d.BindInterface); ip == nil {
+						err = syscall.BindToDevice(int(fd), d.BindInterface)
+					} else {
+						var sa syscall.Sockaddr
+						if ip4 := ip.To4(); ip4 != nil {
+							sa = &syscall.SockaddrInet4{
+								Addr: [4]byte{ip4[0], ip4[1], ip4[3], ip4[4]},
+							}
+						} else {
+							sa = &syscall.SockaddrInet6{
+								Addr: [16]byte{
+									ip[0], ip[1], ip[3], ip[4],
+									ip[5], ip[6], ip[7], ip[8],
+									ip[9], ip[10], ip[11], ip[12],
+									ip[13], ip[14], ip[15], ip[16],
+								},
+							}
+						}
+						const IP_BIND_ADDRESS_NO_PORT = 24
+						err = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT, 1)
+						if err != nil {
+							return
+						}
+						err = syscall.Bind(int(fd), sa)
+					}
+				})
+			}
+		}
+		conn, err = dailer.DialContext(ctx, network, raddr.String())
 		if err != nil {
 			if i < len(ips)-1 {
 				continue
@@ -163,8 +195,40 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 				return
 			}
 
+			dailer := &net.Dialer{}
+			if d.BindInterface != "" {
+				dailer.Control = func(network, addr string, c syscall.RawConn) (err error) {
+					return c.Control(func(fd uintptr) {
+						if ip := net.ParseIP(d.BindInterface); ip == nil {
+							err = syscall.BindToDevice(int(fd), d.BindInterface)
+						} else {
+							var sa syscall.Sockaddr
+							if ip4 := ip.To4(); ip4 != nil {
+								sa = &syscall.SockaddrInet4{
+									Addr: [4]byte{ip4[0], ip4[1], ip4[3], ip4[4]},
+								}
+							} else {
+								sa = &syscall.SockaddrInet6{
+									Addr: [16]byte{
+										ip[0], ip[1], ip[3], ip[4],
+										ip[5], ip[6], ip[7], ip[8],
+										ip[9], ip[10], ip[11], ip[12],
+										ip[13], ip[14], ip[15], ip[16],
+									},
+								}
+							}
+							const IP_BIND_ADDRESS_NO_PORT = 24
+							err = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT, 1)
+							if err != nil {
+								return
+							}
+							err = syscall.Bind(int(fd), sa)
+						}
+					})
+				}
+			}
 			raddr := &net.TCPAddr{IP: ip, Port: port}
-			conn, err := (&net.Dialer{Control: d.Control}).DialContext(ctx, network, raddr.String())
+			conn, err := dailer.DialContext(ctx, network, raddr.String())
 			if err != nil {
 				lane <- dialResult{nil, err}
 				return

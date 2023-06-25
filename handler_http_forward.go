@@ -66,7 +66,7 @@ func (h *HTTPForwardHandler) Load() error {
 		}
 	}
 
-	if h.Config.Forward.BindToDevice != "" {
+	if h.Config.Forward.BindInterface != "" {
 		if runtime.GOOS != "linux" {
 			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is only available on linux")
 		}
@@ -75,7 +75,7 @@ func (h *HTTPForwardHandler) Load() error {
 		}
 
 		var dialer = *h.LocalDialer
-		dialer.Control = (DailerController{BindToDevice: h.Config.Forward.BindToDevice}).Control
+		dialer.BindInterface = h.Config.Forward.BindInterface
 
 		h.Transport = &http.Transport{
 			DialContext:         dialer.DialContext,

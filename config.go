@@ -25,7 +25,7 @@ type HTTPConfig struct {
 		Upstream         string `json:"upstream" yaml:"upstream"`
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
-		BindToDevice     string `json:"bind_to_device" yaml:"bind_to_device"`
+		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
@@ -74,7 +74,7 @@ type SocksConfig struct {
 		Upstream         string `json:"upstream" yaml:"upstream"`
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
-		BindToDevice     string `json:"bind_to_device" yaml:"bind_to_device"`
+		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 }
