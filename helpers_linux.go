@@ -66,9 +66,9 @@ type DailerController struct {
 
 func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err error) {
 	return c.Control(func(fd uintptr) {
-		if ip := net.ParseIP(dc.BindInterface); ip == nil {
-			err = syscall.BindToDevice(int(fd), dc.BindInterface)
-		} else {
+		ip := net.ParseIP(dc.BindInterface)
+		switch {
+		case ip != nil:
 			var sa syscall.Sockaddr
 			if ip4 := ip.To4(); ip4 != nil {
 				sa = &syscall.SockaddrInet4{
@@ -90,6 +90,8 @@ func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err
 				return
 			}
 			err = syscall.Bind(int(fd), sa)
+		case dc.BindInterface != "":
+			err = syscall.BindToDevice(int(fd), dc.BindInterface)
 		}
 	})
 }
