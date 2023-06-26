@@ -59,13 +59,13 @@ global:
   max_idle_conns: 16
   dial_timeout: 30
   dns_cache_duration: 15m
-  prefer_ipv6: false
 upstream:
   https_hk: https://leaderone:123456@flyspace.hk:443
 http:
   - listen: ['127.0.0.1:8087']
     server_name: ['localhost']
     forward:
+      prefer_ipv6: false
       policy: bypass_auth
       upstream: https_hk
     pac:
@@ -92,13 +92,13 @@ global:
   max_idle_conns: 16
   dial_timeout: 30
   dns_cache_duration: 15m
-  prefer_ipv6: false
 upstream:
   https_hk: https://leaderone:123456@flyspace.hk:443
 http:
   - listen: ['127.0.0.1:8087']
     server_name: ['localhost']
     forward:
+      prefer_ipv6: false
       policy: bypass_auth
       upstream: https_hk
     pac:

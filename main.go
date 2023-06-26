@@ -197,11 +197,6 @@ func main() {
 		dialer.Timeout = time.Duration(config.Global.DialTimeout) * time.Second
 	}
 
-	if config.Global.PreferIpv6 {
-		dialer.PreferIPv6 = true
-		dialer.ParallelLevel = 1
-	}
-
 	upstreams := make(map[string]Dialer)
 	for name, upstream := range config.Upstream {
 		parts := strings.SplitN(upstream, "\n", 2)

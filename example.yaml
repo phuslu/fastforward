@@ -6,7 +6,6 @@ global:
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 15m
-  prefer_ipv6: false
   dns_server: https://1.1.1.1/dns-query
   database_source: csvq://.
 upstream:
@@ -54,6 +53,7 @@ https:
     certfile: /path/to/fullchain.cer
     prefer_chacha20: true
     forward:
+      prefer_ipv6: false
       policy: |
         {{if regexMatch `^(153.3.130.101|153.3.130.102):` .Request.RemoteAddr}}
           bypass_auth

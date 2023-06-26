@@ -4,7 +4,6 @@ global:
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 1m
-  prefer_ipv6: false
 upstream:
   sshtun: ssh://phuslu:123456@phus.lu:22
 http:
@@ -18,5 +17,6 @@ socks:
   - listen: [':1082']
     server_name: ['127.0.0.1']
     forward:
+      prefer_ipv6: false
       upstream: sshtun
       policy: bypass_auth

@@ -51,12 +51,12 @@ global:
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 15m
-  prefer_ipv6: false
 https:
   - listen: [':443', ':8443']
     server_name: ['$domain']
     forward:
       log: true
+      prefer_ipv6: false
       policy: |
         {{if all (.Request.ProtoAtLeast 2 0) (eq .Request.TLS.Version 0x0304) (greased .ClientHelloInfo)}}
             bypass_auth

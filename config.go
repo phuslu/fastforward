@@ -98,7 +98,6 @@ type Config struct {
 		DenyIntranet     bool   `json:"deny_intranet" yaml:"deny_intranet"`
 		DialTimeout      int    `json:"dial_timeout" yaml:"dial_timeout"`
 		TcpFastopen      bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
-		PreferIpv6       bool   `json:"perfer_ipv6" yaml:"perfer_ipv6"`
 		DnsServer        string `json:"dns_server" yaml:"dns_server"`
 		DnsCacheDuration string `json:"dns_cache_duration" yaml:"dns_cache_duration"`
 		IdleConnTimeout  int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
