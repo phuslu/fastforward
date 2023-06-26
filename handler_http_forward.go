@@ -74,9 +74,11 @@ func (h *HTTPForwardHandler) Load() error {
 			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is confilict with option upstream")
 		}
 
-		var dialer = *h.LocalDialer
+		dialer := new(LocalDialer)
+		*dialer = *h.LocalDialer
 		dialer.BindInterface = h.Config.Forward.BindInterface
 
+		h.LocalDialer = dialer
 		h.Transport = &http.Transport{
 			DialContext:         dialer.DialContext,
 			TLSClientConfig:     h.Transport.TLSClientConfig,

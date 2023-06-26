@@ -273,11 +273,9 @@ func main() {
 	// see http.DefaultTransport
 	transport := &http.Transport{
 		DialContext: dialer.DialContext,
-		DialTLS: func(network, address string) (net.Conn, error) {
-			return dialer.DialTLS(network, address, &tls.Config{
-				InsecureSkipVerify: true,
-				ClientSessionCache: dialer.TLSClientSessionCache,
-			})
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			ClientSessionCache: dialer.TLSClientSessionCache,
 		},
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,

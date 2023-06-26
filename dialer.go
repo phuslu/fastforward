@@ -19,10 +19,14 @@ var PreferIPv6ContextKey = struct {
 	name string
 }{"prefer-ipv6"}
 
-type LocalDialer struct {
-	Resolver      *Resolver
-	BindInterface string
+var BindInterfaceContextKey = struct {
+	name string
+}{"bind-interface"}
 
+type LocalDialer struct {
+	Resolver *Resolver
+
+	BindInterface string
 	PreferIPv6    bool
 	DenyIntranet  bool
 	ParallelLevel int

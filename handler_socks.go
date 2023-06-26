@@ -61,14 +61,17 @@ func (h *SocksHandler) Load() error {
 
 	if h.Config.Forward.BindInterface != "" {
 		if runtime.GOOS != "linux" {
-			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_device is only available on linux")
+			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_interface is only available on linux")
 		}
 		if h.Config.Forward.Upstream != "" {
-			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_device is confilict with option upstream")
+			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_interface is confilict with option upstream")
 		}
 
-		var dialer = *h.LocalDialer
+		dialer := new(LocalDialer)
+		*dialer = *h.LocalDialer
 		dialer.BindInterface = h.Config.Forward.BindInterface
+
+		h.LocalDialer = dialer
 	}
 
 	return nil
