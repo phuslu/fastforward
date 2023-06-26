@@ -29,6 +29,14 @@ func (ln ListenConfig) ListenPacket(ctx context.Context, network, address string
 	return net.ListenUDP(network, laddr)
 }
 
+type DailerController struct {
+	BindInterface string
+}
+
+func (dc DailerController) Control(network, address string, c syscall.RawConn) error {
+	return nil
+}
+
 func SetProcessName(name string) error {
 	return nil
 }

@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	SO_REUSEPORT = 15
-	TCP_FASTOPEN = 23
+	SO_REUSEPORT            = 15
+	TCP_FASTOPEN            = 23
+	IP_BIND_ADDRESS_NO_PORT = 24
 )
 
 type ListenConfig struct {
@@ -57,6 +58,40 @@ func (lc ListenConfig) ListenPacket(ctx context.Context, network, address string
 	}
 
 	return ln.ListenPacket(ctx, network, address)
+}
+
+type DailerController struct {
+	BindInterface string
+}
+
+func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err error) {
+	return c.Control(func(fd uintptr) {
+		if ip := net.ParseIP(dc.BindInterface); ip == nil {
+			err = syscall.BindToDevice(int(fd), dc.BindInterface)
+		} else {
+			var sa syscall.Sockaddr
+			if ip4 := ip.To4(); ip4 != nil {
+				sa = &syscall.SockaddrInet4{
+					Addr: [4]byte{ip4[0], ip4[1], ip4[3], ip4[4]},
+				}
+			} else {
+				sa = &syscall.SockaddrInet6{
+					Addr: [16]byte{
+						ip[0], ip[1], ip[3], ip[4],
+						ip[5], ip[6], ip[7], ip[8],
+						ip[9], ip[10], ip[11], ip[12],
+						ip[13], ip[14], ip[15], ip[16],
+					},
+				}
+			}
+			const IP_BIND_ADDRESS_NO_PORT = 24
+			err = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT, 1)
+			if err != nil {
+				return
+			}
+			err = syscall.Bind(int(fd), sa)
+		}
+	})
 }
 
 func RedirectStderrTo(file *os.File) error {
