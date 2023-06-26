@@ -70,6 +70,7 @@ func (h *SocksHandler) Load() error {
 		dialer := new(LocalDialer)
 		*dialer = *h.LocalDialer
 		dialer.BindInterface = h.Config.Forward.BindInterface
+		dialer.PreferIPv6 = h.Config.Forward.PreferIpv6
 
 		h.LocalDialer = dialer
 	}

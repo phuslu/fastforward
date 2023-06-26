@@ -26,6 +26,7 @@ type HTTPConfig struct {
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
 		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
+		PreferIpv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
@@ -75,6 +76,7 @@ type SocksConfig struct {
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
 		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
+		PreferIpv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 }

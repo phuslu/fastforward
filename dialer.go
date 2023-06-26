@@ -71,7 +71,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 	case 1:
 		break
 	default:
-		if !d.PreferIPv6 && ctx.Value(PreferIPv6ContextKey) == nil {
+		if !d.PreferIPv6 {
 			if ips[0].To4() == nil {
 				pos := len(ips) - 1
 				if ips[pos].To4() != nil {
