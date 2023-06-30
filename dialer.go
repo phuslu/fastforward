@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"net"
 	"strconv"
 	"time"
@@ -36,6 +37,13 @@ type LocalDialer struct {
 }
 
 func (d *LocalDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return d.dialContext(ctx, network, address, nil)
+}
+
+func (d *LocalDialer) DialTLSContext(ctx context.Context, network, address string) (net.Conn, error) {
+	if d.TLSConfig == nil {
+		return nil, errors.New("localdialer: empty tls config")
+	}
 	return d.dialContext(ctx, network, address, d.TLSConfig)
 }
 
@@ -129,7 +137,7 @@ func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, 
 		}
 
 		tlsConn := tls.Client(conn, tlsConfig)
-		err = tlsConn.Handshake()
+		err = tlsConn.HandshakeContext(ctx)
 		if err != nil {
 			if i < len(ips)-1 {
 				continue
@@ -187,7 +195,7 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 			}
 
 			tlsConn := tls.Client(conn, tlsConfig)
-			err = tlsConn.Handshake()
+			err = tlsConn.HandshakeContext(ctx)
 
 			if err != nil {
 				lane <- dialResult{nil, err}

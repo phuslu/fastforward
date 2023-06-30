@@ -190,6 +190,10 @@ func main() {
 		DenyLocalLAN: config.Global.DenyLocalLAN,
 		Timeout:      30 * time.Second,
 		TCPKeepAlive: 30 * time.Second,
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			ClientSessionCache: tls.NewLRUClientSessionCache(2048),
+		},
 	}
 
 	if config.Global.DialTimeout > 0 {
@@ -267,10 +271,8 @@ func main() {
 	// see http.DefaultTransport
 	transport := &http.Transport{
 		DialContext: dialer.DialContext,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			ClientSessionCache: tls.NewLRUClientSessionCache(2048),
-		},
+		// DialTLSContext:        dialer.DialTLSContext,
+		TLSClientConfig:       dialer.TLSConfig,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   15 * time.Second,
