@@ -185,12 +185,11 @@ func main() {
 
 	// global dialer
 	dialer := &LocalDialer{
-		Resolver:              resolver,
-		ParallelLevel:         2,
-		DenyIntranet:          config.Global.DenyIntranet,
-		Timeout:               30 * time.Second,
-		TCPKeepAlive:          30 * time.Second,
-		TLSClientSessionCache: tls.NewLRUClientSessionCache(2048),
+		Resolver:     resolver,
+		Concurrency:  2,
+		DenyLocalLAN: config.Global.DenyLocalLAN,
+		Timeout:      30 * time.Second,
+		TCPKeepAlive: 30 * time.Second,
 	}
 
 	if config.Global.DialTimeout > 0 {
@@ -270,12 +269,12 @@ func main() {
 		DialContext: dialer.DialContext,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
-			ClientSessionCache: dialer.TLSClientSessionCache,
+			ClientSessionCache: tls.NewLRUClientSessionCache(2048),
 		},
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		TLSHandshakeTimeout:   15 * time.Second,
+		ExpectContinueTimeout: 2 * time.Second,
 		DisableCompression:    false,
 	}
 

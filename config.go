@@ -95,7 +95,7 @@ type Config struct {
 		LogBackups       int    `json:"log_backups" yaml:"log_backups"`
 		LogMaxsize       int64  `json:"log_maxsize" yaml:"log_maxsize"`
 		LogLocaltime     bool   `json:"log_localtime" yaml:"log_localtime"`
-		DenyIntranet     bool   `json:"deny_intranet" yaml:"deny_intranet"`
+		DenyLocalLAN     bool   `json:"deny_local_lan" yaml:"deny_local_lan"`
 		DialTimeout      int    `json:"dial_timeout" yaml:"dial_timeout"`
 		TcpFastopen      bool   `json:"tcp_fastopen" yaml:"tcp_fastopen"`
 		DnsServer        string `json:"dns_server" yaml:"dns_server"`

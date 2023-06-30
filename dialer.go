@@ -27,23 +27,16 @@ type LocalDialer struct {
 
 	BindInterface string
 	PreferIPv6    bool
-	DenyIntranet  bool
-	ParallelLevel int
+	DenyLocalLAN  bool
+	Concurrency   int
 
-	Timeout               time.Duration
-	TCPKeepAlive          time.Duration
-	TLSClientSessionCache tls.ClientSessionCache
+	Timeout      time.Duration
+	TCPKeepAlive time.Duration
+	TLSConfig    *tls.Config
 }
 
 func (d *LocalDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	return d.dialContext(ctx, network, address, nil)
-}
-
-func (d *LocalDialer) DialTLS(network, address string, tlsConfig *tls.Config) (net.Conn, error) {
-	if tlsConfig.ClientSessionCache == nil {
-		tlsConfig.ClientSessionCache = d.TLSClientSessionCache
-	}
-	return d.dialContext(context.Background(), network, address, tlsConfig)
+	return d.dialContext(ctx, network, address, d.TLSConfig)
 }
 
 func (d *LocalDialer) dialContext(ctx context.Context, network, address string, tlsConfig *tls.Config) (net.Conn, error) {
@@ -100,7 +93,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		ctx = subCtx
 	}
 
-	switch d.ParallelLevel {
+	switch d.Concurrency {
 	case 0, 1:
 		return d.dialSerial(ctx, network, host, ips, port, tlsConfig)
 	default:
@@ -113,7 +106,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 
 func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (conn net.Conn, err error) {
 	for i, ip := range ips {
-		if d.DenyIntranet && IsReservedIP(ip) {
+		if d.DenyLocalLAN && IsReservedIP(ip) {
 			return nil, net.InvalidAddrError("intranet address is rejected: " + ip.String())
 		}
 
@@ -157,15 +150,15 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 	}
 
 	level := len(ips)
-	if level > d.ParallelLevel {
-		level = d.ParallelLevel
+	if level > d.Concurrency {
+		level = d.Concurrency
 		ips = ips[:level]
 	}
 
 	lane := make(chan dialResult, level)
 	for i := 0; i < level; i++ {
 		go func(ip net.IP, port int, tlsConfig *tls.Config) {
-			if d.DenyIntranet && IsReservedIP(ip) {
+			if d.DenyLocalLAN && IsReservedIP(ip) {
 				lane <- dialResult{nil, net.InvalidAddrError("intranet address is rejected: " + ip.String())}
 				return
 			}
