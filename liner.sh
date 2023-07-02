@@ -24,6 +24,7 @@ cd "$(dirname "$0")"
 test -f .env && . $(pwd -P)/.env
 
 _start() {
+    setcap 'cap_net_bind_service=ep' liner
     test $(ulimit -n) -lt 100000 && ulimit -n 100000
     (env ENV=${ENV:-development} is_supervisor_process=1 $(pwd)/liner) <&- >liner.error.log 2>&1 &
     local pid=$!
