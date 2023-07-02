@@ -60,8 +60,6 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 		var country, region, city string
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
-		} else {
-			country, _ = h.RegionResolver.LookupCountry(context.Background(), req.RemoteIP)
 		}
 		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("relay_upstream", h.Config.Upstream).Msg("forward port request end")
 	}

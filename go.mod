@@ -7,7 +7,6 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/cloudflare/golibs v0.0.0-20210909181612-21743d7dd02a
 	github.com/oschwald/maxminddb-golang v1.11.0
-	github.com/phuslu/iploc v1.0.20230630
 	github.com/phuslu/log v1.0.87
 	github.com/quic-go/quic-go v0.36.0
 	github.com/robfig/cron/v3 v3.0.1

@@ -11,7 +11,6 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/cloudflare/golibs/lrucache"
-	"github.com/phuslu/iploc"
 	"github.com/phuslu/log"
 	"golang.org/x/sync/singleflight"
 )
@@ -43,22 +42,6 @@ func (f *Functions) host(hostport string) string {
 	return hostport
 }
 
-func (f *Functions) country(ip string) string {
-	if s, _, err := net.SplitHostPort(ip); err == nil {
-		ip = s
-	}
-
-	if net.ParseIP(ip) == nil {
-		ips, _ := f.RegionResolver.Resolver.LookupIP(context.Background(), ip)
-		if len(ips) == 0 {
-			return "ZZ"
-		}
-		ip = ips[0].String()
-	}
-
-	return string(iploc.Country(net.ParseIP(ip)))
-}
-
 type GeoipInfo struct {
 	Country string
 	Region  string
@@ -81,8 +64,6 @@ func (f *Functions) geoip(ip string) GeoipInfo {
 	var country, region, city string
 	if f.RegionResolver.MaxmindReader != nil {
 		country, region, city, _ = f.RegionResolver.LookupCity(context.Background(), net.ParseIP(ip))
-	} else {
-		country, _ = f.RegionResolver.LookupCountry(context.Background(), ip)
 	}
 
 	if country == "CN" && IsBogusChinaIP(net.ParseIP(ip)) {
@@ -96,6 +77,10 @@ func (f *Functions) geoip(ip string) GeoipInfo {
 		Region:  region,
 		City:    city,
 	}
+}
+
+func (f *Functions) country(ip string) string {
+	return f.geoip(ip).Country
 }
 
 func (f *Functions) region(ip string) string {

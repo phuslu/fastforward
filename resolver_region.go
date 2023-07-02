@@ -6,44 +6,11 @@ import (
 	"net"
 
 	"github.com/oschwald/maxminddb-golang"
-	"github.com/phuslu/iploc"
 )
 
 type RegionResolver struct {
 	Resolver      *Resolver
 	MaxmindReader *maxminddb.Reader
-}
-
-func (r *RegionResolver) LookupCountry(ctx context.Context, host string) (string, error) {
-	// IPv6 address
-	if host[0] == '[' {
-		return "ZZ", nil
-	}
-
-	ips, err := r.Resolver.LookupIP(ctx, host)
-	if err != nil {
-		return "ZZ", err
-	}
-	if len(ips) == 0 {
-		return "ZZ", nil
-	}
-
-	ip := ips[0]
-
-	if ip.IsUnspecified() || ip.IsLoopback() || IsReservedIP(ip) {
-		return "", nil
-	}
-
-	if IsBogusChinaIP(ip) {
-		return "ZZ", nil
-	}
-
-	country := string(iploc.Country(ip))
-	if country == "" {
-		return "ZZ", nil
-	}
-
-	return country, nil
 }
 
 func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {

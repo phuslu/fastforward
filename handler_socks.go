@@ -238,8 +238,6 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		var country, region, city string
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
-		} else {
-			country, _ = h.RegionResolver.LookupCountry(context.Background(), req.RemoteIP)
 		}
 		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.Forward.Upstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("forward socks request end")
 	}
