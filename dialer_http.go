@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -23,6 +24,7 @@ type HTTPDialer struct {
 	Port      string
 	UserAgent string
 	Resolver  *Resolver
+	TLSConfig *tls.Config
 	Dialer    Dialer
 
 	once sync.Once
@@ -58,6 +60,15 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 			(*closeConn).Close()
 		}
 	}()
+
+	if d.TLSConfig != nil {
+		tlsConn := tls.Client(conn, d.TLSConfig)
+		err = tlsConn.HandshakeContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+		conn = tlsConn
+	}
 
 	host, portStr, err := net.SplitHostPort(addr)
 	if err != nil {

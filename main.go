@@ -216,7 +216,7 @@ func main() {
 		username := u.User.Username()
 		password, _ := u.User.Password()
 		switch u.Scheme {
-		case "http", "http1":
+		case "http":
 			upstreams[name] = &HTTPDialer{
 				Username:  username,
 				Password:  password,
@@ -226,7 +226,20 @@ func main() {
 				Resolver:  resolver,
 				Dialer:    dialer,
 			}
-		case "https", "http2":
+		case "https":
+			upstreams[name] = &HTTPDialer{
+				Username:  username,
+				Password:  password,
+				Host:      u.Hostname(),
+				Port:      u.Port(),
+				UserAgent: extra,
+				TLSConfig: &tls.Config{
+					InsecureSkipVerify: false,
+					ServerName:         u.Hostname(),
+					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+				},
+			}
+		case "http2":
 			upstreams[name] = &HTTP2Dialer{
 				Username:  username,
 				Password:  password,
