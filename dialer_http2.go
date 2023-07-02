@@ -35,7 +35,7 @@ func (d *HTTP2Dialer) init() {
 
 	d.transport = &http2.Transport{
 		DisableCompression: false,
-		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
 			conn, err := net.Dial("tcp", net.JoinHostPort(d.Host, d.Port))
 			if err != nil {
 				return nil, err
@@ -48,7 +48,7 @@ func (d *HTTP2Dialer) init() {
 				ClientSessionCache: tls.NewLRUClientSessionCache(1024),
 			})
 
-			err = tlsConn.Handshake()
+			err = tlsConn.HandshakeContext(ctx)
 			if err != nil {
 				return nil, err
 			}
