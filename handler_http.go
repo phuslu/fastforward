@@ -88,6 +88,12 @@ func (h *HTTPMainHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			ri.ClientHelloInfo = v.(*tls.ClientHelloInfo)
 		}
 	}
+
+	// fix http3 request
+	if req.Proto == "" && ri.ClientHelloInfo != nil && len(ri.ClientHelloInfo.SupportedProtos) > 0 && ri.ClientHelloInfo.SupportedProtos[0] == "h3" {
+		req.Proto, req.ProtoMajor, req.ProtoMinor = "HTTP/3.0", 3, 0
+	}
+
 	ri.TraceID = log.NewXID()
 
 	ri.LogContext = log.NewContext(ri.LogContext[:0]).

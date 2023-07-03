@@ -247,6 +247,14 @@ func main() {
 				Port:      u.Port(),
 				UserAgent: extra,
 			}
+		case "http3":
+			upstreams[name] = &HTTP3Dialer{
+				Username:  username,
+				Password:  password,
+				Host:      u.Hostname(),
+				Port:      u.Port(),
+				UserAgent: extra,
+			}
 		case "socks", "socks5", "socks5h":
 			upstreams[name] = &Socks5Dialer{
 				Username: username,
