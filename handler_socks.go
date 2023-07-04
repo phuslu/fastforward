@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/publicsuffix"
 )
 
 type SocksRequest struct {
@@ -38,7 +36,6 @@ type SocksHandler struct {
 	LocalDialer    *LocalDialer
 	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
-	DB             *sql.DB
 
 	PolicyTemplate   *template.Template
 	UpstreamTemplate *template.Template
@@ -151,15 +148,6 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	req.Port = int(b[n-2])<<8 | int(b[n-1])
 
 	if ai.VIP == 0 {
-		if addressType == Socks5DomainName && h.Config.Forward.DenyDomainsTable != "" {
-			if domain, err := publicsuffix.EffectiveTLDPlusOne(req.Host); err == nil {
-				err = h.DB.QueryRow("SELECT domain FROM `"+h.Config.Forward.AuthTable+"` WHERE domain=? LIMIT 1", domain).Err()
-				if err != nil {
-					WriteSocks5Status(conn, Socks5StatusConnectionNotAllowedByRuleset)
-					return
-				}
-			}
-		}
 		if ai.SpeedLimit == 0 && h.Config.Forward.SpeedLimit > 0 {
 			ai.SpeedLimit = h.Config.Forward.SpeedLimit
 		}
@@ -272,10 +260,7 @@ func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ForwardAuthInfo, error) {
 			ai.VIP, _ = strconv.Atoi(record[3])
 		}
 	} else {
-		err = h.DB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.Config.Forward.AuthTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
-		if err != nil {
-			return ai, err
-		}
+		return ai, fmt.Errorf("unsupported auth_table: %s", h.Config.Forward.AuthTable)
 	}
 
 	switch {

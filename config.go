@@ -98,7 +98,6 @@ type Config struct {
 		IdleConnTimeout  int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
 		MaxIdleConns     int    `json:"max_idle_conns" yaml:"max_idle_conns"`
 		GracefulTimeout  int    `json:"graceful_timeout" yaml:"graceful_timeout"`
-		DatabaseSource   string `json:"database_source" yaml:"database_source"`
 	} `json:"global" yaml:"global"`
 	Cron []struct {
 		Spec    string `json:"spec" yaml:"spec"`

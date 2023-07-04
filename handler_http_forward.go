@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"database/sql"
 	"encoding/base64"
 	"encoding/csv"
 	"fmt"
@@ -30,7 +29,6 @@ type HTTPForwardHandler struct {
 	Transport      *http.Transport
 	Upstreams      map[string]Dialer
 	Functions      template.FuncMap
-	DB             *sql.DB
 
 	policy     *template.Template
 	upstream   *template.Template
@@ -193,13 +191,6 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	if ai.VIP == 0 {
-		if h.Config.Forward.DenyDomainsTable != "" {
-			err = h.DB.QueryRow("SELECT domain FROM `"+h.Config.Forward.AuthTable+"` WHERE domain=? LIMIT 1", domain).Err()
-			if err != nil {
-				RejectRequest(rw, req)
-				return
-			}
-		}
 		if ai.SpeedLimit == 0 && h.Config.Forward.SpeedLimit > 0 {
 			ai.SpeedLimit = h.Config.Forward.SpeedLimit
 		}
@@ -418,10 +409,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 			ai.VIP, _ = strconv.Atoi(record[3])
 		}
 	} else {
-		err = h.DB.QueryRow("SELECT username, password, speedlimit, vip FROM `"+h.Config.Forward.AuthTable+"` WHERE username=? LIMIT 1", username).Scan(&ai.Username, &ai.Password, &ai.SpeedLimit, &ai.VIP)
-		if err != nil {
-			return ai, err
-		}
+		return ai, fmt.Errorf("unsupported auth_table: %s", h.Config.Forward.AuthTable)
 	}
 
 	switch {
