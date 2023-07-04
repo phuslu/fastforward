@@ -44,8 +44,17 @@ func (d *HTTP3Dialer) init() {
 					host = ips[log.Fastrandn(uint32(len(ips)))].String()
 				}
 			}
-			return quic.DialAddrEarly(ctx,
-				net.JoinHostPort(host, d.Port),
+			pconn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
+			if err != nil {
+				return nil, err
+			}
+			raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(host, d.Port))
+			if err != nil {
+				return nil, err
+			}
+			return quic.DialEarly(ctx,
+				pconn,
+				raddr,
 				&tls.Config{
 					ServerName: d.Host,
 					NextProtos: []string{"h3"},
