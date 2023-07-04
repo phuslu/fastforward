@@ -23,6 +23,7 @@ type HTTP2Dialer struct {
 	Host      string
 	Port      string
 	UserAgent string
+	Dialer    Dialer
 
 	once      sync.Once
 	transport *http2.Transport
@@ -36,7 +37,11 @@ func (d *HTTP2Dialer) init() {
 	d.transport = &http2.Transport{
 		DisableCompression: false,
 		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-			conn, err := net.Dial("tcp", net.JoinHostPort(d.Host, d.Port))
+			dialer := d.Dialer
+			if dialer == nil {
+				dialer = &net.Dialer{}
+			}
+			conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, d.Port))
 			if err != nil {
 				return nil, err
 			}

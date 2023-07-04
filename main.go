@@ -145,8 +145,7 @@ func main() {
 				addr = net.JoinHostPort(addr, "53")
 			}
 			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				var d net.Dialer
-				return d.DialContext(ctx, u.Scheme, addr)
+				return (&net.Dialer{}).DialContext(ctx, u.Scheme, addr)
 			}
 		case "tls", "dot":
 			var addr = u.Host
@@ -223,7 +222,6 @@ func main() {
 				Host:      u.Hostname(),
 				Port:      u.Port(),
 				UserAgent: extra,
-				Resolver:  resolver,
 				Dialer:    dialer,
 			}
 		case "https":
@@ -233,6 +231,7 @@ func main() {
 				Host:      u.Hostname(),
 				Port:      u.Port(),
 				UserAgent: extra,
+				Dialer:    dialer,
 				TLSConfig: &tls.Config{
 					InsecureSkipVerify: false,
 					ServerName:         u.Hostname(),
@@ -246,6 +245,7 @@ func main() {
 				Host:      u.Hostname(),
 				Port:      u.Port(),
 				UserAgent: extra,
+				Dialer:    dialer,
 			}
 		case "http3":
 			upstreams[name] = &HTTP3Dialer{
@@ -254,6 +254,7 @@ func main() {
 				Host:      u.Hostname(),
 				Port:      u.Port(),
 				UserAgent: extra,
+				Resolver:  resolver,
 			}
 		case "socks", "socks5", "socks5h":
 			upstreams[name] = &Socks5Dialer{

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/phuslu/log"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 )
@@ -22,6 +23,7 @@ type HTTP3Dialer struct {
 	Host      string
 	Port      string
 	UserAgent string
+	Resolver  *Resolver
 
 	once      sync.Once
 	transport *http3.RoundTripper
@@ -36,8 +38,14 @@ func (d *HTTP3Dialer) init() {
 		DisableCompression: false,
 		EnableDatagrams:    false,
 		Dial: func(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (quic.EarlyConnection, error) {
+			host := d.Host
+			if d.Resolver != nil {
+				if ips, err := d.Resolver.LookupIP(ctx, host); err == nil && len(ips) != 0 {
+					host = ips[log.Fastrandn(uint32(len(ips)))].String()
+				}
+			}
 			return quic.DialAddrEarly(ctx,
-				net.JoinHostPort(d.Host, d.Port),
+				net.JoinHostPort(host, d.Port),
 				&tls.Config{
 					ServerName: d.Host,
 					NextProtos: []string{"h3"},
