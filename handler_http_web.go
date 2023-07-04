@@ -36,18 +36,6 @@ func (h *HTTPWebHandler) Load() error {
 					Functions: h.Functions,
 				},
 			})
-		case web.Doh.Enabled:
-			handlers = append(handlers, struct {
-				location string
-				handler  HTTPHandler
-			}{
-				web.Location,
-				&HTTPWebDoHHandler{
-					Transport: h.Transport,
-					Upstream:  web.Doh.Upstream,
-					Prelude:   web.Doh.Prelude,
-				},
-			})
 		case web.Pprof.Enabled:
 			handlers = append(handlers, struct {
 				location string
