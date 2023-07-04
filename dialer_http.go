@@ -1,17 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
-	"strconv"
 	"sync"
 )
 
@@ -69,35 +66,27 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		conn = tlsConn
 	}
 
-	host, portStr, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
+	buf := make([]byte, 0, 2048)
 
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return nil, errors.New("proxy: failed to parse port number: " + portStr)
-	}
-	if port < 1 || port > 0xffff {
-		return nil, errors.New("proxy: port number out of range: " + portStr)
-	}
-
-	var b bytes.Buffer
-
-	fmt.Fprintf(&b, "CONNECT %s:%s HTTP/1.1\r\nHost: %s:%s\r\n", host, portStr, host, portStr)
+	buf = fmt.Appendf(buf, "CONNECT %s HTTP/1.1\r\n", addr)
+	buf = fmt.Appendf(buf, "Host: %s\r\n", addr)
+	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", d.UserAgent)
 	if d.Username != "" {
-		fmt.Fprintf(&b, "Proxy-Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
+		buf = fmt.Appendf(buf, "Proxy-Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
-	io.WriteString(&b, "\r\n")
+	buf = fmt.Appendf(buf, "\r\n")
 
-	bb := b.Bytes()
-
-	if _, err := conn.Write(bb); err != nil {
+	if _, err := conn.Write(buf); err != nil {
 		return nil, errors.New("proxy: failed to write greeting to HTTP proxy at " + d.Host + ": " + err.Error())
 	}
 
-	buf := make([]byte, 2048)
-	b0 := buf
+	// see https://github.com/golang/go/issues/5373
+	buf = buf[:cap(buf)]
+	for i := range buf {
+		buf[i] = 0
+	}
+
+	b := buf
 	total := 0
 
 	for {
@@ -108,20 +97,27 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		total += n
 		buf = buf[n:]
 
-		if i := bytes.Index(b0, CRLFCRLF); i > 0 {
-			conn = &ConnWithData{conn, b0[i+4 : total]}
-			b0 = b0[:i+4]
+		if i := bytes.Index(b, CRLFCRLF); i > 0 {
+			if i+4 < total {
+				conn = &ConnWithData{conn, b[i+4 : total]}
+			}
 			break
 		}
 	}
 
-	resp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(b0)), nil)
-	if err != nil {
-		return nil, err
+	status := 0
+	n := bytes.IndexByte(b, ' ')
+	if n < 0 {
+		return nil, fmt.Errorf("proxy: failed to connect %s via %s: %s", addr, d.Host, bytes.TrimRight(b, "\x00"))
 	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("proxy: failed to read greeting from HTTP proxy at " + d.Host + ": " + resp.Status)
+	for i, c := range b[n+1:] {
+		if i == 3 || c < '0' || c > '9' {
+			break
+		}
+		status = status*10 + int(c-'0')
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("proxy: failed to connect %s via %s: %s", addr, d.Host, bytes.TrimRight(b, "\x00"))
 	}
 
 	closeConn = nil
