@@ -2,13 +2,13 @@ certs/*
 pki/*
 .env
 .goenv
-users.csv
 liner
 production*.yaml
 debug.yaml
 go.mod
 go.sum
 CHANGELOG.*
+*.csv
 *.log
 *.pem
 *.mmdb

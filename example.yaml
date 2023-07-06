@@ -70,7 +70,7 @@ https:
         {{else}}
           proxy_pass
         {{end}}
-      auth_table: users.csv
+      auth_table: authuser.csv
       upstream: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
       deny_domains_table: deny_domains.csv
@@ -122,7 +122,7 @@ http:
         {{else}}
           bypass_auth
         {{end}}
-      auth_table: users.csv
+      auth_table: authuser.csv
       upstream: |
         {{if hasPrefix "scholar.google.com" .Request.Host}}
           proxy1_example_org
@@ -148,7 +148,7 @@ socks:
         {{else}}
           reject
         {{end}}
-      auth_table: users.csv
+      auth_table: authuser.csv
       deny_domains:
         - facebook.com
         - nytimes.com

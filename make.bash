@@ -15,12 +15,12 @@ GOARCH=${GOARCH:-$(go env GOARCH)}
 CGO_ENABLED=${CGO_ENABLED:-$(go env CGO_ENABLED)}
 
 if [ "${GOOS}" == "windows" ]; then
-    SOURCES="README.md china.pac example.yaml liner-gui.exe"
+    SOURCES="README.md china.pac example.yaml"
     BUILDDIR=${BUILDROOT}/${GOOS}_${GOARCH}
     DISTFILE=${PROJECT}_${GOOS}_${GOARCH}-${REVSION}
     GOEXE=.exe
 elif [ "${GOOS}" == "darwin" ]; then
-    SOURCES="README.md china.pac example.yaml liner-gui.command"
+    SOURCES="README.md china.pac example.yaml"
     BUILDDIR=${BUILDROOT}/${GOOS}_${GOARCH}
     DISTFILE=${PROJECT}_${GOOS}_${GOARCH}-${REVSION}
 elif [ "${GOARCH:0:3}" == "arm" ]; then
