@@ -17,6 +17,29 @@ import (
 	"golang.org/x/sys/cpu"
 )
 
+type TLSVersion uint16
+
+var (
+	TLSVersion13 TLSVersion = tls.VersionTLS13
+	TLSVersion12 TLSVersion = tls.VersionTLS12
+	TLSVersion11 TLSVersion = tls.VersionTLS11
+	TLSVersion10 TLSVersion = tls.VersionTLS10
+)
+
+func (v TLSVersion) String() string {
+	switch v {
+	case TLSVersion13:
+		return "TLSv1.3"
+	case TLSVersion12:
+		return "TLSv1.2"
+	case TLSVersion11:
+		return "TLSv1.1"
+	case TLSVersion10:
+		return "TLSv1.0"
+	}
+	return ""
+}
+
 type TLSConfiguratorEntry struct {
 	ServerName     string
 	KeyFile        string

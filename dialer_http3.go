@@ -31,7 +31,7 @@ type HTTP3Dialer struct {
 
 func (d *HTTP3Dialer) init() {
 	if d.UserAgent == "" {
-		d.UserAgent = DefaultUserAgent
+		d.UserAgent = DefaultHTTPUserAgent
 	}
 
 	d.transport = &http3.RoundTripper{

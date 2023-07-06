@@ -31,7 +31,7 @@ type HTTP2Dialer struct {
 
 func (d *HTTP2Dialer) init() {
 	if d.UserAgent == "" {
-		d.UserAgent = DefaultUserAgent
+		d.UserAgent = DefaultHTTPUserAgent
 	}
 
 	d.transport = &http2.Transport{

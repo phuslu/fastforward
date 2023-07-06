@@ -151,7 +151,7 @@ func main() {
 		case "https", "doh":
 			resolver.Resolver.Dial = (&DoHDialer{
 				EndPoint:  config.Global.DnsServer,
-				UserAgent: DefaultUserAgent,
+				UserAgent: DefaultHTTPUserAgent,
 				Transport: &http2.Transport{
 					TLSClientConfig: &tls.Config{
 						ServerName:         u.Hostname(),
