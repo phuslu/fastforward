@@ -25,14 +25,17 @@ type HTTP2Dialer struct {
 	UserAgent string
 	Dialer    Dialer
 
-	once      sync.Once
+	mu        sync.Mutex
 	transport *http2.Transport
 }
 
 func (d *HTTP2Dialer) init() {
-	if d.UserAgent == "" {
-		d.UserAgent = DefaultHTTPUserAgent
+	if d.transport != nil {
+		return
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	d.transport = &http2.Transport{
 		DisableCompression: false,
@@ -61,10 +64,14 @@ func (d *HTTP2Dialer) init() {
 			return tlsConn, nil
 		},
 	}
+
+	if d.UserAgent == "" {
+		d.UserAgent = DefaultHTTPUserAgent
+	}
 }
 
 func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	d.once.Do(d.init)
+	d.init()
 
 	switch network {
 	case "tcp", "tcp6", "tcp4":

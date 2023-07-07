@@ -25,14 +25,17 @@ type HTTP3Dialer struct {
 	UserAgent string
 	Resolver  *Resolver
 
-	once      sync.Once
+	mu        sync.Mutex
 	transport *http3.RoundTripper
 }
 
 func (d *HTTP3Dialer) init() {
-	if d.UserAgent == "" {
-		d.UserAgent = DefaultHTTPUserAgent
+	if d.transport != nil {
+		return
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	d.transport = &http3.RoundTripper{
 		DisableCompression: false,
@@ -65,10 +68,14 @@ func (d *HTTP3Dialer) init() {
 			)
 		},
 	}
+
+	if d.UserAgent == "" {
+		d.UserAgent = DefaultHTTPUserAgent
+	}
 }
 
 func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	d.once.Do(d.init)
+	d.init()
 
 	pr, pw := io.Pipe()
 	req := &http.Request{

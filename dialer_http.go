@@ -27,22 +27,30 @@ type HTTPDialer struct {
 	TLSConfig *tls.Config
 	Dialer    Dialer
 
-	once sync.Once
+	mu sync.Mutex
 }
 
 func (d *HTTPDialer) init() {
-	if d.UserAgent == "" {
-		d.UserAgent = DefaultHTTPUserAgent
+	if d.Dialer != nil && d.UserAgent != "" {
+		return
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.Dialer == nil {
 		d.Dialer = &LocalDialer{}
+	}
+
+	if d.UserAgent == "" {
+		d.UserAgent = DefaultHTTPUserAgent
 	}
 }
 
 var CRLFCRLF = []byte{'\r', '\n', '\r', '\n'}
 
 func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	d.once.Do(d.init)
+	d.init()
 
 	switch network {
 	case "tcp", "tcp6", "tcp4":
