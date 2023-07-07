@@ -10,7 +10,6 @@ var prelude = {
 	"www.msftncsi.com":0,
 	// direct domains
 	"alicdn.com":0,
-	"cdn-apple.com":0,
 	"google-analytics.com":0,
 	"gtimg.com":0,
 	"icloud-content.com":0,
