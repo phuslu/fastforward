@@ -52,7 +52,7 @@ var bbpool = sync.Pool{
 }
 
 func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+	ri := GetRequestInfo(req)
 
 	// if req.Method == http.MethodConnect {
 	// 	RejectRequest(rw, req)

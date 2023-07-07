@@ -92,7 +92,7 @@ func (h *HTTPForwardHandler) Load() error {
 }
 
 func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+	ri := GetRequestInfo(req)
 
 	var err error
 	var host = req.Host

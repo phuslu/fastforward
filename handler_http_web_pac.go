@@ -24,7 +24,7 @@ func (h *HTTPWebPacHandler) Load() error {
 }
 
 func (h *HTTPWebPacHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+	ri := GetRequestInfo(req)
 
 	if req.TLS != nil && !(req.ProtoAtLeast(2, 0) && ri.TLSVersion == tls.VersionTLS13 && (IsTLSGreaseCode(ri.ClientHelloInfo.CipherSuites[0]))) && req.ProtoMajor < 3 {
 		http.NotFound(rw, req)

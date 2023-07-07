@@ -51,7 +51,7 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 }
 
 func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+	ri := GetRequestInfo(req)
 
 	log.Debug().Context(ri.LogContext).Interface("headers", req.Header).Msg("web index request")
 

@@ -48,6 +48,10 @@ var riPool = sync.Pool{
 	},
 }
 
+func GetRequestInfo(req *http.Request) *RequestInfo {
+	return req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+}
+
 //go:embed mime.types
 var mimeTypes []byte
 

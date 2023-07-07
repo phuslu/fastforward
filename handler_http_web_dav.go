@@ -31,7 +31,7 @@ func (h *HTTPWebDavHandler) Load() (err error) {
 }
 
 func (h *HTTPWebDavHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+	ri := GetRequestInfo(req)
 
 	log.Info().Context(ri.LogContext).Interface("headers", req.Header).Msg("web dav request")
 
