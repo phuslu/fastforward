@@ -38,6 +38,10 @@ func (d *HTTP2Dialer) init() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	if d.transport != nil {
+		return
+	}
+
 	d.transport = &http2.Transport{
 		DisableCompression: false,
 		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
@@ -126,7 +130,7 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		}
 	}
 
-	conn := &http2Conn{
+	conn := &http2Stream{
 		r:      resp.Body,
 		w:      pw,
 		cc:     (*transportResponseBody)(unsafe.Pointer(&resp.Body)).cs.cc,
@@ -136,7 +140,7 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 	return conn, nil
 }
 
-type http2Conn struct {
+type http2Stream struct {
 	r  io.ReadCloser
 	w  io.Writer
 	cc *http2.ClientConn
@@ -144,15 +148,15 @@ type http2Conn struct {
 	closed chan struct{}
 }
 
-func (c *http2Conn) Read(b []byte) (n int, err error) {
+func (c *http2Stream) Read(b []byte) (n int, err error) {
 	return c.r.Read(b)
 }
 
-func (c *http2Conn) Write(b []byte) (n int, err error) {
+func (c *http2Stream) Write(b []byte) (n int, err error) {
 	return c.w.Write(b)
 }
 
-func (c *http2Conn) Close() (err error) {
+func (c *http2Stream) Close() (err error) {
 	select {
 	case <-c.closed:
 		return
@@ -174,22 +178,22 @@ type http2ClientConn struct {
 	tconn net.Conn
 }
 
-func (c *http2Conn) LocalAddr() net.Addr {
+func (c *http2Stream) LocalAddr() net.Addr {
 	return (*http2ClientConn)(unsafe.Pointer(c.cc)).tconn.LocalAddr()
 }
 
-func (c *http2Conn) RemoteAddr() net.Addr {
+func (c *http2Stream) RemoteAddr() net.Addr {
 	return (*http2ClientConn)(unsafe.Pointer(c.cc)).tconn.RemoteAddr()
 }
 
-func (c *http2Conn) SetDeadline(t time.Time) error {
+func (c *http2Stream) SetDeadline(t time.Time) error {
 	return &net.OpError{Op: "set", Net: "http2", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }
 
-func (c *http2Conn) SetReadDeadline(t time.Time) error {
+func (c *http2Stream) SetReadDeadline(t time.Time) error {
 	return &net.OpError{Op: "set", Net: "http2", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }
 
-func (c *http2Conn) SetWriteDeadline(t time.Time) error {
+func (c *http2Stream) SetWriteDeadline(t time.Time) error {
 	return &net.OpError{Op: "set", Net: "http2", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }

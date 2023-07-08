@@ -35,6 +35,10 @@ func (d *HTTP3Dialer) init() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	if d.transport != nil {
+		return
+	}
+
 	d.transport = &http3.RoundTripper{
 		DisableCompression: false,
 		EnableDatagrams:    false,
@@ -123,17 +127,17 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, errors.New("proxy: read from " + d.Host + " error: resp body not implemented http3.HTTPStreamer")
 	}
 
-	return &http3Conn{streamer.HTTPStream()}, nil
+	return &http3Stream{streamer.HTTPStream()}, nil
 }
 
-type http3Conn struct {
+type http3Stream struct {
 	quic.Stream
 }
 
-func (c *http3Conn) LocalAddr() net.Addr {
+func (c *http3Stream) LocalAddr() net.Addr {
 	return c.LocalAddr()
 }
 
-func (c *http3Conn) RemoteAddr() net.Addr {
+func (c *http3Stream) RemoteAddr() net.Addr {
 	return c.RemoteAddr()
 }
