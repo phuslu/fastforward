@@ -59,7 +59,15 @@ func (d *Socks4Dialer) DialContext(ctx context.Context, network, addr string) (n
 
 	buf := make([]byte, 0, 1024)
 
-	buf = append(buf, VersionSocks4, SocksCommandConnect)
+	switch network {
+	case "tcp", "tcp6", "tcp4":
+		buf = append(buf, VersionSocks4, SocksCommandConnectTCP)
+	case "udp", "udp6", "udp4":
+		buf = append(buf, VersionSocks4, SocksCommandConnectUDP)
+	default:
+		return nil, errors.New("proxy: no support for SOCKS5 proxy connections of type " + network)
+	}
+
 	buf = append(buf, byte(port>>8), byte(port))
 	if d.Socks4A {
 		buf = append(buf, 0, 0, 0, 1, 0)

@@ -21,12 +21,6 @@ type Socks5Dialer struct {
 }
 
 func (d *Socks5Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	switch network {
-	case "tcp", "tcp6", "tcp4":
-	default:
-		return nil, errors.New("proxy: no support for SOCKS5 proxy connections of type " + network)
-	}
-
 	conn, err := d.Dialer.DialContext(ctx, network, net.JoinHostPort(d.Host, d.Port))
 	if err != nil {
 		return nil, err
@@ -104,7 +98,14 @@ func (d *Socks5Dialer) DialContext(ctx context.Context, network, addr string) (n
 	}
 
 	buf = buf[:0]
-	buf = append(buf, VersionSocks5, SocksCommandConnect, 0 /* reserved */)
+	switch network {
+	case "tcp", "tcp6", "tcp4":
+		buf = append(buf, VersionSocks5, SocksCommandConnectTCP, 0 /* reserved */)
+	case "udp", "udp6", "udp4":
+		buf = append(buf, VersionSocks5, SocksCommandConnectUDP, 0 /* reserved */)
+	default:
+		return nil, errors.New("proxy: no support for SOCKS5 proxy connections of type " + network)
+	}
 
 	if ip := net.ParseIP(host); ip != nil {
 		if ip4 := ip.To4(); ip4 != nil {
