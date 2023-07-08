@@ -21,6 +21,7 @@ type SocksRequest struct {
 	RemoteIP    string
 	ServerAddr  string
 	Version     SocksVersion
+	ConnectType SocksVersion
 	SupportAuth bool
 	Username    string
 	Password    string
@@ -136,6 +137,8 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		return
 	}
 
+	req.ConnectType = SocksVersion(b[1])
+
 	var addressType = Socks5AddressType(b[3])
 	switch addressType {
 	case Socks5IPv4Address:
@@ -204,9 +207,15 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		}
 	}
 
-	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_upsteam", upstream).Msg("forward socks request")
+	network := "tcp"
+	switch req.ConnectType {
+	case SocksCommandConnectUDP:
+		network = "udp"
+	}
 
-	rconn, err := dail(context.Background(), "tcp", net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
+	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_upsteam", upstream).Msg("forward socks request")
+
+	rconn, err := dail(context.Background(), network, net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
 	if err != nil {
 		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("connect remote host failed")
 		WriteSocks5Status(conn, Socks5StatusNetworkUnreachable)
