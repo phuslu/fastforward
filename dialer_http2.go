@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"sync"
 	"time"
+	"unsafe"
 
 	"golang.org/x/net/http2"
 )
@@ -118,9 +119,17 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + errmsg)
 	}
 
+	// see https://github.com/golang/net/blob/d8f9c0143e94e55c0e871e302e81cf982732df30/http2/transport.go#L2526
+	type transportResponseBody struct {
+		cs *struct {
+			cc *http2.ClientConn
+		}
+	}
+
 	conn := &http2Conn{
 		r:      resp.Body,
 		w:      pw,
+		cc:     (*transportResponseBody)(unsafe.Pointer(&resp.Body)).cs.cc,
 		closed: make(chan struct{}),
 	}
 
@@ -128,11 +137,9 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 }
 
 type http2Conn struct {
-	r io.ReadCloser
-	w io.Writer
-
-	remoteAddr net.Addr
-	localAddr  net.Addr
+	r  io.ReadCloser
+	w  io.Writer
+	cc *http2.ClientConn
 
 	closed chan struct{}
 }
@@ -161,12 +168,18 @@ func (c *http2Conn) Close() (err error) {
 	return
 }
 
+// see https://github.com/golang/net/blob/d8f9c0143e94e55c0e871e302e81cf982732df30/http2/transport.go#L291
+type http2ClientConn struct {
+	t     *http2.Transport
+	tconn net.Conn
+}
+
 func (c *http2Conn) LocalAddr() net.Addr {
-	return c.localAddr
+	return (*http2ClientConn)(unsafe.Pointer(c.cc)).tconn.LocalAddr()
 }
 
 func (c *http2Conn) RemoteAddr() net.Addr {
-	return c.remoteAddr
+	return (*http2ClientConn)(unsafe.Pointer(c.cc)).tconn.RemoteAddr()
 }
 
 func (c *http2Conn) SetDeadline(t time.Time) error {
