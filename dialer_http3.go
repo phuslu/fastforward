@@ -121,17 +121,23 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, errors.New("proxy: read from " + d.Host + " error: resp body not implemented http3.HTTPStreamer")
 	}
 
-	return &http3Stream{streamer.HTTPStream()}, nil
+	return &http3Stream{
+		Stream: streamer.HTTPStream(),
+		local:  &net.UDPAddr{},
+		remote: &net.UDPAddr{},
+	}, nil
 }
 
 type http3Stream struct {
 	quic.Stream
+	local  net.Addr
+	remote net.Addr
 }
 
 func (c *http3Stream) LocalAddr() net.Addr {
-	return &net.UDPAddr{}
+	return c.local
 }
 
 func (c *http3Stream) RemoteAddr() net.Addr {
-	return &net.UDPAddr{}
+	return c.remote
 }
