@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -110,16 +111,9 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		var errmsg string
-		if resp.Body != nil {
-			data := make([]byte, 1024)
-			if n, err := resp.Body.Read(data); err != nil {
-				errmsg = err.Error()
-			} else {
-				errmsg = string(data[:n])
-			}
-		}
-		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + errmsg)
+		data, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + string(data))
 	}
 
 	streamer, ok := resp.Body.(http3.HTTPStreamer)

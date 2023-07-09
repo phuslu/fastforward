@@ -111,16 +111,9 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		var errmsg string
-		if resp.Body != nil {
-			data := make([]byte, 1024)
-			if n, err := resp.Body.Read(data); err != nil {
-				errmsg = err.Error()
-			} else {
-				errmsg = string(data[:n])
-			}
-		}
-		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + errmsg)
+		data, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + string(data))
 	}
 
 	// see https://github.com/golang/net/blob/d8f9c0143e94e55c0e871e302e81cf982732df30/http2/transport.go#L2526
