@@ -71,7 +71,7 @@ func (d *HTTP2Dialer) init() {
 	}
 
 	if d.UserAgent == "" {
-		d.UserAgent = DefaultHTTPUserAgent
+		d.UserAgent = DefaultUserAgent
 	}
 }
 

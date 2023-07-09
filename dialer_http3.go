@@ -78,7 +78,7 @@ func (d *HTTP3Dialer) init() {
 	}
 
 	if d.UserAgent == "" {
-		d.UserAgent = DefaultHTTPUserAgent
+		d.UserAgent = DefaultUserAgent
 	}
 }
 

@@ -30,6 +30,8 @@ import (
 var (
 	version = "1984"
 	timeNow = time.Now
+
+	DefaultUserAgent = "Liner/" + version
 )
 
 func main() {
@@ -151,7 +153,7 @@ func main() {
 		case "https", "doh":
 			resolver.Resolver.Dial = (&DoHDialer{
 				EndPoint:  config.Global.DnsServer,
-				UserAgent: DefaultHTTPUserAgent,
+				UserAgent: DefaultUserAgent,
 				Transport: &http2.Transport{
 					TLSClientConfig: &tls.Config{
 						ServerName:         u.Hostname(),

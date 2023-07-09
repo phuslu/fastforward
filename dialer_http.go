@@ -12,8 +12,6 @@ import (
 	"sync"
 )
 
-var DefaultHTTPUserAgent = "Liner/" + version
-
 var _ Dialer = (*HTTPDialer)(nil)
 
 type HTTPDialer struct {
@@ -41,7 +39,7 @@ func (d *HTTPDialer) init() {
 	}
 
 	if d.UserAgent == "" {
-		d.UserAgent = DefaultHTTPUserAgent
+		d.UserAgent = DefaultUserAgent
 	}
 }
 
