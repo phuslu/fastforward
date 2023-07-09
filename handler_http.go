@@ -20,7 +20,7 @@ type HTTPHandler interface {
 	Load() error
 }
 
-type HTTPMainHandler struct {
+type HTTPServerHandler struct {
 	Config          HTTPConfig
 	TLSConfigurator *TLSConfigurator
 	ServerNames     StringSet
@@ -55,7 +55,7 @@ func GetRequestInfo(req *http.Request) *RequestInfo {
 //go:embed mime.types
 var mimeTypes []byte
 
-func (h *HTTPMainHandler) Load() error {
+func (h *HTTPServerHandler) Load() error {
 	scanner := bufio.NewScanner(bytes.NewReader(mimeTypes))
 	for scanner.Scan() {
 		parts := strings.Fields(scanner.Text())
@@ -72,7 +72,7 @@ func (h *HTTPMainHandler) Load() error {
 	return nil
 }
 
-func (h *HTTPMainHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := riPool.Get().(*RequestInfo)
 	defer riPool.Put(ri)
 

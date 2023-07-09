@@ -321,7 +321,7 @@ func main() {
 	tlsConfigurator := &TLSConfigurator{}
 	h2handlers := map[string]map[string]HTTPHandler{}
 	for _, server := range config.Https {
-		handler := &HTTPMainHandler{
+		handler := &HTTPServerHandler{
 			ForwardHandler: &HTTPForwardHandler{
 				Config:         server,
 				ForwardLogger:  forwardLogger,
@@ -448,7 +448,7 @@ func main() {
 		if ip, err := GetPreferedLocalIP(); err == nil {
 			httpConfig.ServerName = append(httpConfig.ServerName, ip.String())
 		}
-		handler := &HTTPMainHandler{
+		handler := &HTTPServerHandler{
 			ForwardHandler: &HTTPForwardHandler{
 				Config:         httpConfig,
 				ForwardLogger:  forwardLogger,
