@@ -31,9 +31,11 @@ type LocalDialer struct {
 	DenyLocalLAN  bool
 	Concurrency   int
 
-	Timeout      time.Duration
-	TCPKeepAlive time.Duration
-	TLSConfig    *tls.Config
+	Timeout       time.Duration
+	TCPKeepAlive  time.Duration
+	ReadBuffSize  int
+	WriteBuffSize int
+	TLSConfig     *tls.Config
 }
 
 func (d *LocalDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
@@ -186,6 +188,18 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 				if tc, ok := conn.(*net.TCPConn); ok {
 					tc.SetKeepAlive(true)
 					tc.SetKeepAlivePeriod(d.TCPKeepAlive)
+				}
+			}
+
+			if d.ReadBuffSize > 0 {
+				if tc, ok := conn.(*net.TCPConn); ok {
+					tc.SetReadBuffer(d.ReadBuffSize)
+				}
+			}
+
+			if d.WriteBuffSize > 0 {
+				if tc, ok := conn.(*net.TCPConn); ok {
+					tc.SetReadBuffer(d.WriteBuffSize)
 				}
 			}
 

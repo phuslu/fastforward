@@ -128,7 +128,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		}
 		status = status*10 + int(c-'0')
 	}
-	if status != http.StatusOK {
+	if status != http.StatusOK && status != http.StatusSwitchingProtocols {
 		return nil, fmt.Errorf("proxy: failed to connect %s via %s: %s", addr, d.Host, bytes.TrimRight(b, "\x00"))
 	}
 
