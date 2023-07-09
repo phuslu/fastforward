@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-var DefaultHTTPUserAgent = "Mozilla/5.0 Liner/" + version[1:]
+var DefaultHTTPUserAgent = "Liner/" + version
 
 var _ Dialer = (*HTTPDialer)(nil)
 

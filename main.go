@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	version = "r1984"
+	version = "1984"
 	timeNow = time.Now
 )
 

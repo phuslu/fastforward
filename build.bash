@@ -49,7 +49,7 @@ EOF
 function packaging_macos() {
 	pushd build
 
-	local revison=r$(git rev-list --count HEAD)
+	local revison=$(git rev-list --count HEAD)
 
 	mkdir -p liner
 	tar xvpf liner_darwin_amd64-${revison}.tar.xz -C liner
@@ -82,7 +82,7 @@ EOF
 function packaging_windows() {
 	pushd build
 
-	local revison=r$(git rev-list --count HEAD)
+	local revison=$(git rev-list --count HEAD)
 	for arch in amd64; do
 		mkdir -p liner
 		tar xvpf liner_windows_${arch}-${revison}.tar.xz -C liner

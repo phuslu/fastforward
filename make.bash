@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 PROJECT=liner
 BUILDROOT=build
 
-REVSION=r$(git rev-list --count HEAD)
+REVSION=$(git rev-list --count HEAD)
 LDFLAGS="-s -w -X main.version=${REVSION}"
 SOURCES="README.md china.pac example.yaml liner.sh"
 
