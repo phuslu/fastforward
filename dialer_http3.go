@@ -135,9 +135,9 @@ type http3Stream struct {
 }
 
 func (c *http3Stream) LocalAddr() net.Addr {
-	return c.LocalAddr()
+	return &net.UDPAddr{}
 }
 
 func (c *http3Stream) RemoteAddr() net.Addr {
-	return c.RemoteAddr()
+	return &net.UDPAddr{}
 }
