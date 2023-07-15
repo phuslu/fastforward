@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -103,7 +104,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	if ri.TLSVersion != 0 {
 		req.Header.Set("x-forwarded-proto", "https")
-		req.Header.Set("x-tls-version", ri.TLSVersion.String())
+		req.Header.Set("x-ja3-fingerprint", getTlsFingerprint(ri.TLSVersion, ri.ClientHelloInfo))
 	}
 	h.setHeaders(req)
 
@@ -241,4 +242,67 @@ func (h *HTTPWebProxyHandler) setHeaders(req *http.Request) {
 			req.Header.Set(key, value)
 		}
 	}
+}
+
+func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo) string {
+	var sb strings.Builder
+
+	// version
+	fmt.Fprintf(&sb, "%d,", version)
+
+	// ciphers
+	i := 0
+	for _, c := range info.CipherSuites {
+		if IsTLSGreaseCode(c) {
+			continue
+		}
+		if i > 0 {
+			sb.WriteByte('-')
+		}
+		fmt.Fprintf(&sb, "%d", c)
+		i++
+	}
+	sb.WriteByte(',')
+
+	// extensions, see
+	//   https://github.com/golang/go/issues/32936
+	//   https://github.com/phuslu/go/commits/master
+	if v := info.Context().Value("tls-clienthello-extensions"); v != nil {
+		i = 0
+		for _, c := range v.([]uint16) {
+			if IsTLSGreaseCode(c) || c == 0x0015 {
+				continue
+			}
+			if i > 0 {
+				sb.WriteByte('-')
+			}
+			fmt.Fprintf(&sb, "%d", c)
+			i++
+		}
+	}
+	sb.WriteByte(',')
+
+	// groups
+	i = 0
+	for _, c := range info.SupportedCurves {
+		if IsTLSGreaseCode(uint16(c)) {
+			continue
+		}
+		if i > 0 {
+			sb.WriteByte('-')
+		}
+		fmt.Fprintf(&sb, "%d", c)
+		i++
+	}
+	sb.WriteByte(',')
+
+	// formats
+	for i, c := range info.SupportedPoints {
+		if i > 0 {
+			sb.WriteByte('-')
+		}
+		fmt.Fprintf(&sb, "%d", c)
+	}
+
+	return sb.String()
 }
