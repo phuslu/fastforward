@@ -419,12 +419,13 @@ func main() {
 			MaxReadFrameSize:             1 << 20, // 256K read frame, https://github.com/golang/go/issues/47840
 		})
 
-		go server.Serve(tls.NewListener(TCPListener{
+		go server.Serve(TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
 			KeepAlivePeriod: 3 * time.Minute,
 			// ReadBufferSize:  1 << 20,
 			// WriteBufferSize: 1 << 20,
-		}, server.TLSConfig))
+			TLSConfig: server.TLSConfig,
+		})
 
 		servers = append(servers, server)
 

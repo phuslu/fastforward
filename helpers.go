@@ -250,6 +250,7 @@ type TCPListener struct {
 	KeepAlivePeriod time.Duration
 	ReadBufferSize  int
 	WriteBufferSize int
+	TLSConfig       *tls.Config
 }
 
 func (ln TCPListener) Accept() (c net.Conn, err error) {
@@ -267,7 +268,14 @@ func (ln TCPListener) Accept() (c net.Conn, err error) {
 	if ln.WriteBufferSize > 0 {
 		tc.SetWriteBuffer(ln.WriteBufferSize)
 	}
-	return tc, nil
+
+	c = tc
+
+	if ln.TLSConfig != nil {
+		c = tls.Server(c, ln.TLSConfig)
+	}
+
+	return
 }
 
 type ConnWithData struct {
