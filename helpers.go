@@ -26,6 +26,7 @@ import (
 
 	"github.com/cloudflare/golibs/lrucache"
 	"github.com/tg123/go-htpasswd"
+	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/time/rate"
 )
@@ -285,14 +286,15 @@ func (ln TCPListener) Accept() (c net.Conn, err error) {
 
 type MirrorHeaderConn struct {
 	net.Conn
-	Header []byte
+	Header *bytebufferpool.ByteBuffer
 }
 
 func (c *MirrorHeaderConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	if c.Header == nil && n > 0 && err == nil {
-		c.Header = make([]byte, n)
-		copy(c.Header, b[:n])
+		c.Header = bytebufferpool.Get()
+		c.Header.Reset()
+		c.Header.Write(b[:n])
 	}
 
 	return

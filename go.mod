@@ -11,6 +11,7 @@ require (
 	github.com/quic-go/quic-go v0.36.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.2.1
+	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.10.0
 	golang.org/x/net v0.11.0
 	golang.org/x/sync v0.3.0
