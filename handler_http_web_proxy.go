@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"text/template"
 
 	"github.com/phuslu/log"
@@ -45,13 +44,6 @@ func (h *HTTPWebProxyHandler) Load() error {
 	}
 
 	return nil
-}
-
-var bbpool = sync.Pool{
-	New: func() interface{} {
-		buf := make([]byte, 0, 128*1024)
-		return &buf
-	},
 }
 
 func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -198,13 +190,6 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			w = lconn
 			r = lconn
 		}
-
-		// b1, b2 := bbpool.Get().(*[]byte), bbpool.Get().(*[]byte)
-		// defer bbpool.Put(b1)
-		// defer bbpool.Put(b2)
-
-		// go io.CopyBuffer(w, conn, *b1)
-		// io.CopyBuffer(conn, r, *b2)
 
 		go io.Copy(w, conn)
 		io.Copy(conn, r)
