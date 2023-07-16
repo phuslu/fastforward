@@ -424,7 +424,8 @@ func main() {
 			KeepAlivePeriod: 3 * time.Minute,
 			// ReadBufferSize:  1 << 20,
 			// WriteBufferSize: 1 << 20,
-			TLSConfig: server.TLSConfig,
+			MirrorHeader: true,
+			TLSConfig:    server.TLSConfig,
 		})
 
 		servers = append(servers, server)

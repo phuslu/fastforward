@@ -251,6 +251,7 @@ type TCPListener struct {
 	ReadBufferSize  int
 	WriteBufferSize int
 	TLSConfig       *tls.Config
+	MirrorHeader    bool
 }
 
 func (ln TCPListener) Accept() (c net.Conn, err error) {
@@ -271,8 +272,27 @@ func (ln TCPListener) Accept() (c net.Conn, err error) {
 
 	c = tc
 
+	if ln.MirrorHeader {
+		c = &MirrorHeaderConn{Conn: c, Header: nil}
+	}
+
 	if ln.TLSConfig != nil {
 		c = tls.Server(c, ln.TLSConfig)
+	}
+
+	return
+}
+
+type MirrorHeaderConn struct {
+	net.Conn
+	Header []byte
+}
+
+func (c *MirrorHeaderConn) Read(b []byte) (n int, err error) {
+	n, err = c.Conn.Read(b)
+	if c.Header == nil && n > 0 && err == nil {
+		c.Header = make([]byte, n)
+		copy(c.Header, b[:n])
 	}
 
 	return
