@@ -582,7 +582,7 @@ func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
 	return nil
 }
 
-func GetOCSPStaple(cert *x509.Certificate) ([]byte, error) {
+func GetOCSPStaple(ctx context.Context, transport http.RoundTripper, cert *x509.Certificate) ([]byte, error) {
 	if cert == nil {
 		return nil, errors.New("Nil x509 certificate")
 	}
@@ -595,7 +595,8 @@ func GetOCSPStaple(cert *x509.Certificate) ([]byte, error) {
 		return nil, errors.New("no URL to issuing certificate")
 	}
 
-	resp, err := http.Get(cert.IssuingCertificateURL[0])
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, cert.IssuingCertificateURL[0], nil)
+	resp, err := transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("getting issuer certificate: %w", err)
 	}

@@ -222,7 +222,11 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 	if n := len(cert.Certificate); cacert == nil && n >= 2 {
 		cacert, _ = x509.ParseCertificate(cert.Certificate[n-2])
 	}
-	cert.OCSPStaple, err = GetOCSPStaple(cacert)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cert.OCSPStaple, err = GetOCSPStaple(ctx, http.DefaultTransport, cacert)
 	if err != nil {
 		// log error
 	}
