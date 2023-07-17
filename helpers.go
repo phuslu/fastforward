@@ -82,15 +82,6 @@ func NewLRUCache(capacity uint) lrucache.Cache {
 	}
 }
 
-type ByteSliceWriter struct {
-	b []byte
-}
-
-func (w *ByteSliceWriter) Write(p []byte) (int, error) {
-	w.b = append(w.b, p...)
-	return len(p), nil
-}
-
 func AppendLowerBytes(dst []byte, src []byte) []byte {
 	for _, c := range src {
 		if 'A' <= c && c <= 'Z' {
@@ -99,12 +90,6 @@ func AppendLowerBytes(dst []byte, src []byte) []byte {
 		dst = append(dst, c)
 	}
 	return dst
-}
-
-func AppendSprintf(dst []byte, format string, a ...interface{}) []byte {
-	w := &ByteSliceWriter{dst}
-	fmt.Fprintf(w, format, a...)
-	return w.b
 }
 
 func AppendTemplate(dst []byte, template string, startTag, endTag byte, m map[string]interface{}, stripSpace bool) []byte {
@@ -151,7 +136,7 @@ func AppendTemplate(dst []byte, template string, startTag, endTag byte, m map[st
 			case float64:
 				dst = strconv.AppendFloat(dst, v.(float64), 'f', -1, 64)
 			default:
-				dst = append(dst, fmt.Sprint(v)...)
+				dst = fmt.Append(dst, v)
 			}
 			j = i + 1
 		case '\r', '\n':
