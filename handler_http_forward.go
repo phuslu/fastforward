@@ -278,7 +278,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		defer conn.Close()
 
 		go io.Copy(conn, r)
-		transmitBytes, err = io.Copy(w, NewLimiterReader(conn, ai.SpeedLimit))
+		transmitBytes, err = io.Copy(w, NewRateLimitReader(conn, ai.SpeedLimit))
 		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
@@ -344,7 +344,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		rw.WriteHeader(resp.StatusCode)
 		defer resp.Body.Close()
 
-		transmitBytes, err = io.Copy(rw, NewLimiterReader(resp.Body, ai.SpeedLimit))
+		transmitBytes, err = io.Copy(rw, NewRateLimitReader(resp.Body, ai.SpeedLimit))
 		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 

@@ -229,7 +229,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	WriteSocks5Status(conn, Socks5StatusRequestGranted)
 
 	go io.Copy(rconn, conn)
-	_, err = io.Copy(conn, NewLimiterReader(rconn, ai.SpeedLimit))
+	_, err = io.Copy(conn, NewRateLimitReader(rconn, ai.SpeedLimit))
 
 	if h.Config.Forward.Log {
 		var country, region, city string

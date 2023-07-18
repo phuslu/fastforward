@@ -27,8 +27,8 @@ import (
 	"github.com/cloudflare/golibs/lrucache"
 	"github.com/tg123/go-htpasswd"
 	"github.com/valyala/bytebufferpool"
+	"go.uber.org/ratelimit"
 	"golang.org/x/crypto/ocsp"
-	"golang.org/x/time/rate"
 )
 
 func b2s(b []byte) string {
@@ -503,27 +503,27 @@ func IsReservedIP(ip net.IP) bool {
 	return false
 }
 
-type LimiterReader struct {
+type RateLimitReader struct {
 	r       io.Reader
-	limiter *rate.Limiter
+	limiter ratelimit.Limiter
 }
 
-func (r *LimiterReader) Read(buf []byte) (int, error) {
+func (r *RateLimitReader) Read(buf []byte) (int, error) {
 	n, err := r.r.Read(buf)
 	if err != nil || n <= 0 {
 		return n, err
 	}
 	if r.limiter != nil {
-		r.limiter.Wait(context.Background())
+		r.limiter.Take()
 	}
 	return n, err
 }
 
-func NewLimiterReader(r io.Reader, limit int64) io.Reader {
-	if limit > 0 {
-		return &LimiterReader{
+func NewRateLimitReader(r io.Reader, rate int64) io.Reader {
+	if rate > 0 {
+		return &RateLimitReader{
 			r:       r,
-			limiter: rate.NewLimiter(rate.Limit(limit), int(limit/10)),
+			limiter: ratelimit.New(int(rate)),
 		}
 	}
 	return r

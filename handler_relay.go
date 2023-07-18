@@ -54,7 +54,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 	defer rconn.Close()
 
 	go io.Copy(rconn, conn)
-	_, err = io.Copy(conn, NewLimiterReader(rconn, h.Config.SpeedLimit))
+	_, err = io.Copy(conn, NewRateLimitReader(rconn, h.Config.SpeedLimit))
 
 	if h.Config.Log {
 		var country, region, city string
