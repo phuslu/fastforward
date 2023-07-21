@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"crypto/tls"
 	_ "embed"
 	"mime"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -53,20 +52,11 @@ func GetRequestInfo(req *http.Request) *RequestInfo {
 }
 
 //go:embed mime.types
-var mimeTypes []byte
+var mimeTypes string
 
 func (h *HTTPServerHandler) Load() error {
-	scanner := bufio.NewScanner(bytes.NewReader(mimeTypes))
-	for scanner.Scan() {
-		parts := strings.Fields(scanner.Text())
-		if len(parts) != 2 {
-			continue
-		}
-		mime.AddExtensionType("."+parts[1], parts[0])
-	}
-
-	for key, value := range h.Config.Mimes {
-		mime.AddExtensionType(strings.ToLower("."+strings.Trim(key, ".")), value)
+	for _, m := range regexp.MustCompile(`(?m)(\S+)\s+(\S+)`).FindAllStringSubmatch(mimeTypes, -1) {
+		mime.AddExtensionType(strings.ToLower("."+m[2]), m[1])
 	}
 
 	return nil

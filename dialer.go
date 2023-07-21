@@ -15,14 +15,6 @@ type Dialer interface {
 
 var _ Dialer = (*LocalDialer)(nil)
 
-var PreferIPv6ContextKey = struct {
-	name string
-}{"prefer-ipv6"}
-
-var BindInterfaceContextKey = struct {
-	name string
-}{"bind-interface"}
-
 type LocalDialer struct {
 	Resolver *Resolver
 
