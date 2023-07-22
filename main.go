@@ -135,20 +135,28 @@ func main() {
 			if _, _, err := net.SplitHostPort(u.Host); err != nil {
 				addr = net.JoinHostPort(addr, "53")
 			}
+			dnsDialer := &net.Dialer{
+				Timeout: 2 * time.Second,
+			}
 			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, u.Scheme, addr)
+				return dnsDialer.DialContext(ctx, u.Scheme, addr)
 			}
 		case "tls", "dot":
 			var addr = u.Host
 			if _, _, err := net.SplitHostPort(u.Host); err != nil {
 				addr = net.JoinHostPort(addr, "853")
 			}
-			tlsConfig := &tls.Config{
-				ServerName:         u.Hostname(),
-				ClientSessionCache: tls.NewLRUClientSessionCache(128),
+			tlsDialer := &tls.Dialer{
+				NetDialer: &net.Dialer{
+					Timeout: 2 * time.Second,
+				},
+				Config: &tls.Config{
+					ServerName:         u.Hostname(),
+					ClientSessionCache: tls.NewLRUClientSessionCache(128),
+				},
 			}
 			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return tls.Dial("tcp", addr, tlsConfig)
+				return tlsDialer.DialContext(ctx, "tcp", addr)
 			}
 		case "https", "doh":
 			resolver.Resolver.Dial = (&DoHDialer{
