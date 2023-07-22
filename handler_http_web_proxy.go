@@ -252,8 +252,8 @@ func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo) string {
 	}
 	sb.WriteByte(',')
 
-	if c, ok := info.Conn.(*MirrorHeaderConn); ok && c != nil && c.Header != nil && len(c.Header.B) > 0 {
-		if exts, err := getTlsExtensions(c.Header.B); err == nil {
+	if header := GetMirrorHeader(info.Conn); header != nil {
+		if exts, err := getTlsExtensions(header.B); err == nil {
 			i = 0
 			for _, c := range exts {
 				if IsTLSGreaseCode(c) || c == 0x0015 {

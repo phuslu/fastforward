@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/cloudflare/golibs/lrucache"
 	"github.com/valyala/bytebufferpool"
@@ -263,11 +262,8 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 func (m *TLSConfigurator) ConnState(c net.Conn, cs http.ConnState) {
 	switch cs {
 	case http.StateHijacked, http.StateClosed:
-		if c1, ok := c.(*tls.Conn); ok && c1 != nil {
-			c2 := (*struct{ conn net.Conn })(unsafe.Pointer(c1)).conn
-			if c3, ok := c2.(*MirrorHeaderConn); ok && c3.Header != nil {
-				bytebufferpool.Put(c3.Header)
-			}
+		if header := GetMirrorHeader(c); header != nil {
+			bytebufferpool.Put(header)
 		}
 		m.ClientHelloCache.Delete(c.RemoteAddr().String())
 	}
