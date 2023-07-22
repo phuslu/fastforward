@@ -3,6 +3,7 @@ pki/*
 .env
 .goenv
 liner
+liner.service
 production*.yaml
 debug.yaml
 go.mod
