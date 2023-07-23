@@ -33,6 +33,7 @@ type RequestInfo struct {
 	ServerName      string
 	TLSVersion      TLSVersion
 	ClientHelloInfo *tls.ClientHelloInfo
+	ClientHelloRaw  []byte
 	TraceID         log.XID
 	LogContext      log.Context
 }
@@ -76,10 +77,13 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		ri.TLSVersion = 0
 	}
 
-	ri.ClientHelloInfo = nil
+	ri.ClientHelloInfo, ri.ClientHelloRaw = nil, nil
 	if h.TLSConfigurator != nil {
 		if v, ok := h.TLSConfigurator.ClientHelloCache.Load(req.RemoteAddr); ok {
 			ri.ClientHelloInfo = v.(*tls.ClientHelloInfo)
+			if header := GetMirrorHeader(ri.ClientHelloInfo.Conn); header != nil {
+				ri.ClientHelloRaw = header.B
+			}
 		}
 	}
 

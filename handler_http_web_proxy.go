@@ -99,7 +99,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	if ri.TLSVersion != 0 {
 		req.Header.Set("x-forwarded-proto", "https")
 		req.Header.Set("x-http-proto", req.Proto)
-		req.Header.Set("x-ja3-fingerprint", getTlsFingerprint(ri.TLSVersion, ri.ClientHelloInfo))
+		req.Header.Set("x-ja3-fingerprint", getTlsFingerprint(ri.TLSVersion, ri.ClientHelloInfo, ri.ClientHelloRaw))
 	}
 	h.setHeaders(req)
 
@@ -232,7 +232,7 @@ func (h *HTTPWebProxyHandler) setHeaders(req *http.Request) {
 	}
 }
 
-func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo) string {
+func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo, raw []byte) string {
 	var sb strings.Builder
 
 	// version
@@ -252,19 +252,17 @@ func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo) string {
 	}
 	sb.WriteByte(',')
 
-	if header := GetMirrorHeader(info.Conn); header != nil {
-		if exts, err := getTlsExtensions(header.B); err == nil {
-			i = 0
-			for _, c := range exts {
-				if IsTLSGreaseCode(c) || c == 0x0015 {
-					continue
-				}
-				if i > 0 {
-					sb.WriteByte('-')
-				}
-				fmt.Fprintf(&sb, "%d", c)
-				i++
+	if exts, err := getTlsExtensions(raw); err == nil {
+		i = 0
+		for _, c := range exts {
+			if IsTLSGreaseCode(c) || c == 0x0015 {
+				continue
 			}
+			if i > 0 {
+				sb.WriteByte('-')
+			}
+			fmt.Fprintf(&sb, "%d", c)
+			i++
 		}
 	}
 	sb.WriteByte(',')
@@ -296,6 +294,10 @@ func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo) string {
 
 // from https://github.com/Jigsaw-Code/getsni
 func getTlsExtensions(clienthello []byte) ([]uint16, error) {
+	if len(clienthello) == 0 {
+		return nil, errors.New("Bad TLSClientHello")
+	}
+
 	plaintext := cryptobyte.String(clienthello)
 
 	var s cryptobyte.String
