@@ -192,6 +192,12 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		go io.Copy(w, conn)
 		io.Copy(conn, r)
 	} else {
+		if location := resp.Header.Get("location"); location != "" {
+			prefix := "http://" + req.Host + "/"
+			if strings.HasPrefix(location, prefix) && ri.TLSVersion != 0 {
+				resp.Header.Set("location", location[len(prefix)-1:])
+			}
+		}
 		for key, values := range resp.Header {
 			for _, value := range values {
 				rw.Header().Add(key, value)
