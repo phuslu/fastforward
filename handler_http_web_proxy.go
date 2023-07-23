@@ -98,6 +98,8 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	if ri.TLSVersion != 0 {
 		req.Header.Set("x-forwarded-proto", "https")
+		req.Header.Set("x-forwarded-ssl", "on")
+		req.Header.Set("x-url-scheme", "https")
 		req.Header.Set("x-http-proto", req.Proto)
 		req.Header.Set("x-ja3-fingerprint", getTlsFingerprint(ri.TLSVersion, ri.ClientHelloInfo, ri.ClientHelloRaw))
 	}
@@ -128,11 +130,6 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		resp.Header.Del("connection")
 		resp.Header.Del("keep-alive")
 	}
-
-	// if req.ProtoMajor != 2 && req.TLS != nil && req.TLS.Version == tls.VersionTLS13 {
-	// 	_, port, _ := net.SplitHostPort(ri.ServerAddr)
-	// 	resp.Header.Set("alt-svc", fmt.Sprintf(`%s=":%s"; ma=86400`, nextProtoH3, port))
-	// }
 
 	if h.DumpFailure && resp.StatusCode >= http.StatusBadRequest {
 		data, err := httputil.DumpResponse(resp, true)
