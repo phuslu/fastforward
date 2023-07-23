@@ -159,7 +159,7 @@ func main() {
 				return tlsDialer.DialContext(ctx, "tcp", addr)
 			}
 		case "https", "doh":
-			resolver.Resolver.Dial = (&DoHDialer{
+			resolver.Resolver.Dial = (&DoHResolverDialer{
 				EndPoint:  config.Global.DnsServer,
 				UserAgent: DefaultUserAgent,
 				Transport: &http2.Transport{

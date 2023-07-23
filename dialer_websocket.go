@@ -105,7 +105,6 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 
 	conn := &websocketStream{
 		rwc:    rwc,
-		closed: make(chan struct{}),
 		local:  &net.TCPAddr{},
 		remote: &net.TCPAddr{},
 	}
@@ -115,10 +114,7 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 }
 
 type websocketStream struct {
-	rwc io.ReadWriteCloser
-
-	closed chan struct{}
-
+	rwc    io.ReadWriteCloser
 	local  net.Addr
 	remote net.Addr
 }
@@ -132,14 +128,7 @@ func (c *websocketStream) Write(b []byte) (n int, err error) {
 }
 
 func (c *websocketStream) Close() (err error) {
-	select {
-	case <-c.closed:
-		return
-	default:
-		close(c.closed)
-	}
-	c.rwc.Close()
-	return
+	return c.rwc.Close()
 }
 
 func (c *websocketStream) LocalAddr() net.Addr {

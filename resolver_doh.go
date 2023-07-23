@@ -11,20 +11,20 @@ import (
 	"time"
 )
 
-var _ Dialer = (*DoHDialer)(nil)
+var _ Dialer = (*DoHResolverDialer)(nil)
 
-type DoHDialer struct {
+type DoHResolverDialer struct {
 	EndPoint  string
 	UserAgent string
 	Transport http.RoundTripper
 }
 
-func (d *DoHDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+func (d *DoHResolverDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	return &dohConn{d, nil}, nil
 }
 
 type dohConn struct {
-	dialer *DoHDialer
+	dialer *DoHResolverDialer
 	buffer *bytes.Buffer
 }
 
