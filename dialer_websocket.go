@@ -20,7 +20,7 @@ import (
 var _ Dialer = (*WebsocketDialer)(nil)
 
 type WebsocketDialer struct {
-	URLFormat string // E.g. https://phus.lu/wss/%s/%d
+	URLFormat string // E.g. https://phus.lu/wss?h=%s&p=%d
 	Header    http.Header
 	Dialer    Dialer
 	TLSConfig *tls.Config

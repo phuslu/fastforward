@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/cloudflare/golibs/lrucache"
+	"github.com/tidwall/shardmap"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sys/cpu"
@@ -58,7 +58,7 @@ type TLSConfigurator struct {
 	RootCA           *RootCA
 	ConfigCache      lrucache.Cache
 	CertCache        lrucache.Cache
-	ClientHelloCache sync.Map
+	ClientHelloCache shardmap.Map
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
@@ -155,7 +155,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 }
 
 func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
-	m.ClientHelloCache.Store(hello.Conn.RemoteAddr().String(), hello)
+	m.ClientHelloCache.Set(hello.Conn.RemoteAddr().String(), hello)
 
 	if host, _, err := net.SplitHostPort(hello.ServerName); err == nil {
 		hello.ServerName = host

@@ -11,6 +11,7 @@ require (
 	github.com/quic-go/quic-go v0.36.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.2.1
+	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211
 	github.com/valyala/bytebufferpool v1.0.0
 	go.uber.org/ratelimit v0.3.0
 	golang.org/x/crypto v0.11.0
@@ -25,6 +26,8 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
+	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8 // indirect
@@ -39,6 +42,7 @@ require (
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
+	github.com/tidwall/rhh v1.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
