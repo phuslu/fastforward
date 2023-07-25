@@ -20,7 +20,6 @@ type HTTPConfig struct {
 	PreferChacha20 bool              `json:"perfer_chacha20" yaml:"perfer_chacha20"`
 	Mimes          map[string]string `json:"mimes" yaml:"mimes"`
 	Forward        struct {
-		WebsocketPath    string `json:"websocket_path" yaml:"websocket_path"`
 		Policy           string `json:"policy" yaml:"policy"`
 		AuthTable        string `json:"auth_table" yaml:"auth_table"`
 		Upstream         string `json:"upstream" yaml:"upstream"`
