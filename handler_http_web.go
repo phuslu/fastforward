@@ -19,38 +19,30 @@ type HTTPWebHandler struct {
 }
 
 func (h *HTTPWebHandler) Load() error {
-	var handlers, wildcards []struct {
+	type router struct {
 		location string
 		handler  HTTPHandler
 	}
-	var root HTTPHandler
+
+	var routers []router
 	for _, web := range h.Config.Web {
 		switch {
 		case web.Pac.Enabled:
-			handlers = append(handlers, struct {
-				location string
-				handler  HTTPHandler
-			}{
+			routers = append(routers, router{
 				web.Location,
 				&HTTPWebPacHandler{
 					Functions: h.Functions,
 				},
 			})
 		case web.Pprof.Enabled:
-			handlers = append(handlers, struct {
-				location string
-				handler  HTTPHandler
-			}{
+			routers = append(routers, router{
 				web.Location,
 				&HTTPWebPprofHandler{
 					AllowPublicNet: false,
 				},
 			})
 		case web.Proxy.Pass != "":
-			handlers = append(handlers, struct {
-				location string
-				handler  HTTPHandler
-			}{
+			routers = append(routers, router{
 				web.Location,
 				&HTTPWebProxyHandler{
 					Transport:         h.Transport,
@@ -63,10 +55,7 @@ func (h *HTTPWebHandler) Load() error {
 				},
 			})
 		case web.Dav.Enabled:
-			handlers = append(handlers, struct {
-				location string
-				handler  HTTPHandler
-			}{
+			routers = append(routers, router{
 				web.Location,
 				&HTTPWebDavHandler{
 					Root:              web.Dav.Root,
@@ -75,10 +64,7 @@ func (h *HTTPWebHandler) Load() error {
 				},
 			})
 		case web.Index.Root != "" || web.Index.Body != "":
-			handlers = append(handlers, struct {
-				location string
-				handler  HTTPHandler
-			}{
+			routers = append(routers, router{
 				web.Location,
 				&HTTPWebIndexHandler{
 					Functions: h.Functions,
@@ -90,8 +76,10 @@ func (h *HTTPWebHandler) Load() error {
 		}
 	}
 
+	var root HTTPHandler
+	var wildcards []router
 	h.mux = http.NewServeMux()
-	for _, x := range handlers {
+	for _, x := range routers {
 		err := x.handler.Load()
 		if err != nil {
 			log.Fatal().Err(err).Str("web_location", x.location).Msgf("%T.Load() return error: %+v", x.handler, err)
