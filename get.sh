@@ -15,7 +15,7 @@ case $(uname -m) in
     ;;
 esac
 
-domain=$(echo $(curl -sS whatismyip.akamai.com) | tr . -).nip.io
+domain=$(echo $(curl -sS whatismyip.akamai.com) | tr . -).sslip.io
 checksum=$(curl https://phus.lu/liner/checksums.txt | grep -E "liner_linux_${arch}-[0-9]+.tar.xz")
 filename=$(echo $checksum | awk '{print $2}')
 pacfile=$(shuf -er -n7 1 2 3 4 5 6 7 8 9 a b c d e f | tr -d '\n').pac
