@@ -18,10 +18,10 @@ var _ Dialer = (*LocalDialer)(nil)
 type LocalDialer struct {
 	Resolver *Resolver
 
-	BindInterface string
-	PreferIPv6    bool
-	DenyLocalLAN  bool
-	Concurrency   int
+	BindInterface   string
+	PreferIPv6      bool
+	ForbidLocalAddr bool
+	Concurrency     int
 
 	Timeout       time.Duration
 	TCPKeepAlive  time.Duration
@@ -108,7 +108,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 
 func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (conn net.Conn, err error) {
 	for i, ip := range ips {
-		if d.DenyLocalLAN && IsReservedIP(ip) {
+		if d.ForbidLocalAddr && IsReservedIP(ip) {
 			return nil, net.InvalidAddrError("intranet address is rejected: " + ip.String())
 		}
 
@@ -160,7 +160,7 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 	lane := make(chan dialResult, level)
 	for i := 0; i < level; i++ {
 		go func(ip net.IP, port int, tlsConfig *tls.Config) {
-			if d.DenyLocalLAN && IsReservedIP(ip) {
+			if d.ForbidLocalAddr && IsReservedIP(ip) {
 				lane <- dialResult{nil, net.InvalidAddrError("intranet address is rejected: " + ip.String())}
 				return
 			}

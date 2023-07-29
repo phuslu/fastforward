@@ -185,13 +185,13 @@ func main() {
 
 	// global dialer
 	dialer := &LocalDialer{
-		Resolver:      resolver,
-		Concurrency:   2,
-		DenyLocalLAN:  config.Global.DenyLocalLAN,
-		ReadBuffSize:  config.Global.DialReadBuffer,
-		WriteBuffSize: config.Global.DialWriteBuffer,
-		Timeout:       30 * time.Second,
-		TCPKeepAlive:  30 * time.Second,
+		Resolver:        resolver,
+		Concurrency:     2,
+		ForbidLocalAddr: config.Global.ForbidLocalAddr,
+		ReadBuffSize:    config.Global.DialReadBuffer,
+		WriteBuffSize:   config.Global.DialWriteBuffer,
+		Timeout:         30 * time.Second,
+		TCPKeepAlive:    30 * time.Second,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			ClientSessionCache: tls.NewLRUClientSessionCache(2048),

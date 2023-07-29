@@ -90,7 +90,7 @@ type Config struct {
 		LogBackups       int    `json:"log_backups" yaml:"log_backups"`
 		LogMaxsize       int64  `json:"log_maxsize" yaml:"log_maxsize"`
 		LogLocaltime     bool   `json:"log_localtime" yaml:"log_localtime"`
-		DenyLocalLAN     bool   `json:"deny_local_lan" yaml:"deny_local_lan"`
+		ForbidLocalAddr  bool   `json:"forbid_local_addr" yaml:"forbid_local_addr"`
 		DialTimeout      int    `json:"dial_timeout" yaml:"dial_timeout"`
 		DialReadBuffer   int    `json:"dial_read_buffer" yaml:"dial_read_buffer"`
 		DialWriteBuffer  int    `json:"dial_write_buffer" yaml:"dial_write_buffer"`
