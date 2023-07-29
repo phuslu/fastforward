@@ -287,7 +287,8 @@ func (c *MirrorHeaderConn) Read(b []byte) (n int, err error) {
 
 func GetMirrorHeader(conn net.Conn) *bytebufferpool.ByteBuffer {
 	if c, ok := conn.(*tls.Conn); ok && c != nil {
-		conn = (*struct{ conn net.Conn })(unsafe.Pointer(c)).conn
+		// conn = (*struct{ conn net.Conn })(unsafe.Pointer(c)).conn
+		conn = c.NetConn()
 	}
 	if c, ok := conn.(*MirrorHeaderConn); ok && c.Header != nil && len(c.Header.B) > 0 {
 		return c.Header
