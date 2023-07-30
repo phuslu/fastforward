@@ -39,6 +39,9 @@ func (h *HTTPWebDavHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		if c, ok := conn.(*tls.Conn); ok && c != nil {
 			conn = c.NetConn()
 		}
+		if c, ok := conn.(*MirrorHeaderConn); ok && c != nil {
+			conn = c.Conn
+		}
 		if c, ok := conn.(interface {
 			SetWriteBuffer(bytes int) error
 		}); ok {
