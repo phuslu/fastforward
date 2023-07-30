@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"sync"
 	"time"
-	"unsafe"
 
 	"golang.org/x/net/http2"
 )
@@ -126,14 +125,14 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		}
 	}
 
-	tconn := (*transportResponseBody)(unsafe.Pointer(&resp.Body)).cs.cc.tconn
+	// tconn := (*transportResponseBody)(unsafe.Pointer(&resp.Body)).cs.cc.tconn
 
 	conn := &http2Stream{
 		r:      resp.Body,
 		w:      pw,
 		closed: make(chan struct{}),
-		local:  tconn.LocalAddr(),
-		remote: tconn.RemoteAddr(),
+		local:  &net.TCPAddr{},
+		remote: &net.TCPAddr{},
 	}
 
 	return conn, nil
