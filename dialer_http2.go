@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"sync"
 	"time"
+	"unsafe"
 
 	"golang.org/x/net/http2"
 )
@@ -115,6 +116,12 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + string(data))
 	}
 
+	conn := &http2Stream{
+		r:      resp.Body,
+		w:      pw,
+		closed: make(chan struct{}),
+	}
+
 	// see https://github.com/golang/net/blob/d8f9c0143e94e55c0e871e302e81cf982732df30/http2/transport.go#L2526
 	type transportResponseBody struct {
 		cs *struct {
@@ -125,14 +132,12 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		}
 	}
 
-	// tconn := (*transportResponseBody)(unsafe.Pointer(&resp.Body)).cs.cc.tconn
-
-	conn := &http2Stream{
-		r:      resp.Body,
-		w:      pw,
-		closed: make(chan struct{}),
-		local:  &net.TCPAddr{},
-		remote: &net.TCPAddr{},
+	if c := (*transportResponseBody)(unsafe.Pointer(&resp.Body)).cs.cc.tconn; c != nil {
+		conn.local = c.LocalAddr()
+		conn.remote = c.RemoteAddr()
+	} else {
+		conn.local = &net.TCPAddr{}
+		conn.remote = &net.TCPAddr{}
 	}
 
 	return conn, nil
