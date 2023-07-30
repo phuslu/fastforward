@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"net/http"
 	"os"
 
@@ -34,20 +33,20 @@ func (h *HTTPWebDavHandler) Load() (err error) {
 func (h *HTTPWebDavHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := GetRequestInfo(req)
 
-	if ri.ClientHelloInfo != nil {
-		conn := ri.ClientHelloInfo.Conn
-		if c, ok := conn.(*tls.Conn); ok && c != nil {
-			conn = c.NetConn()
-		}
-		if c, ok := conn.(*MirrorHeaderConn); ok && c != nil {
-			conn = c.Conn
-		}
-		if c, ok := conn.(interface {
-			SetWriteBuffer(bytes int) error
-		}); ok {
-			c.SetWriteBuffer(1024 * 1024 * 1024)
-		}
-	}
+	// if ri.ClientHelloInfo != nil {
+	// 	conn := ri.ClientHelloInfo.Conn
+	// 	if c, ok := conn.(*tls.Conn); ok && c != nil {
+	// 		conn = c.NetConn()
+	// 	}
+	// 	if c, ok := conn.(*MirrorHeaderConn); ok && c != nil {
+	// 		conn = c.Conn
+	// 	}
+	// 	if c, ok := conn.(interface {
+	// 		SetWriteBuffer(bytes int) error
+	// 	}); ok {
+	// 		c.SetWriteBuffer(1024 * 1024 * 1024)
+	// 	}
+	// }
 
 	log.Info().Context(ri.LogContext).Interface("headers", req.Header).Msg("web dav request")
 
