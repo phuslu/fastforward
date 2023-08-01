@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"sync"
 	"time"
@@ -104,6 +105,14 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		req.Header.Set("proxy-authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
 
+	var remoteAddr, localAddr net.Addr
+
+	req = req.WithContext(httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		GotConn: func(connInfo httptrace.GotConnInfo) {
+			remoteAddr, localAddr = connInfo.Conn.RemoteAddr(), connInfo.Conn.LocalAddr()
+		},
+	}))
+
 	resp, err := d.transport.RoundTrip(req)
 	if err != nil {
 		return nil, err
@@ -115,24 +124,16 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + string(data))
 	}
 
-	// see https://github.com/golang/net/blob/d8f9c0143e94e55c0e871e302e81cf982732df30/http2/transport.go#L2526
-	type transportResponseBody struct {
-		cs *struct {
-			cc *struct {
-				t     *http2.Transport
-				tconn net.Conn
-			}
-		}
+	if remoteAddr == nil || localAddr == nil {
+		remoteAddr, localAddr = &net.TCPAddr{}, &net.TCPAddr{}
 	}
 
-	// tconn := (*transportResponseBody)(unsafe.Pointer(&resp.Body)).cs.cc.tconn
-
 	conn := &http2Stream{
-		r:      resp.Body,
-		w:      pw,
-		closed: make(chan struct{}),
-		local:  &net.TCPAddr{},
-		remote: &net.TCPAddr{},
+		r:          resp.Body,
+		w:          pw,
+		closed:     make(chan struct{}),
+		remoteAddr: remoteAddr,
+		localAddr:  localAddr,
 	}
 
 	return conn, nil
@@ -144,8 +145,8 @@ type http2Stream struct {
 
 	closed chan struct{}
 
-	local  net.Addr
-	remote net.Addr
+	remoteAddr net.Addr
+	localAddr  net.Addr
 }
 
 func (c *http2Stream) Read(b []byte) (n int, err error) {
@@ -172,12 +173,12 @@ func (c *http2Stream) Close() (err error) {
 	return
 }
 
-func (c *http2Stream) LocalAddr() net.Addr {
-	return c.local
+func (c *http2Stream) RemoteAddr() net.Addr {
+	return c.remoteAddr
 }
 
-func (c *http2Stream) RemoteAddr() net.Addr {
-	return c.remote
+func (c *http2Stream) LocalAddr() net.Addr {
+	return c.localAddr
 }
 
 func (c *http2Stream) SetDeadline(t time.Time) error {

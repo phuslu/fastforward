@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"sync"
 
@@ -105,6 +106,14 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		req.Header.Set("proxy-authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
 
+	var remoteAddr, localAddr net.Addr
+
+	req = req.WithContext(httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		GotConn: func(connInfo httptrace.GotConnInfo) {
+			remoteAddr, localAddr = connInfo.Conn.RemoteAddr(), connInfo.Conn.LocalAddr()
+		},
+	}))
+
 	resp, err := d.transport.RoundTripOpt(req, http3.RoundTripOpt{DontCloseRequestStream: true})
 	if err != nil {
 		return nil, err
@@ -121,23 +130,27 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, errors.New("proxy: read from " + d.Host + " error: resp body not implemented http3.HTTPStreamer")
 	}
 
+	if remoteAddr == nil || localAddr == nil {
+		remoteAddr, localAddr = &net.UDPAddr{}, &net.UDPAddr{}
+	}
+
 	return &http3Stream{
-		Stream: streamer.HTTPStream(),
-		local:  &net.UDPAddr{},
-		remote: &net.UDPAddr{},
+		Stream:     streamer.HTTPStream(),
+		remoteAddr: remoteAddr,
+		localAddr:  localAddr,
 	}, nil
 }
 
 type http3Stream struct {
 	quic.Stream
-	local  net.Addr
-	remote net.Addr
-}
-
-func (c *http3Stream) LocalAddr() net.Addr {
-	return c.local
+	remoteAddr net.Addr
+	localAddr  net.Addr
 }
 
 func (c *http3Stream) RemoteAddr() net.Addr {
-	return c.remote
+	return c.remoteAddr
+}
+
+func (c *http3Stream) LocalAddr() net.Addr {
+	return c.localAddr
 }
