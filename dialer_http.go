@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 )
 
 var _ Dialer = (*HTTPDialer)(nil)
@@ -96,6 +97,11 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 
 	b := buf
 	total := 0
+
+	if deadline, ok := ctx.Deadline(); ok {
+		conn.SetDeadline(deadline)
+		defer conn.SetDeadline(time.Time{})
+	}
 
 	for {
 		n, err := conn.Read(buf)

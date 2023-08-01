@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"time"
 )
 
 var _ Dialer = (*Socks5Dialer)(nil)
@@ -124,6 +125,11 @@ func (d *Socks5Dialer) DialContext(ctx context.Context, network, addr string) (n
 		buf = append(buf, host...)
 	}
 	buf = append(buf, byte(port>>8), byte(port))
+
+	if deadline, ok := ctx.Deadline(); ok {
+		conn.SetDeadline(deadline)
+		defer conn.SetDeadline(time.Time{})
+	}
 
 	if _, err := conn.Write(buf); err != nil {
 		return nil, errors.New("proxy: failed to write connect request to SOCKS5 proxy at " + d.Host + ": " + err.Error())

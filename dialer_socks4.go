@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"time"
 )
 
 var _ Dialer = (*Socks4Dialer)(nil)
@@ -82,6 +83,11 @@ func (d *Socks4Dialer) DialContext(ctx context.Context, network, addr string) (n
 			return nil, errors.New("proxy: resolve ip address out of range: " + ip.String())
 		}
 		buf = append(buf, ip4[0], ip4[1], ip4[2], ip4[3], 0)
+	}
+
+	if deadline, ok := ctx.Deadline(); ok {
+		conn.SetDeadline(deadline)
+		defer conn.SetDeadline(time.Time{})
 	}
 
 	_, err = conn.Write(buf)
