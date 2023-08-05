@@ -69,10 +69,12 @@ func (d *HTTP3Dialer) init() {
 					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
 				},
 				&quic.Config{
-					MaxIncomingUniStreams:   200,
-					MaxIncomingStreams:      200,
 					DisablePathMTUDiscovery: false,
 					EnableDatagrams:         false,
+					MaxIncomingUniStreams:   200,
+					MaxIncomingStreams:      200,
+					// MaxStreamReceiveWindow:     6 * 1024 * 1024,
+					// MaxConnectionReceiveWindow: 15 * 1024 * 1024,
 				},
 			)
 		},

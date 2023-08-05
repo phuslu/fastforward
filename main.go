@@ -439,8 +439,11 @@ func main() {
 			Handler:   server.Handler,
 			TLSConfig: server.TLSConfig,
 			QuicConfig: &quic.Config{
-				EnableDatagrams: true,
-				Allow0RTT:       true,
+				Allow0RTT:               true,
+				DisablePathMTUDiscovery: false,
+				EnableDatagrams:         false,
+				// MaxStreamReceiveWindow:     6 * 1024 * 1024,
+				// MaxConnectionReceiveWindow: 15 * 1024 * 1024,
 			},
 		}).ListenAndServe()
 	}
