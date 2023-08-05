@@ -51,6 +51,9 @@ func (c *dohConn) Write(b []byte) (n int, err error) {
 	}
 
 	req.Header.Set("content-type", "application/dns-message")
+	if c.dialer.UserAgent != "" {
+		req.Header.Set("user-agent", c.dialer.UserAgent)
+	}
 
 	var tr = c.dialer.Transport
 	if tr == nil {

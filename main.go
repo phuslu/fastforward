@@ -162,7 +162,7 @@ func main() {
 		case "https", "doh":
 			resolver.Resolver.Dial = (&DoHResolverDialer{
 				EndPoint:  config.Global.DnsServer,
-				UserAgent: DefaultUserAgent,
+				UserAgent: u.Query().Get("user_agent"),
 				Transport: &http2.Transport{
 					TLSClientConfig: &tls.Config{
 						ServerName:         u.Hostname(),
