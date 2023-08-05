@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -204,34 +205,28 @@ func main() {
 
 	upstreams := make(map[string]Dialer)
 	for name, upstream := range config.Upstream {
-		parts := strings.SplitN(upstream, "\n", 2)
-		u, err := url.Parse(parts[0])
+		u, err := url.Parse(upstream)
 		if err != nil {
-			log.Fatal().Err(err).Str("upstream", parts[0]).Msg("parse upstream url failed")
+			log.Fatal().Err(err).Str("upstream", upstream).Msg("parse upstream url failed")
 		}
-		extra := ""
-		if len(parts) > 1 {
-			extra = strings.TrimSpace(parts[1])
-		}
-		username := u.User.Username()
 		password, _ := u.User.Password()
 		switch u.Scheme {
 		case "http":
 			upstreams[name] = &HTTPDialer{
-				Username:  username,
+				Username:  u.User.Username(),
 				Password:  password,
 				Host:      u.Hostname(),
 				Port:      u.Port(),
-				UserAgent: extra,
+				UserAgent: u.Query().Get("user_agent"),
 				Dialer:    dialer,
 			}
 		case "https":
 			upstreams[name] = &HTTPDialer{
-				Username:  username,
+				Username:  u.User.Username(),
 				Password:  password,
 				Host:      u.Hostname(),
 				Port:      u.Port(),
-				UserAgent: extra,
+				UserAgent: u.Query().Get("user_agent"),
 				Dialer:    dialer,
 				TLSConfig: &tls.Config{
 					InsecureSkipVerify: false,
@@ -241,25 +236,25 @@ func main() {
 			}
 		case "http2":
 			upstreams[name] = &HTTP2Dialer{
-				Username:  username,
+				Username:  u.User.Username(),
 				Password:  password,
 				Host:      u.Hostname(),
 				Port:      u.Port(),
-				UserAgent: extra,
+				UserAgent: u.Query().Get("user_agent"),
 				Dialer:    dialer,
 			}
 		case "http3":
 			upstreams[name] = &HTTP3Dialer{
-				Username:  username,
+				Username:  u.User.Username(),
 				Password:  password,
 				Host:      u.Hostname(),
 				Port:      u.Port(),
-				UserAgent: extra,
+				UserAgent: u.Query().Get("user_agent"),
 				Resolver:  resolver,
 			}
 		case "socks", "socks5", "socks5h":
 			upstreams[name] = &Socks5Dialer{
-				Username: username,
+				Username: u.User.Username(),
 				Password: password,
 				Host:     u.Hostname(),
 				Port:     u.Port(),
@@ -269,7 +264,7 @@ func main() {
 			}
 		case "socks4", "socks4a":
 			upstreams[name] = &Socks4Dialer{
-				Username: username,
+				Username: u.User.Username(),
 				Password: password,
 				Host:     u.Hostname(),
 				Port:     u.Port(),
@@ -279,14 +274,14 @@ func main() {
 			}
 		case "ssh", "ssh2":
 			upstreams[name] = &SSHDialer{
-				Username:   username,
+				Username:   u.User.Username(),
 				Password:   password,
-				PrivateKey: extra,
+				PrivateKey: u.Query().Get("private_key"),
 				Host:       u.Hostname(),
 				Port:       u.Port(),
 				Dialer:     dialer,
-				Timeout:    10 * time.Second,
-				MaxClients: 4,
+				Timeout:    time.Duration(func() (n int) { n, _ = strconv.Atoi(u.Query().Get("timeout")); return }()) * time.Second,
+				MaxClients: func() (n int) { n, _ = strconv.Atoi(u.Query().Get("max_clients")); return }(),
 			}
 		default:
 			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)

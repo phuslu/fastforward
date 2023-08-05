@@ -10,9 +10,9 @@ global:
   database_source: csvq://.
 upstream:
   torsocks: socks5h://127.0.0.1:9050
-  sshtun: ssh://phuslu:123456@phus.lu:22
-  proxy1_example_org: https://user:passwd@proxy1.example.org:443
-  proxy2_example_com: http2://foobar:123456@proxy2.example.com:443
+  sshtun: ssh://phuslu:123456@phus.lu:22/?timeout=8&max_clients=4
+  proxy1_example_org: https://user:passwd@proxy1.example.org:443/?user_agent=liner-1984
+  proxy2_example_com: http2://foobar:123456@proxy2.example.com:443/?user_agent=liner-1984
 https:
   - listen: [':443']
     web:
