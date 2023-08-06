@@ -23,9 +23,9 @@ type SSHDialer struct {
 	PrivateKey string
 	Host       string
 	Port       string
+	MaxClients int
 	Timeout    time.Duration
 	Dialer     Dialer
-	MaxClients int
 
 	mutexes [64]sync.Mutex
 	clients [64]*ssh.Client

@@ -209,6 +209,7 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Str("upstream", upstream).Msg("parse upstream url failed")
 		}
+		atoi := func(s string) (n int) { n, _ = strconv.Atoi(s); return }
 		password, _ := u.User.Password()
 		switch u.Scheme {
 		case "http":
@@ -236,12 +237,13 @@ func main() {
 			}
 		case "http2":
 			upstreams[name] = &HTTP2Dialer{
-				Username:  u.User.Username(),
-				Password:  password,
-				Host:      u.Hostname(),
-				Port:      u.Port(),
-				UserAgent: u.Query().Get("user_agent"),
-				Dialer:    dialer,
+				Username:   u.User.Username(),
+				Password:   password,
+				Host:       u.Hostname(),
+				Port:       u.Port(),
+				UserAgent:  u.Query().Get("user_agent"),
+				MaxClients: atoi(u.Query().Get("max_clients")),
+				Dialer:     dialer,
 			}
 		case "http3":
 			upstreams[name] = &HTTP3Dialer{
@@ -279,9 +281,9 @@ func main() {
 				PrivateKey: u.Query().Get("private_key"),
 				Host:       u.Hostname(),
 				Port:       u.Port(),
+				MaxClients: atoi(u.Query().Get("max_clients")),
+				Timeout:    time.Duration(atoi(u.Query().Get("timeout"))) * time.Second,
 				Dialer:     dialer,
-				Timeout:    time.Duration(func() (n int) { n, _ = strconv.Atoi(u.Query().Get("timeout")); return }()) * time.Second,
-				MaxClients: func() (n int) { n, _ = strconv.Atoi(u.Query().Get("max_clients")); return }(),
 			}
 		default:
 			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)

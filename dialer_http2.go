@@ -13,76 +13,84 @@ import (
 	"sync"
 	"time"
 
+	"github.com/phuslu/log"
 	"golang.org/x/net/http2"
 )
 
 var _ Dialer = (*HTTP2Dialer)(nil)
 
+const (
+	DefaultHTTP2DialerMaxClients = 8
+)
+
 type HTTP2Dialer struct {
-	Username  string
-	Password  string
-	Host      string
-	Port      string
-	UserAgent string
-	Dialer    Dialer
+	Username   string
+	Password   string
+	Host       string
+	Port       string
+	UserAgent  string
+	MaxClients int
 
-	mu        sync.Mutex
-	transport *http2.Transport
-}
+	Dialer Dialer
 
-func (d *HTTP2Dialer) init() {
-	if d.transport != nil {
-		return
-	}
-
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.transport != nil {
-		return
-	}
-
-	d.transport = &http2.Transport{
-		DisableCompression: false,
-		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-			dialer := d.Dialer
-			if dialer == nil {
-				dialer = &net.Dialer{}
-			}
-			conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, d.Port))
-			if err != nil {
-				return nil, err
-			}
-
-			tlsConn := tls.Client(conn, &tls.Config{
-				NextProtos:         []string{"h2"},
-				InsecureSkipVerify: false,
-				ServerName:         d.Host,
-				ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-			})
-
-			err = tlsConn.HandshakeContext(ctx)
-			if err != nil {
-				return nil, err
-			}
-
-			return tlsConn, nil
-		},
-	}
-
-	if d.UserAgent == "" {
-		d.UserAgent = DefaultUserAgent
-	}
+	mutexes [64]sync.Mutex
+	clients [64]*http2.Transport
 }
 
 func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	d.init()
+	connect := func() (*http2.Transport, error) {
+		return &http2.Transport{
+			DisableCompression: false,
+			DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+				dialer := d.Dialer
+				if dialer == nil {
+					dialer = &net.Dialer{}
+				}
+				conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, d.Port))
+				if err != nil {
+					return nil, err
+				}
 
-	switch network {
-	case "tcp", "tcp6", "tcp4":
-	default:
-		return nil, errors.New("proxy: no support for HTTP proxy connections of type " + network)
+				tlsConn := tls.Client(conn, &tls.Config{
+					NextProtos:         []string{"h2"},
+					InsecureSkipVerify: false,
+					ServerName:         d.Host,
+					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+				})
+
+				err = tlsConn.HandshakeContext(ctx)
+				if err != nil {
+					return nil, err
+				}
+
+				return tlsConn, nil
+			},
+		}, nil
 	}
+
+	maxClient := d.MaxClients
+	if maxClient == 0 {
+		maxClient = DefaultHTTP2DialerMaxClients
+	}
+
+	n := 1
+	if 0 < maxClient && maxClient < len(d.clients) {
+		n = maxClient
+	}
+	n = int(log.Fastrandn(uint32(n)))
+
+	if d.clients[n] == nil {
+		d.mutexes[n].Lock()
+		c, err := connect()
+		if err != nil {
+			d.mutexes[n].Unlock()
+			return nil, err
+		}
+		d.clients[n] = c
+		d.mutexes[n].Unlock()
+	}
+
+	transport := d.clients[n]
 
 	pr, pw := io.Pipe()
 	req := &http.Request{
@@ -113,7 +121,7 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		},
 	}))
 
-	resp, err := d.transport.RoundTrip(req)
+	resp, err := transport.RoundTrip(req)
 	if err != nil {
 		return nil, err
 	}
