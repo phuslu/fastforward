@@ -315,7 +315,7 @@ func main() {
 	}).FuncMap()
 
 	lc := ListenConfig{
-		FastOpen:    config.Global.TcpFastopen,
+		FastOpen:    false,
 		ReusePort:   true,
 		DeferAccept: true,
 	}
@@ -631,16 +631,16 @@ func main() {
 	log.Warn().Msg("liner start graceful shutdown...")
 	SetProcessName("liner: (graceful shutdown)")
 
-	timeout := 5 * time.Minute
-	if config.Global.GracefulTimeout > 0 {
-		timeout = time.Duration(config.Global.GracefulTimeout) * time.Second
-	}
-
 	var wg sync.WaitGroup
 	for _, server := range servers {
 		wg.Add(1)
 		go func(server *http.Server) {
 			defer wg.Done()
+
+			timeout := 5 * time.Minute
+			if config.Global.GracefulTimeout > 0 {
+				timeout = time.Duration(config.Global.GracefulTimeout) * time.Second
+			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
