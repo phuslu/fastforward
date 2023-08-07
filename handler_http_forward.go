@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strconv"
@@ -93,6 +94,14 @@ func (h *HTTPForwardHandler) Load() error {
 
 func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := GetRequestInfo(req)
+
+	websocket := h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0)))
+	if websocket {
+		host, port := req.URL.Query().Get("h"), req.URL.Query().Get("p")
+		req.Host = net.JoinHostPort(host, port)
+		req.URL = &url.URL{Host: req.Host}
+		req.Method = http.MethodConnect
+	}
 
 	var err error
 	var host = req.Host
@@ -251,7 +260,13 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				return
 			}
 
-			rw.WriteHeader(http.StatusOK)
+			if websocket {
+				rw.Header().Set("upgrade", "websocket")
+				rw.Header().Set("connection", "Upgrade")
+				rw.WriteHeader(http.StatusSwitchingProtocols)
+			} else {
+				rw.WriteHeader(http.StatusOK)
+			}
 			flusher.Flush()
 
 			w = FlushWriter{rw}
@@ -272,7 +287,11 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			w = lconn
 			r = lconn
 
-			io.WriteString(lconn, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
+			if websocket {
+				io.WriteString(lconn, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
+			} else {
+				io.WriteString(lconn, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
+			}
 		}
 
 		defer conn.Close()

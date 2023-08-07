@@ -345,6 +345,7 @@ func main() {
 			},
 			ServerNames:     NewStringSet(server.ServerName),
 			TLSConfigurator: tlsConfigurator,
+			Config:          server,
 		}
 
 		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler, handler} {
@@ -484,6 +485,7 @@ func main() {
 			},
 			ServerNames:     NewStringSet(httpConfig.ServerName),
 			TLSConfigurator: tlsConfigurator,
+			Config:          httpConfig,
 		}
 
 		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler, handler} {
