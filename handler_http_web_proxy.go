@@ -98,8 +98,8 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	if ri.TLSVersion != 0 {
 		req.Header.Set("x-forwarded-proto", "https")
-		req.Header.Set("x-forwarded-ssl", "on")
-		req.Header.Set("x-url-scheme", "https")
+		// req.Header.Set("x-forwarded-ssl", "on")
+		// req.Header.Set("x-url-scheme", "https")
 		req.Header.Set("x-http-proto", req.Proto)
 		req.Header.Set("x-ja3-fingerprint", getTlsFingerprint(ri.TLSVersion, ri.ClientHelloInfo, ri.ClientHelloRaw))
 	}
