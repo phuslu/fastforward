@@ -46,6 +46,10 @@ func (d *WebsocketDialer) init() {
 		DialContext:        d.Dialer.DialContext,
 		TLSClientConfig:    d.TLSConfig,
 	}
+	if len(d.transport.TLSClientConfig.NextProtos) != 0 && d.transport.TLSClientConfig.NextProtos[0] == "h2" {
+		d.transport.TLSClientConfig = d.transport.TLSClientConfig.Clone()
+		d.transport.TLSClientConfig.NextProtos = []string{"http/1.1"}
+	}
 }
 
 func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
