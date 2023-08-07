@@ -362,10 +362,17 @@ func main() {
 
 		for _, listen := range server.Listen {
 			for _, name := range server.ServerName {
+				keyfile, certfile := server.Keyfile, server.Certfile
+				if server.Keyfiles[name] != "" {
+					keyfile = server.Keyfiles[name]
+				}
+				if server.Certfiles[name] != "" {
+					certfile = server.Certfiles[name]
+				}
 				tlsConfigurator.AddCertEntry(TLSConfiguratorEntry{
 					ServerName:     name,
-					KeyFile:        server.Keyfile,
-					CertFile:       server.Certfile,
+					KeyFile:        keyfile,
+					CertFile:       certfile,
 					DisableHTTP2:   server.DisableHttp2,
 					DisableTLS11:   server.DisableTls11,
 					PreferChacha20: server.PreferChacha20,
