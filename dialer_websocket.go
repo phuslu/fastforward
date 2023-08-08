@@ -20,10 +20,12 @@ import (
 var _ Dialer = (*WebsocketDialer)(nil)
 
 type WebsocketDialer struct {
-	URLFormat string // E.g. https://phus.lu/wss?h=%s&p=%d
-	Header    http.Header
-	Dialer    Dialer
-	TLSConfig *tls.Config
+	EndpointFormat string // E.g. https://www.phus.lu/wss/connect?host=%s&port=%d
+	Username       string
+	Password       string
+	UserAgent      string
+	Dialer         Dialer
+	TLSConfig      *tls.Config
 
 	mu        sync.Mutex
 	transport *http.Transport
@@ -70,15 +72,16 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(d.URLFormat, host, port), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(d.EndpointFormat, host, port), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	for key, values := range d.Header {
-		for _, value := range values {
-			req.Header.Add(key, value)
-		}
+	if d.Username != "" && d.Password != "" {
+		req.Header.Set("proxy-authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
+	}
+	if d.UserAgent != "" {
+		req.Header.Set("user-agent", d.UserAgent)
 	}
 
 	secWebsocketKey := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", log.Fastrandn(1<<32-1), log.Fastrandn(1<<32-1))))
@@ -95,11 +98,11 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 	}
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
-		return nil, fmt.Errorf("proxy: failed to get greeting to HTTP proxy at " + host + ": " + err.Error())
+		return nil, fmt.Errorf("proxy: failed to get greeting to HTTP proxy at %s: %d", host, resp.StatusCode)
 	}
 
-	if resp.Header.Get("Sec-WebSocket-Accept") != base64.StdEncoding.EncodeToString(secWebsocketAccept[:]) {
-		return nil, fmt.Errorf("proxy: failed to get sec-websocket-accept to HTTP proxy at " + host + ": " + err.Error())
+	if s := resp.Header.Get("Sec-WebSocket-Accept"); s != "" && s != base64.StdEncoding.EncodeToString(secWebsocketAccept[:]) {
+		return nil, fmt.Errorf("proxy: failed to get sec-websocket-accept to HTTP proxy at " + host + ": " + s)
 	}
 
 	rwc, ok := resp.Body.(io.ReadWriteCloser)

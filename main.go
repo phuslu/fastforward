@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -274,6 +275,19 @@ func main() {
 				Port:      u.Port(),
 				UserAgent: u.Query().Get("user_agent"),
 				Resolver:  resolver,
+			}
+		case "websocket", "wss":
+			upstreams[name] = &WebsocketDialer{
+				EndpointFormat: fmt.Sprintf("https://%s%s", u.Host, u.RequestURI()),
+				Username:       u.User.Username(),
+				Password:       password,
+				UserAgent:      u.Query().Get("user_agent"),
+				Dialer:         dialer,
+				TLSConfig: &tls.Config{
+					InsecureSkipVerify: false,
+					ServerName:         u.Hostname(),
+					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+				},
 			}
 		case "socks", "socks5", "socks5h":
 			upstreams[name] = &Socks5Dialer{

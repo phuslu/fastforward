@@ -17,6 +17,8 @@ import (
 	"github.com/quic-go/quic-go/http3"
 )
 
+var _ Dialer = (*HTTP3Dialer)(nil)
+
 type HTTP3Dialer struct {
 	Username  string
 	Password  string

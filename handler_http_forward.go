@@ -97,7 +97,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	websocket := h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0)))
 	if websocket {
-		host, port := req.URL.Query().Get("h"), req.URL.Query().Get("p")
+		host, port := req.URL.Query().Get("host"), req.URL.Query().Get("port")
+		if host == "" && port == "" {
+			host, port = req.URL.Query().Get("h"), req.URL.Query().Get("p")
+		}
 		req.Host = net.JoinHostPort(host, port)
 		req.URL = &url.URL{Host: req.Host}
 		req.Method = http.MethodConnect
