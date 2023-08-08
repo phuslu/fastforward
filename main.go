@@ -444,18 +444,20 @@ func main() {
 		servers = append(servers, server)
 
 		// start http3 server
-		go (&http3.Server{
-			Addr:      addr,
-			Handler:   server.Handler,
-			TLSConfig: server.TLSConfig,
-			QuicConfig: &quic.Config{
-				Allow0RTT:               true,
-				DisablePathMTUDiscovery: false,
-				EnableDatagrams:         false,
-				// MaxStreamReceiveWindow:     6 * 1024 * 1024,
-				// MaxConnectionReceiveWindow: 15 * 1024 * 1024,
-			},
-		}).ListenAndServe()
+		if !config.Global.DisableHTTP3 {
+			go (&http3.Server{
+				Addr:      addr,
+				Handler:   server.Handler,
+				TLSConfig: server.TLSConfig,
+				QuicConfig: &quic.Config{
+					Allow0RTT:               true,
+					DisablePathMTUDiscovery: false,
+					EnableDatagrams:         false,
+					// MaxStreamReceiveWindow:     6 * 1024 * 1024,
+					// MaxConnectionReceiveWindow: 15 * 1024 * 1024,
+				},
+			}).ListenAndServe()
+		}
 	}
 
 	// listen and serve http

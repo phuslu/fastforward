@@ -97,6 +97,7 @@ type Config struct {
 		DialTimeout      int    `json:"dial_timeout" yaml:"dial_timeout"`
 		DialReadBuffer   int    `json:"dial_read_buffer" yaml:"dial_read_buffer"`
 		DialWriteBuffer  int    `json:"dial_write_buffer" yaml:"dial_write_buffer"`
+		DisableHTTP3     bool   `json:"disable_http3" yaml:"disable_http3"`
 		DnsServer        string `json:"dns_server" yaml:"dns_server"`
 		DnsCacheDuration string `json:"dns_cache_duration" yaml:"dns_cache_duration"`
 		IdleConnTimeout  int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
