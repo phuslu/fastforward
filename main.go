@@ -159,14 +159,35 @@ func main() {
 			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
 				return tlsDialer.DialContext(ctx, "tcp", addr)
 			}
-		case "https", "doh":
+		case "https", "http2", "h2", "doh":
 			resolver.Resolver.Dial = (&DoHResolverDialer{
-				EndPoint:  config.Global.DnsServer,
+				EndPoint:  strings.NewReplacer("http2", "https", "h2", "https", "doh", "https").Replace(config.Global.DnsServer),
 				UserAgent: u.Query().Get("user_agent"),
 				Transport: &http2.Transport{
 					TLSClientConfig: &tls.Config{
 						ServerName:         u.Hostname(),
 						ClientSessionCache: tls.NewLRUClientSessionCache(128),
+					},
+				},
+			}).DialContext
+		case "http3", "h3":
+			resolver.Resolver.Dial = (&DoHResolverDialer{
+				EndPoint:  strings.NewReplacer("http3", "https", "h3", "https").Replace(config.Global.DnsServer),
+				UserAgent: u.Query().Get("user_agent"),
+				Transport: &http3.RoundTripper{
+					DisableCompression: false,
+					EnableDatagrams:    false,
+					TLSClientConfig: &tls.Config{
+						NextProtos:         []string{"h3"},
+						InsecureSkipVerify: u.Query().Get("insecure") == "1",
+						ServerName:         u.Hostname(),
+						ClientSessionCache: tls.NewLRUClientSessionCache(128),
+					},
+					QuicConfig: &quic.Config{
+						DisablePathMTUDiscovery: false,
+						EnableDatagrams:         false,
+						MaxIncomingUniStreams:   200,
+						MaxIncomingStreams:      200,
 					},
 				},
 			}).DialContext
