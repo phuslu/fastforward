@@ -93,7 +93,7 @@ func (h *HTTPForwardHandler) Load() error {
 }
 
 func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := GetRequestInfo(req)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	websocket := h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0)))
 	if websocket {

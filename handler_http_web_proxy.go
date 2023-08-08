@@ -47,7 +47,7 @@ func (h *HTTPWebProxyHandler) Load() error {
 }
 
 func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := GetRequestInfo(req)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	// if req.Method == http.MethodConnect {
 	// 	RejectRequest(rw, req)

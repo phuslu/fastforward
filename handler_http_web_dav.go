@@ -31,7 +31,7 @@ func (h *HTTPWebDavHandler) Load() (err error) {
 }
 
 func (h *HTTPWebDavHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	ri := GetRequestInfo(req)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	// if ri.ClientHelloInfo != nil {
 	// 	conn := ri.ClientHelloInfo.Conn
