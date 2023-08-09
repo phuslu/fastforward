@@ -16,29 +16,11 @@ upstream:
   proxy3: http3://foobar:123456@proxy3.example.com:443/?user_agent=liner-1984
 https:
   - listen: [':443']
-    web:
-      - location: /
-        index:
-          root: /var/www/html
-  - listen: [':443']
     server_name: ['example.org']
     keyfile: example_org.pem
     web:
       - location: /
         index: /var/www/example.org
-        body: |
-          <html>
-          <head><title>Index of {{.Request.URL.Path}}</title></head>
-          <body>
-          <h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
-          {{range .FileInfos -}}
-          {{if .IsDir -}}
-          <a href="{{.Name}}/">{{.Name}}/</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}       -
-          {{else -}}
-          <a href="{{.Name}}">{{.Name}}</a>          {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
-          {{end -}}
-          {{end}}</pre><hr></body>
-          </html>
   - listen: [':443']
     server_name: ['ip.example.org']
     keyfile: example_org.pem
@@ -126,9 +108,9 @@ http:
       auth_table: authuser.csv
       upstream: |
         {{if hasPrefix "scholar.google.com" .Request.Host}}
-          proxy1_example_org
+          proxy1
         {{else if ne (country .Request.Host) "CN"}}
-          proxy2_example_com
+          proxy2
         {{end}}
     web:
       - location: /
@@ -167,6 +149,10 @@ socks:
           reject
         {{end}}
 stream:
+  - listen: [':853']
+    keyfile: certs/example.org+rsa
+    to: github.com:443
+stream:
   - listen: [':443']
     to: github.com:443
-    upstream: proxy1_example_org
+    upstream: proxy1
