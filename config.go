@@ -79,7 +79,7 @@ type SocksConfig struct {
 	} `json:"forward" yaml:"forward"`
 }
 
-type RelayConfig struct {
+type StreamConfig struct {
 	Listen     []string `json:"listen" yaml:"listen"`
 	To         string   `json:"to" yaml:"to"`
 	Upstream   string   `json:"upstream" yaml:"upstream"`
@@ -112,7 +112,7 @@ type Config struct {
 	Https    []HTTPConfig      `json:"https" yaml:"https"`
 	Http     []HTTPConfig      `json:"http" yaml:"http"`
 	Socks    []SocksConfig     `json:"socks" yaml:"socks"`
-	Relay    []RelayConfig     `json:"relay" yaml:"relay"`
+	Stream   []StreamConfig    `json:"stream" yaml:"stream"`
 }
 
 func NewConfig(filename string) (*Config, error) {

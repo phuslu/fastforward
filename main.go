@@ -601,9 +601,9 @@ func main() {
 		}
 	}
 
-	// relay handler
-	for _, relayConfig := range config.Relay {
-		for _, addr := range relayConfig.Listen {
+	// stream handler
+	for _, streamConfig := range config.Stream {
+		for _, addr := range streamConfig.Listen {
 			var ln net.Listener
 
 			if ln, err = lc.Listen(context.Background(), "tcp", addr); err != nil {
@@ -612,8 +612,8 @@ func main() {
 
 			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and forward port")
 
-			h := &RelayHandler{
-				Config:         relayConfig,
+			h := &StreamHandler{
+				Config:         streamConfig,
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
@@ -624,7 +624,7 @@ func main() {
 				log.Fatal().Err(err).Str("address", addr).Msg("socks hanlder load error")
 			}
 
-			go func(ln net.Listener, h *RelayHandler) {
+			go func(ln net.Listener, h *StreamHandler) {
 				for {
 					conn, err := ln.Accept()
 					if err != nil {

@@ -166,7 +166,7 @@ socks:
         {{else}}
           reject
         {{end}}
-relay:
+stream:
   - listen: [':443']
     to: github.com:443
     upstream: proxy1_example_org

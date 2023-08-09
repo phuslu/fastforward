@@ -8,29 +8,29 @@ import (
 	"github.com/phuslu/log"
 )
 
-type RelayRequest struct {
+type StreamRequest struct {
 	RemoteAddr string
 	RemoteIP   string
 	ServerAddr string
 	TraceID    log.XID
 }
 
-type RelayHandler struct {
-	Config         RelayConfig
+type StreamHandler struct {
+	Config         StreamConfig
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
 	Upstreams      map[string]Dialer
 }
 
-func (h *RelayHandler) Load() error {
+func (h *StreamHandler) Load() error {
 	return nil
 }
 
-func (h *RelayHandler) ServeConn(conn net.Conn) {
+func (h *StreamHandler) ServeConn(conn net.Conn) {
 	defer conn.Close()
 
-	var req RelayRequest
+	var req StreamRequest
 	req.RemoteAddr = conn.RemoteAddr().String()
 	req.RemoteIP, _, _ = net.SplitHostPort(req.RemoteAddr)
 	req.ServerAddr = conn.LocalAddr().String()
@@ -40,7 +40,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 	if h.Config.Upstream != "" {
 		u, ok := h.Upstreams[h.Config.Upstream]
 		if !ok {
-			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("relay_upstream", h.Config.Upstream).Msg("upstream not exists")
+			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("upstream not exists")
 			return
 		}
 		dail = u.DialContext
@@ -48,7 +48,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 
 	rconn, err := dail(context.Background(), "tcp", h.Config.To)
 	if err != nil {
-		log.Error().Err(err).Str("relay_to", h.Config.To).Str("remote_ip", req.RemoteIP).Str("relay_upstream", h.Config.Upstream).Msg("connect remote host failed")
+		log.Error().Err(err).Str("stream_to", h.Config.To).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
 		return
 	}
 	defer rconn.Close()
@@ -61,7 +61,7 @@ func (h *RelayHandler) ServeConn(conn net.Conn) {
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
 		}
-		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("relay_upstream", h.Config.Upstream).Msg("forward port request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("stream_upstream", h.Config.Upstream).Msg("forward port request end")
 	}
 
 	return
