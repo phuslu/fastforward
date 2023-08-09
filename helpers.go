@@ -48,6 +48,10 @@ func unix() int64 {
 	return timeNow().Unix()
 }
 
+func must[T, U any](t T, _ ...U) T {
+	return t
+}
+
 type IPInt uint32
 
 func NewIPInt(ip string) IPInt {
