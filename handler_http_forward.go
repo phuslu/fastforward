@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/csv"
@@ -264,6 +265,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			}
 
 			if websocket {
+				key := sha1.Sum([]byte(req.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
+				rw.Header().Set("sec-websocket-accept", string(key[:]))
 				rw.Header().Set("upgrade", "websocket")
 				rw.Header().Set("connection", "Upgrade")
 				rw.WriteHeader(http.StatusSwitchingProtocols)
@@ -291,7 +294,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			r = lconn
 
 			if websocket {
-				io.WriteString(lconn, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
+				key := sha1.Sum([]byte(req.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
+				fmt.Fprintf(lconn, "HTTP/1.1 101 Switching Protocols\r\nSec-WebSocket-Accept: %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n", key[:])
 			} else {
 				io.WriteString(lconn, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
 			}
