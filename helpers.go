@@ -48,7 +48,22 @@ func unix() int64 {
 	return timeNow().Unix()
 }
 
-func must[T, U any](t T, _ ...U) T {
+func first[T, U any](t T, _ ...U) T {
+	return t
+}
+
+func must[T, U any](t T, u ...U) T {
+	v := any(u[len(u)-1])
+	switch v := v.(type) {
+	case bool:
+		if !v {
+			panic(v)
+		}
+	case error:
+		if v != nil {
+			panic(v)
+		}
+	}
 	return t
 }
 

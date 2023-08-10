@@ -23,7 +23,7 @@ type LocalDialer struct {
 	ForbidLocalAddr bool
 	Concurrency     int
 
-	Timeout       time.Duration
+	DialTimeout   time.Duration
 	TCPKeepAlive  time.Duration
 	ReadBuffSize  int
 	WriteBuffSize int
@@ -84,8 +84,8 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 
 	port, _ := strconv.Atoi(portStr)
 
-	if d.Timeout > 0 {
-		deadline := timeNow().Add(d.Timeout)
+	if d.DialTimeout > 0 {
+		deadline := timeNow().Add(d.DialTimeout)
 		if d, ok := ctx.Deadline(); ok && deadline.After(d) {
 			deadline = d
 		}
