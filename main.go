@@ -274,12 +274,8 @@ func main() {
 				Username:       u.User.Username(),
 				Password:       first(u.User.Password()),
 				UserAgent:      u.Query().Get("user_agent"),
+				Insecure:       u.Query().Get("insecure") == "1",
 				Dialer:         dialer,
-				TLSConfig: &tls.Config{
-					InsecureSkipVerify: false,
-					ServerName:         u.Hostname(),
-					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-				},
 			}
 		case "socks", "socks5", "socks5h":
 			upstreams[name] = &Socks5Dialer{

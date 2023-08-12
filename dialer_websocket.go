@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"time"
@@ -24,38 +25,48 @@ type WebsocketDialer struct {
 	Username       string
 	Password       string
 	UserAgent      string
+	Insecure       bool
 	Dialer         Dialer
-	TLSConfig      *tls.Config
 
 	mu        sync.Mutex
 	transport *http.Transport
 }
 
-func (d *WebsocketDialer) init() {
+func (d *WebsocketDialer) init() error {
 	if d.transport != nil {
-		return
+		return nil
 	}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	if d.transport != nil {
-		return
+		return nil
+	}
+
+	u, err := url.Parse(d.EndpointFormat)
+	if err != nil {
+		return err
 	}
 
 	d.transport = &http.Transport{
 		DisableCompression: false,
 		DialContext:        d.Dialer.DialContext,
-		TLSClientConfig:    d.TLSConfig,
+		TLSClientConfig: &tls.Config{
+			NextProtos:         []string{"http/1.1"},
+			InsecureSkipVerify: d.Insecure,
+			ServerName:         u.Hostname(),
+			ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+		},
 	}
-	if len(d.transport.TLSClientConfig.NextProtos) != 0 && d.transport.TLSClientConfig.NextProtos[0] == "h2" {
-		d.transport.TLSClientConfig = d.transport.TLSClientConfig.Clone()
-		d.transport.TLSClientConfig.NextProtos = []string{"http/1.1"}
-	}
+
+	return nil
 }
 
 func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	d.init()
+	if err := d.init(); err != nil {
+		return nil, err
+	}
 
 	switch network {
 	case "tcp", "tcp6", "tcp4":
