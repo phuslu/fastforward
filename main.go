@@ -311,7 +311,7 @@ func main() {
 			upstreams[name] = &SSHDialer{
 				Username:   u.User.Username(),
 				Password:   first(u.User.Password()),
-				PrivateKey: string(first(os.ReadFile(u.Query().Get("keyfile")))),
+				PrivateKey: string(first(os.ReadFile(u.Query().Get("key")))),
 				Host:       u.Hostname(),
 				Port:       u.Port(),
 				MaxClients: first(strconv.Atoi(u.Query().Get("max_clients"))),

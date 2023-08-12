@@ -9,7 +9,7 @@ global:
   dns_server: https://1.1.1.1/dns-query
 upstream:
   torsocks: socks5h://127.0.0.1:9050
-  sshtun: ssh://phuslu:123456@phus.lu:22/?timeout=8&max_clients=4&keyfile=/home/phuslu/.ssh/id_rsa
+  sshtun: ssh://phuslu:123456@phus.lu:22/?timeout=8&max_clients=4&key=/home/phuslu/.ssh/id_rsa
   proxyws: wss://phuslu:123456@www.phus.lu:443/wss/connect?h=%s&p=%d
   proxy1: https://user:passwd@proxy1.example.org:443/?user_agent=liner-1984
   proxy2: http2://foobar:123456@proxy2.example.com:443/?user_agent=liner-1984&max_clients=8
