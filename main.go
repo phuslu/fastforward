@@ -253,6 +253,9 @@ func main() {
 				Host:       u.Hostname(),
 				Port:       u.Port(),
 				UserAgent:  u.Query().Get("user_agent"),
+				CACert:     u.Query().Get("cacert"),
+				ClientKey:  u.Query().Get("key"),
+				ClientCert: u.Query().Get("cert"),
 				MaxClients: first(strconv.Atoi(u.Query().Get("max_clients"))),
 				Dialer:     dialer,
 			}

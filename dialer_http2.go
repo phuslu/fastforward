@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -29,6 +31,9 @@ type HTTP2Dialer struct {
 	Host       string
 	Port       string
 	UserAgent  string
+	CACert     string
+	ClientKey  string
+	ClientCert string
 	MaxClients int
 
 	Dialer Dialer
@@ -51,12 +56,19 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 					return nil, err
 				}
 
-				tlsConn := tls.Client(conn, &tls.Config{
+				tlsConfig := &tls.Config{
 					NextProtos:         []string{"h2"},
 					InsecureSkipVerify: false,
 					ServerName:         d.Host,
 					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-				})
+				}
+				if d.CACert != "" && d.ClientKey != "" && d.ClientCert != "" {
+					tlsConfig.RootCAs = x509.NewCertPool()
+					tlsConfig.RootCAs.AppendCertsFromPEM(first(os.ReadFile(d.CACert)))
+					tlsConfig.Certificates = []tls.Certificate{first(tls.LoadX509KeyPair(d.ClientCert, d.ClientKey))}
+				}
+
+				tlsConn := tls.Client(conn, tlsConfig)
 
 				err = tlsConn.HandshakeContext(ctx)
 				if err != nil {
