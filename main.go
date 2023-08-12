@@ -232,28 +232,19 @@ func main() {
 			log.Fatal().Err(err).Str("upstream", upstream).Msg("parse upstream url failed")
 		}
 		switch u.Scheme {
-		case "http":
+		case "http", "https":
 			upstreams[name] = &HTTPDialer{
-				Username:  u.User.Username(),
-				Password:  first(u.User.Password()),
-				Host:      u.Hostname(),
-				Port:      u.Port(),
-				UserAgent: u.Query().Get("user_agent"),
-				Dialer:    dialer,
-			}
-		case "https":
-			upstreams[name] = &HTTPDialer{
-				Username:  u.User.Username(),
-				Password:  first(u.User.Password()),
-				Host:      u.Hostname(),
-				Port:      u.Port(),
-				UserAgent: u.Query().Get("user_agent"),
-				Dialer:    dialer,
-				TLSConfig: &tls.Config{
-					InsecureSkipVerify: false,
-					ServerName:         u.Hostname(),
-					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-				},
+				Username:   u.User.Username(),
+				Password:   first(u.User.Password()),
+				Host:       u.Hostname(),
+				Port:       u.Port(),
+				IsTLS:      u.Scheme == "https",
+				UserAgent:  u.Query().Get("user_agent"),
+				Insecure:   u.Query().Get("insecure") == "1",
+				CACert:     u.Query().Get("cacert"),
+				ClientKey:  u.Query().Get("key"),
+				ClientCert: u.Query().Get("cert"),
+				Dialer:     dialer,
 			}
 		case "http2":
 			upstreams[name] = &HTTP2Dialer{

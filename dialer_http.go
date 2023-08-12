@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -16,15 +18,20 @@ import (
 var _ Dialer = (*HTTPDialer)(nil)
 
 type HTTPDialer struct {
-	Username  string
-	Password  string
-	Host      string
-	Port      string
-	UserAgent string
-	TLSConfig *tls.Config
-	Dialer    Dialer
+	Username   string
+	Password   string
+	Host       string
+	Port       string
+	IsTLS      bool
+	Insecure   bool
+	UserAgent  string
+	CACert     string
+	ClientKey  string
+	ClientCert string
+	Dialer     Dialer
 
-	mu sync.Mutex
+	mu        sync.Mutex
+	tlsConfig *tls.Config
 }
 
 func (d *HTTPDialer) init() {
@@ -41,6 +48,19 @@ func (d *HTTPDialer) init() {
 
 	if d.UserAgent == "" {
 		d.UserAgent = DefaultUserAgent
+	}
+
+	if d.IsTLS {
+		d.tlsConfig = &tls.Config{
+			InsecureSkipVerify: d.Insecure,
+			ServerName:         d.Host,
+			ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+		}
+		if d.CACert != "" && d.ClientKey != "" && d.ClientCert != "" {
+			d.tlsConfig.RootCAs = x509.NewCertPool()
+			d.tlsConfig.RootCAs.AppendCertsFromPEM(first(os.ReadFile(d.CACert)))
+			d.tlsConfig.Certificates = []tls.Certificate{first(tls.LoadX509KeyPair(d.ClientCert, d.ClientKey))}
+		}
 	}
 }
 
@@ -66,8 +86,8 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		}
 	}()
 
-	if d.TLSConfig != nil {
-		tlsConn := tls.Client(conn, d.TLSConfig)
+	if d.tlsConfig != nil {
+		tlsConn := tls.Client(conn, d.tlsConfig)
 		err = tlsConn.HandshakeContext(ctx)
 		if err != nil {
 			return nil, err
