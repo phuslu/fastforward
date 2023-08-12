@@ -13,11 +13,6 @@ import (
 
 var _ Dialer = (*SSHDialer)(nil)
 
-const (
-	DefaultSSHDialerMaxClients = 8
-	DefaultSSHDialerTimeout    = 10 * time.Second
-)
-
 type SSHDialer struct {
 	Username              string
 	Password              string
@@ -36,17 +31,13 @@ type SSHDialer struct {
 
 func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	connect := func() (*ssh.Client, error) {
-		timeout := d.Timeout
-		if timeout == 0 {
-			timeout = DefaultSSHDialerTimeout
-		}
 		config := &ssh.ClientConfig{
 			User: d.Username,
 			Auth: []ssh.AuthMethod{
 				ssh.Password(d.Password),
 			},
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-			Timeout:         timeout,
+			Timeout:         d.Timeout,
 		}
 		if d.PrivateKey != "" {
 			signer, err := ssh.ParsePrivateKey([]byte(d.PrivateKey))
@@ -64,7 +55,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 		}
 		dialer := d.Dialer
 		if dialer == nil {
-			dialer = &net.Dialer{Timeout: timeout}
+			dialer = &net.Dialer{Timeout: d.Timeout}
 		}
 		ctx, cancel := context.WithTimeout(ctx, config.Timeout)
 		defer cancel()
@@ -81,7 +72,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 
 	maxClient := d.MaxClients
 	if maxClient == 0 {
-		maxClient = DefaultSSHDialerMaxClients
+		maxClient = 1
 	}
 
 	n := 1

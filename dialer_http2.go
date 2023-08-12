@@ -21,10 +21,6 @@ import (
 
 var _ Dialer = (*HTTP2Dialer)(nil)
 
-const (
-	DefaultHTTP2DialerMaxClients = 8
-)
-
 type HTTP2Dialer struct {
 	Username   string
 	Password   string
@@ -92,7 +88,7 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 
 	maxClient := d.MaxClients
 	if maxClient == 0 {
-		maxClient = DefaultHTTP2DialerMaxClients
+		maxClient = 1
 	}
 
 	n := 1
