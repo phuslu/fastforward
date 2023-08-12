@@ -21,7 +21,7 @@ type SocksRequest struct {
 	RemoteIP    string
 	ServerAddr  string
 	Version     SocksVersion
-	ConnectType SocksVersion
+	ConnectType SocksCommand
 	SupportAuth bool
 	Username    string
 	Password    string
@@ -137,7 +137,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		return
 	}
 
-	req.ConnectType = SocksVersion(b[1])
+	req.ConnectType = SocksCommand(b[1])
 
 	var addressType = Socks5AddressType(b[3])
 	switch addressType {

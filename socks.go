@@ -15,7 +15,7 @@ const (
 type SocksCommand byte
 
 const (
-	_                      SocksVersion = iota
+	_                      SocksCommand = iota
 	SocksCommandConnectTCP              = 1
 	SocksCommandConnectUDP              = 3
 )
