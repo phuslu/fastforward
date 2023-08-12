@@ -303,14 +303,16 @@ func main() {
 			}
 		case "ssh", "ssh2":
 			upstreams[name] = &SSHDialer{
-				Username:   u.User.Username(),
-				Password:   first(u.User.Password()),
-				PrivateKey: string(first(os.ReadFile(u.Query().Get("key")))),
-				Host:       u.Hostname(),
-				Port:       u.Port(),
-				MaxClients: first(strconv.Atoi(u.Query().Get("max_clients"))),
-				Timeout:    time.Duration(first(strconv.Atoi(u.Query().Get("timeout")))) * time.Second,
-				Dialer:     dialer,
+				Username:              u.User.Username(),
+				Password:              first(u.User.Password()),
+				PrivateKey:            string(first(os.ReadFile(u.Query().Get("key")))),
+				Host:                  u.Hostname(),
+				Port:                  u.Port(),
+				StrictHostKeyChecking: u.Query().Get("StrictHostKeyChecking") == "yes",
+				UserKnownHostsFile:    u.Query().Get("UserKnownHostsFile"),
+				MaxClients:            first(strconv.Atoi(u.Query().Get("max_clients"))),
+				Timeout:               time.Duration(first(strconv.Atoi(u.Query().Get("timeout")))) * time.Second,
+				Dialer:                dialer,
 			}
 		default:
 			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)

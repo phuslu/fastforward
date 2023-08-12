@@ -8,6 +8,7 @@ import (
 
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 var _ Dialer = (*SSHDialer)(nil)
@@ -18,14 +19,16 @@ const (
 )
 
 type SSHDialer struct {
-	Username   string
-	Password   string
-	PrivateKey string
-	Host       string
-	Port       string
-	MaxClients int
-	Timeout    time.Duration
-	Dialer     Dialer
+	Username              string
+	Password              string
+	PrivateKey            string
+	Host                  string
+	Port                  string
+	StrictHostKeyChecking bool
+	UserKnownHostsFile    string
+	MaxClients            int
+	Timeout               time.Duration
+	Dialer                Dialer
 
 	mutexes [64]sync.Mutex
 	clients [64]*ssh.Client
@@ -51,6 +54,13 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 				return nil, err
 			}
 			config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
+		}
+		if d.StrictHostKeyChecking {
+			cb, err := knownhosts.New(d.UserKnownHostsFile)
+			if err != nil {
+				return nil, err
+			}
+			config.HostKeyCallback = cb
 		}
 		dialer := d.Dialer
 		if dialer == nil {
