@@ -63,9 +63,19 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
 				}
 				if d.CACert != "" && d.ClientKey != "" && d.ClientCert != "" {
+					caData, err := os.ReadFile(d.CACert)
+					if err != nil {
+						return nil, err
+					}
+
+					cert, err := tls.LoadX509KeyPair(d.ClientCert, d.ClientKey)
+					if err != nil {
+						return nil, err
+					}
+
 					tlsConfig.RootCAs = x509.NewCertPool()
-					tlsConfig.RootCAs.AppendCertsFromPEM(first(os.ReadFile(d.CACert)))
-					tlsConfig.Certificates = []tls.Certificate{first(tls.LoadX509KeyPair(d.ClientCert, d.ClientKey))}
+					tlsConfig.RootCAs.AppendCertsFromPEM(caData)
+					tlsConfig.Certificates = []tls.Certificate{cert}
 				}
 
 				tlsConn := tls.Client(conn, tlsConfig)

@@ -34,9 +34,9 @@ type HTTPDialer struct {
 	tlsConfig *tls.Config
 }
 
-func (d *HTTPDialer) init() {
+func (d *HTTPDialer) init() error {
 	if d.Dialer != nil && d.UserAgent != "" {
-		return
+		return nil
 	}
 
 	d.mu.Lock()
@@ -57,17 +57,31 @@ func (d *HTTPDialer) init() {
 			ClientSessionCache: tls.NewLRUClientSessionCache(1024),
 		}
 		if d.CACert != "" && d.ClientKey != "" && d.ClientCert != "" {
+			caData, err := os.ReadFile(d.CACert)
+			if err != nil {
+				return err
+			}
+
+			cert, err := tls.LoadX509KeyPair(d.ClientCert, d.ClientKey)
+			if err != nil {
+				return err
+			}
+
 			d.tlsConfig.RootCAs = x509.NewCertPool()
-			d.tlsConfig.RootCAs.AppendCertsFromPEM(first(os.ReadFile(d.CACert)))
-			d.tlsConfig.Certificates = []tls.Certificate{first(tls.LoadX509KeyPair(d.ClientCert, d.ClientKey))}
+			d.tlsConfig.RootCAs.AppendCertsFromPEM(caData)
+			d.tlsConfig.Certificates = []tls.Certificate{cert}
 		}
 	}
+
+	return nil
 }
 
 var CRLFCRLF = []byte{'\r', '\n', '\r', '\n'}
 
 func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	d.init()
+	if err := d.init(); err != nil {
+		return nil, err
+	}
 
 	switch network {
 	case "tcp", "tcp6", "tcp4":
