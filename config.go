@@ -80,13 +80,14 @@ type SocksConfig struct {
 }
 
 type StreamConfig struct {
-	Listen     []string `json:"listen" yaml:"listen"`
-	Keyfile    string   `json:"keyfile" yaml:"keyfile"`
-	Certfile   string   `json:"certfile" yaml:"certfile"`
-	To         string   `json:"to" yaml:"to"`
-	Upstream   string   `json:"upstream" yaml:"upstream"`
-	SpeedLimit int64    `json:"speed_limit" yaml:"speed_limit"`
-	Log        bool     `json:"log" yaml:"log"`
+	Listen      []string `json:"listen" yaml:"listen"`
+	Keyfile     string   `json:"keyfile" yaml:"keyfile"`
+	Certfile    string   `json:"certfile" yaml:"certfile"`
+	To          string   `json:"to" yaml:"to"`
+	DialTimeout int      `json:"dial_timeout" yaml:"dial_timeout"`
+	Upstream    string   `json:"upstream" yaml:"upstream"`
+	SpeedLimit  int64    `json:"speed_limit" yaml:"speed_limit"`
+	Log         bool     `json:"log" yaml:"log"`
 }
 
 type Config struct {

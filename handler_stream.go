@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"net"
+	"time"
 
 	"github.com/phuslu/log"
 )
@@ -82,7 +83,14 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 		dail = u.DialContext
 	}
 
-	rconn, err := dail(ctx, "tcp", h.Config.To)
+	rconn, err := func(ctx context.Context) (net.Conn, error) {
+		if h.Config.DialTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
+			defer cancel()
+		}
+		return dail(ctx, "tcp", h.Config.To)
+	}(ctx)
 	if err != nil {
 		log.Error().Err(err).Str("stream_to", h.Config.To).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
 		return
