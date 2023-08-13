@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"io"
 	"net"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/phuslu/log"
@@ -89,7 +91,19 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 			ctx, cancel = context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
 			defer cancel()
 		}
-		return dail(ctx, "tcp", h.Config.To)
+		if !strings.Contains(h.Config.To, "://") {
+			return dail(ctx, "tcp", h.Config.To)
+		}
+		u, err := url.Parse(h.Config.To)
+		if err != nil {
+			return nil, err
+		}
+		switch u.Scheme {
+		case "unix", "unixgram":
+			return dail(ctx, u.Scheme, u.Path)
+		default:
+			return dail(ctx, u.Scheme, u.Host)
+		}
 	}(ctx)
 	if err != nil {
 		log.Error().Err(err).Str("stream_to", h.Config.To).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")

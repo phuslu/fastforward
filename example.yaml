@@ -151,8 +151,9 @@ socks:
 stream:
   - listen: [':853']
     keyfile: certs/example.org+rsa
-    to: github.com:443
-stream:
+    to: tcp4://1.1.1.1:53
+  - listen: [':2375']
+    to: unix:///var/run/docker.sock
   - listen: [':443']
     to: github.com:443
     upstream: proxy1
