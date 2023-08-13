@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -47,7 +48,11 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 			config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
 		}
 		if d.StrictHostKeyChecking {
-			cb, err := knownhosts.New(d.UserKnownHostsFile)
+			file := d.UserKnownHostsFile
+			if file == "" {
+				file = os.ExpandEnv("$HOME/.ssh/known_hosts")
+			}
+			cb, err := knownhosts.New(file)
 			if err != nil {
 				return nil, err
 			}
