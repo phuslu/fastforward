@@ -69,7 +69,7 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 		tconn := tls.Server(conn, h.tlsConfig)
 		err := tconn.HandshakeContext(ctx)
 		if err != nil {
-			log.Error().Err(err).Str("stream_to", h.Config.To).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
+			log.Error().Err(err).Str("stream_proxy_pass", h.Config.ProxyPass).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
 			return
 		}
 		conn = tconn
@@ -91,10 +91,10 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 			ctx, cancel = context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
 			defer cancel()
 		}
-		if !strings.Contains(h.Config.To, "://") {
-			return dail(ctx, "tcp", h.Config.To)
+		if !strings.Contains(h.Config.ProxyPass, "://") {
+			return dail(ctx, "tcp", h.Config.ProxyPass)
 		}
-		u, err := url.Parse(h.Config.To)
+		u, err := url.Parse(h.Config.ProxyPass)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +106,7 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 		}
 	}(ctx)
 	if err != nil {
-		log.Error().Err(err).Str("stream_to", h.Config.To).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
+		log.Error().Err(err).Str("stream_proxy_pass", h.Config.ProxyPass).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
 		return
 	}
 	defer rconn.Close()
