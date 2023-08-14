@@ -21,7 +21,12 @@ type HTTPConfig struct {
 	DisableTls11   bool              `json:"disable_tls11" yaml:"disable_tls11"`
 	PreferChacha20 bool              `json:"perfer_chacha20" yaml:"perfer_chacha20"`
 	Mimes          map[string]string `json:"mimes" yaml:"mimes"`
-	Forward        struct {
+	Sniproxy       []struct {
+		ServerName  string `json:"server_name" yaml:"server_name"`
+		ProxyPass   string `json:"proxy_pass" yaml:"proxy_pass"`
+		DialTimeout int    `json:"dial_timeout" yaml:"dial_timeout"`
+	} `json:"sniproxy" yaml:"sniproxy"`
+	Forward struct {
 		Policy           string `json:"policy" yaml:"policy"`
 		AuthTable        string `json:"auth_table" yaml:"auth_table"`
 		Upstream         string `json:"upstream" yaml:"upstream"`

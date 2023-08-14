@@ -387,6 +387,13 @@ func main() {
 		}
 
 		for _, listen := range server.Listen {
+			for _, sniproxy := range server.Sniproxy {
+				tlsConfigurator.AddSniproxy(TLSConfiguratorSniproxy{
+					ServerName: sniproxy.ServerName,
+					ProxyPass:  sniproxy.ProxyPass,
+					Dialer:     dialer,
+				})
+			}
 			for _, name := range server.ServerName {
 				keyfile, certfile := server.Keyfile, server.Certfile
 				if server.Keyfiles[name] != "" {
