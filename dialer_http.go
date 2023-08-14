@@ -100,7 +100,10 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		}
 	}()
 
-	if d.tlsConfig != nil {
+	if d.IsTLS {
+		if d.tlsConfig == nil {
+			return nil, errors.New("empty tls config")
+		}
 		tlsConn := tls.Client(conn, d.tlsConfig)
 		err = tlsConn.HandshakeContext(ctx)
 		if err != nil {
