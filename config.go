@@ -37,6 +37,12 @@ type HTTPConfig struct {
 		Websocket        string `json:"websocket" yaml:"websocket"`
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
+	Reverse struct {
+		Mode       string `json:"mode" yaml:"mode"`
+		ServerAPI  string `json:"server_api" yaml:"server_api"`
+		LocalAddr  string `json:"local_addr" yaml:"local_addr"`
+		RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
+	} `json:"reverse" yaml:"reverse"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`
 		Index    struct {

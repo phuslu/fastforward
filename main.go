@@ -421,6 +421,18 @@ func main() {
 				hs[name] = handler
 			}
 		}
+
+		if reverse := server.Reverse; reverse.Mode == "client" {
+			ctx := context.Background()
+			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, reverse.ServerAPI+"?remote_addr="+reverse.RemoteAddr, nil)
+			resp, _ := transport.RoundTrip(req)
+			rwc, _ := resp.Body.(io.ReadWriteCloser)
+			defer rwc.Close()
+			conn, _ := dialer.DialContext(ctx, "tcp", reverse.LocalAddr)
+			defer conn.Close()
+			go io.Copy(rwc, conn)
+			io.Copy(conn, rwc)
+		}
 	}
 
 	for addr, handlers := range h2handlers {
