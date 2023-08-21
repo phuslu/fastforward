@@ -366,6 +366,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				rw.Header().Add(k, v)
 			}
 		}
+		rw.Header().Set("connection", "close")
 
 		rw.WriteHeader(resp.StatusCode)
 		defer resp.Body.Close()
