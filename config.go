@@ -29,7 +29,7 @@ type HTTPConfig struct {
 	Forward struct {
 		Policy           string `json:"policy" yaml:"policy"`
 		AuthTable        string `json:"auth_table" yaml:"auth_table"`
-		Upstream         string `json:"upstream" yaml:"upstream"`
+		Dialer           string `json:"dialer" yaml:"dialer"`
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
 		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
@@ -81,7 +81,7 @@ type SocksConfig struct {
 	Forward struct {
 		Policy           string `json:"policy" yaml:"policy"`
 		AuthTable        string `json:"auth_table" yaml:"auth_table"`
-		Upstream         string `json:"upstream" yaml:"upstream"`
+		Dialer           string `json:"dialer" yaml:"dialer"`
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
 		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
@@ -96,7 +96,7 @@ type StreamConfig struct {
 	Certfile    string   `json:"certfile" yaml:"certfile"`
 	ProxyPass   string   `json:"proxy_pass" yaml:"proxy_pass"`
 	DialTimeout int      `json:"dial_timeout" yaml:"dial_timeout"`
-	Upstream    string   `json:"upstream" yaml:"upstream"`
+	Dialer      string   `json:"dialer" yaml:"dialer"`
 	SpeedLimit  int64    `json:"speed_limit" yaml:"speed_limit"`
 	Log         bool     `json:"log" yaml:"log"`
 }
@@ -122,11 +122,11 @@ type Config struct {
 		Spec    string `json:"spec" yaml:"spec"`
 		Command string `json:"command" yaml:"command"`
 	} `json:"cron" yaml:"cron"`
-	Upstream map[string]string `json:"upstream" yaml:"upstream"`
-	Https    []HTTPConfig      `json:"https" yaml:"https"`
-	Http     []HTTPConfig      `json:"http" yaml:"http"`
-	Socks    []SocksConfig     `json:"socks" yaml:"socks"`
-	Stream   []StreamConfig    `json:"stream" yaml:"stream"`
+	Dialer map[string]string `json:"dialer" yaml:"dialer"`
+	Https  []HTTPConfig      `json:"https" yaml:"https"`
+	Http   []HTTPConfig      `json:"http" yaml:"http"`
+	Socks  []SocksConfig     `json:"socks" yaml:"socks"`
+	Stream []StreamConfig    `json:"stream" yaml:"stream"`
 }
 
 func NewConfig(filename string) (*Config, error) {

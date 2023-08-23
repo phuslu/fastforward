@@ -26,14 +26,14 @@ type HTTPWebProxyHandler struct {
 	SetHeaders        string
 	DumpFailure       bool
 
-	upstream *template.Template
-	headers  *template.Template
+	dialer  *template.Template
+	headers *template.Template
 }
 
 func (h *HTTPWebProxyHandler) Load() error {
 	var err error
 
-	h.upstream, err = template.New(h.Pass).Funcs(h.Functions).Parse(h.Pass)
+	h.dialer, err = template.New(h.Pass).Funcs(h.Functions).Parse(h.Pass)
 	if err != nil {
 		return err
 	}
@@ -65,13 +65,13 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	}
 
 	var sb strings.Builder
-	h.upstream.Execute(&sb, struct {
+	h.dialer.Execute(&sb, struct {
 		Request *http.Request
 	}{req})
 
 	u, err := url.Parse(sb.String())
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("bad upstream %+v", sb.String()), http.StatusServiceUnavailable)
+		http.Error(rw, fmt.Sprintf("bad dialer %+v", sb.String()), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -111,8 +111,8 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
-		if h.upstream != nil {
-			log.Warn().Err(err).Context(ri.LogContext).Msg("upstream error")
+		if h.dialer != nil {
+			log.Warn().Err(err).Context(ri.LogContext).Msg("dialer error")
 			if IsTimeout(err) {
 				http.Error(rw, "504 Gateway Timeout", http.StatusGatewayTimeout)
 			} else {

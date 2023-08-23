@@ -51,7 +51,7 @@ func (h *SocksHandler) Load() error {
 		}
 	}
 
-	if s := h.Config.Forward.Upstream; s != "" {
+	if s := h.Config.Forward.Dialer; s != "" {
 		if h.UpstreamTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
@@ -61,8 +61,8 @@ func (h *SocksHandler) Load() error {
 		if runtime.GOOS != "linux" {
 			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_interface is only available on linux")
 		}
-		if h.Config.Forward.Upstream != "" {
-			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_interface is confilict with option upstream")
+		if h.Config.Forward.Dialer != "" {
+			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_interface is confilict with option dialer")
 		}
 
 		dialer := new(LocalDialer)
@@ -184,7 +184,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 
 	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("socks_host", req.Host).Msg("forward socks request")
 
-	var upstream = ""
+	var dialerName = ""
 	dail := h.LocalDialer.DialContext
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
@@ -192,15 +192,15 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 			Request SocksRequest
 		}{req})
 		if err != nil {
-			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Msg("execute forward_upstream error")
+			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Msg("execute forward_dialer error")
 			WriteSocks5Status(conn, Socks5StatusGeneralFailure)
 			return
 		}
 
-		if upstream = strings.TrimSpace(sb.String()); upstream != "" {
-			u, ok := h.Upstreams[upstream]
+		if dialerName = strings.TrimSpace(sb.String()); dialerName != "" {
+			u, ok := h.Upstreams[dialerName]
 			if !ok {
-				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Str("upstream", upstream).Msg("upstream not exists")
+				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("dialer_name", dialerName).Msg("dialer not exists")
 				return
 			}
 			dail = u.DialContext
@@ -213,11 +213,11 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		network = "udp"
 	}
 
-	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_upsteam", upstream).Msg("forward socks request")
+	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_dialer_name", dialerName).Msg("forward socks request")
 
 	rconn, err := dail(context.Background(), network, net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
 	if err != nil {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_upstream", h.Config.Forward.Upstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("connect remote host failed")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_dialer_name", dialerName).Msg("connect remote host failed")
 		WriteSocks5Status(conn, Socks5StatusNetworkUnreachable)
 		if rconn != nil {
 			rconn.Close()
@@ -236,7 +236,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
 		}
-		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_upstream", h.Config.Forward.Upstream).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_upsteam", upstream).Msg("forward socks request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_dialer_name", dialerName).Msg("forward socks request end")
 	}
 
 	return

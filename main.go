@@ -225,15 +225,15 @@ func main() {
 		dialer.DialTimeout = time.Duration(config.Global.DialTimeout) * time.Second
 	}
 
-	upstreams := make(map[string]Dialer)
-	for name, upstream := range config.Upstream {
-		u, err := url.Parse(upstream)
+	dialers := make(map[string]Dialer)
+	for name, dailer := range config.Dialer {
+		u, err := url.Parse(dailer)
 		if err != nil {
-			log.Fatal().Err(err).Str("upstream", upstream).Msg("parse upstream url failed")
+			log.Fatal().Err(err).Str("dailer", dailer).Msg("parse dailer url failed")
 		}
 		switch u.Scheme {
 		case "http", "https":
-			upstreams[name] = &HTTPDialer{
+			dialers[name] = &HTTPDialer{
 				Username:   u.User.Username(),
 				Password:   first(u.User.Password()),
 				Host:       u.Hostname(),
@@ -247,7 +247,7 @@ func main() {
 				Dialer:     dialer,
 			}
 		case "http2":
-			upstreams[name] = &HTTP2Dialer{
+			dialers[name] = &HTTP2Dialer{
 				Username:   u.User.Username(),
 				Password:   first(u.User.Password()),
 				Host:       u.Hostname(),
@@ -260,7 +260,7 @@ func main() {
 				Dialer:     dialer,
 			}
 		case "http3":
-			upstreams[name] = &HTTP3Dialer{
+			dialers[name] = &HTTP3Dialer{
 				Username:  u.User.Username(),
 				Password:  first(u.User.Password()),
 				Host:      u.Hostname(),
@@ -269,7 +269,7 @@ func main() {
 				Resolver:  resolver,
 			}
 		case "websocket", "wss":
-			upstreams[name] = &WebsocketDialer{
+			dialers[name] = &WebsocketDialer{
 				EndpointFormat: fmt.Sprintf("https://%s%s", u.Host, u.RequestURI()),
 				Username:       u.User.Username(),
 				Password:       first(u.User.Password()),
@@ -278,7 +278,7 @@ func main() {
 				Dialer:         dialer,
 			}
 		case "socks", "socks5", "socks5h":
-			upstreams[name] = &Socks5Dialer{
+			dialers[name] = &Socks5Dialer{
 				Username: u.User.Username(),
 				Password: first(u.User.Password()),
 				Host:     u.Hostname(),
@@ -288,7 +288,7 @@ func main() {
 				Dialer:   dialer,
 			}
 		case "socks4", "socks4a":
-			upstreams[name] = &Socks4Dialer{
+			dialers[name] = &Socks4Dialer{
 				Username: u.User.Username(),
 				Password: first(u.User.Password()),
 				Host:     u.Hostname(),
@@ -298,7 +298,7 @@ func main() {
 				Dialer:   dialer,
 			}
 		case "ssh", "ssh2":
-			upstreams[name] = &SSHDialer{
+			dialers[name] = &SSHDialer{
 				Username:              u.User.Username(),
 				Password:              first(u.User.Password()),
 				PrivateKey:            string(first(os.ReadFile(u.Query().Get("key")))),
@@ -311,7 +311,7 @@ func main() {
 				Dialer:                dialer,
 			}
 		default:
-			log.Fatal().Str("upstream_scheme", u.Scheme).Msgf("unsupported upstream=%+v", u)
+			log.Fatal().Str("dialer_scheme", u.Scheme).Msgf("unsupported dialer=%+v", u)
 		}
 	}
 
@@ -360,7 +360,7 @@ func main() {
 				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
 				Transport:      transport,
-				Upstreams:      upstreams,
+				Dialers:        dialers,
 				Functions:      functions,
 			},
 			WebHandler: &HTTPWebHandler{
@@ -521,7 +521,7 @@ func main() {
 				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
 				Transport:      transport,
-				Upstreams:      upstreams,
+				Dialers:        dialers,
 				Functions:      functions,
 			},
 			WebHandler: &HTTPWebHandler{
@@ -589,7 +589,7 @@ func main() {
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
-				Upstreams:      upstreams,
+				Upstreams:      dialers,
 				Functions:      functions,
 			}
 
@@ -626,7 +626,7 @@ func main() {
 				ForwardLogger:  forwardLogger,
 				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
-				Upstreams:      upstreams,
+				Dialers:        dialers,
 			}
 
 			if err = h.Load(); err != nil {

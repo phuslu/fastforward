@@ -4,12 +4,12 @@ global:
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 1m
-upstream:
+dialer:
   proxy1: http2://phuslu:123456@phus.lu:443/?max_clients=8
 socks:
   - listen: [':1080']
     server_name: ['127.0.0.1']
     forward:
       prefer_ipv6: false
-      upstream: proxy1
+      dialer: proxy1
       policy: bypass_auth

@@ -29,11 +29,11 @@ type HTTPForwardHandler struct {
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
 	Transport      *http.Transport
-	Upstreams      map[string]Dialer
+	Dialers        map[string]Dialer
 	Functions      template.FuncMap
 
 	policy     *template.Template
-	upstream   *template.Template
+	dialer     *template.Template
 	transports map[string]*http.Transport
 }
 
@@ -46,15 +46,15 @@ func (h *HTTPForwardHandler) Load() error {
 		}
 	}
 
-	if s := h.Config.Forward.Upstream; s != "" {
-		if h.upstream, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+	if s := h.Config.Forward.Dialer; s != "" {
+		if h.dialer, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if len(h.Upstreams) != 0 {
+	if len(h.Dialers) != 0 {
 		h.transports = make(map[string]*http.Transport)
-		for name, dailer := range h.Upstreams {
+		for name, dailer := range h.Dialers {
 			h.transports[name] = &http.Transport{
 				DialContext:         dailer.DialContext,
 				TLSClientConfig:     h.Transport.TLSClientConfig,
@@ -70,8 +70,8 @@ func (h *HTTPForwardHandler) Load() error {
 		if runtime.GOOS != "linux" {
 			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is only available on linux")
 		}
-		if h.Config.Forward.Upstream != "" {
-			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is confilict with option upstream")
+		if h.Config.Forward.Dialer != "" {
+			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is confilict with option dialer")
 		}
 
 		dialer := new(LocalDialer)
@@ -209,23 +209,23 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	var upstream = ""
-	if h.upstream != nil {
+	var dialerName = ""
+	if h.dialer != nil {
 		sb.Reset()
-		err := h.upstream.Execute(&sb, struct {
+		err := h.dialer.Execute(&sb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 			User            ForwardAuthInfo
 		}{req, ri.ClientHelloInfo, ai})
 		if err != nil {
-			log.Error().Err(err).Context(ri.LogContext).Str("forward_upstream", h.Config.Forward.Upstream).Msg("execute forward_upstream error")
+			log.Error().Err(err).Context(ri.LogContext).Str("forward_dialer_name", h.Config.Forward.Dialer).Msg("execute forward_dialer error")
 			http.NotFound(rw, req)
 			return
 		}
-		upstream = strings.TrimSpace(sb.String())
+		dialerName = strings.TrimSpace(sb.String())
 	}
 
-	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("upstream", upstream).Str("http_domain", domain).Msg("forward request")
+	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("dialer_name", dialerName).Str("http_domain", domain).Msg("forward request")
 
 	var transmitBytes int64
 	switch req.Method {
@@ -235,9 +235,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 
 		var dialer Dialer
-		if upstream != "" {
-			if d, ok := h.Upstreams[upstream]; !ok {
-				log.Error().Context(ri.LogContext).Str("upstream", upstream).Msg("no upstream exists")
+		if dialerName != "" {
+			if d, ok := h.Dialers[dialerName]; !ok {
+				log.Error().Context(ri.LogContext).Str("dialer", dialerName).Msg("no dialer exists")
 				http.NotFound(rw, req)
 				return
 			} else {
@@ -338,9 +338,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 
 		var tr *http.Transport
-		if upstream != "" {
-			if t, ok := h.transports[upstream]; !ok {
-				log.Error().Context(ri.LogContext).Str("upstream", upstream).Msg("no upstream transport exists")
+		if dialerName != "" {
+			if t, ok := h.transports[dialerName]; !ok {
+				log.Error().Context(ri.LogContext).Str("dialer", dialerName).Msg("no dialer transport exists")
 				http.NotFound(rw, req)
 				return
 			} else {

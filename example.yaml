@@ -7,7 +7,7 @@ global:
   dial_timeout: 30
   dns_cache_duration: 15m
   dns_server: https://1.1.1.1/dns-query
-upstream:
+dialer:
   torsocks: socks5h://127.0.0.1:9050
   sshtun: ssh://phuslu:123456@phus.lu:22/?timeout=8&max_clients=4&key=/home/phuslu/.ssh/id_rsa
   proxyws: wss://phuslu:123456@www.phus.lu:443/wss/connect?h=%s&p=%d
@@ -54,7 +54,7 @@ https:
           proxy_pass
         {{end}}
       auth_table: authuser.csv
-      upstream: |
+      dialer: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
       deny_domains_table: deny_domains.csv
       speed_limit: 10000000
@@ -103,7 +103,7 @@ http:
           bypass_auth
         {{end}}
       auth_table: authuser.csv
-      upstream: |
+      dialer: |
         {{if hasPrefix "scholar.google.com" .Request.Host}}
           proxy1
         {{else if ne (country .Request.Host) "CN"}}
@@ -153,4 +153,4 @@ stream:
     proxy_pass: unix:///var/run/docker.sock
   - listen: [':443']
     proxy_pass: github.com:443
-    upstream: proxy1
+    dialer: proxy1

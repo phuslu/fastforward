@@ -24,7 +24,7 @@ type StreamHandler struct {
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
-	Upstreams      map[string]Dialer
+	Dialers        map[string]Dialer
 
 	tlsConfig *tls.Config
 }
@@ -69,20 +69,20 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 		tconn := tls.Server(conn, h.tlsConfig)
 		err := tconn.HandshakeContext(ctx)
 		if err != nil {
-			log.Error().Err(err).Str("stream_proxy_pass", h.Config.ProxyPass).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
+			log.Error().Err(err).Str("stream_proxy_pass", h.Config.ProxyPass).Str("remote_ip", req.RemoteIP).Str("stream_dialer_name", h.Config.Dialer).Msg("connect remote host failed")
 			return
 		}
 		conn = tconn
 	}
 
 	dail := h.LocalDialer.DialContext
-	if h.Config.Upstream != "" {
-		u, ok := h.Upstreams[h.Config.Upstream]
+	if h.Config.Dialer != "" {
+		dialer, ok := h.Dialers[h.Config.Dialer]
 		if !ok {
-			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("upstream not exists")
+			log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("stream_dialer_name", h.Config.Dialer).Msg("dialer not exists")
 			return
 		}
-		dail = u.DialContext
+		dail = dialer.DialContext
 	}
 
 	rconn, err := func(ctx context.Context) (net.Conn, error) {
@@ -106,7 +106,7 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 		}
 	}(ctx)
 	if err != nil {
-		log.Error().Err(err).Str("stream_proxy_pass", h.Config.ProxyPass).Str("remote_ip", req.RemoteIP).Str("stream_upstream", h.Config.Upstream).Msg("connect remote host failed")
+		log.Error().Err(err).Str("stream_proxy_pass", h.Config.ProxyPass).Str("remote_ip", req.RemoteIP).Str("stream_dialer_name", h.Config.Dialer).Msg("connect remote host failed")
 		return
 	}
 	defer rconn.Close()
@@ -119,7 +119,7 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 		if h.RegionResolver.MaxmindReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(ctx, net.ParseIP(req.RemoteIP))
 		}
-		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("stream_upstream", h.Config.Upstream).Msg("forward port request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("stream_dialer_name", h.Config.Dialer).Msg("forward port request end")
 	}
 
 	return
