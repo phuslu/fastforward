@@ -561,6 +561,9 @@ func main() {
 				Dialers:        dialers,
 				Functions:      functions,
 			},
+			TunnelHandler: &HTTPTunnelHandler{
+				Config: httpConfig,
+			},
 			WebHandler: &HTTPWebHandler{
 				Config:    httpConfig,
 				Transport: transport,
