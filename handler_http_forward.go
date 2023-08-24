@@ -28,7 +28,7 @@ type HTTPForwardHandler struct {
 	ForwardLogger  log.Logger
 	RegionResolver *RegionResolver
 	LocalDialer    *LocalDialer
-	Transport      *http.Transport
+	LocalTransport *http.Transport
 	Dialers        map[string]Dialer
 	Functions      template.FuncMap
 
@@ -57,10 +57,10 @@ func (h *HTTPForwardHandler) Load() error {
 		for name, dailer := range h.Dialers {
 			h.transports[name] = &http.Transport{
 				DialContext:         dailer.DialContext,
-				TLSClientConfig:     h.Transport.TLSClientConfig,
-				TLSHandshakeTimeout: h.Transport.TLSHandshakeTimeout,
-				IdleConnTimeout:     h.Transport.IdleConnTimeout,
-				DisableCompression:  h.Transport.DisableCompression,
+				TLSClientConfig:     h.LocalTransport.TLSClientConfig,
+				TLSHandshakeTimeout: h.LocalTransport.TLSHandshakeTimeout,
+				IdleConnTimeout:     h.LocalTransport.IdleConnTimeout,
+				DisableCompression:  h.LocalTransport.DisableCompression,
 				MaxIdleConns:        32,
 			}
 		}
@@ -80,13 +80,13 @@ func (h *HTTPForwardHandler) Load() error {
 		dialer.PreferIPv6 = h.Config.Forward.PreferIpv6
 
 		h.LocalDialer = dialer
-		h.Transport = &http.Transport{
+		h.LocalTransport = &http.Transport{
 			DialContext:         dialer.DialContext,
-			TLSClientConfig:     h.Transport.TLSClientConfig,
-			TLSHandshakeTimeout: h.Transport.TLSHandshakeTimeout,
-			IdleConnTimeout:     h.Transport.IdleConnTimeout,
-			MaxIdleConns:        h.Transport.MaxIdleConns,
-			DisableCompression:  h.Transport.DisableCompression,
+			TLSClientConfig:     h.LocalTransport.TLSClientConfig,
+			TLSHandshakeTimeout: h.LocalTransport.TLSHandshakeTimeout,
+			IdleConnTimeout:     h.LocalTransport.IdleConnTimeout,
+			MaxIdleConns:        h.LocalTransport.MaxIdleConns,
+			DisableCompression:  h.LocalTransport.DisableCompression,
 		}
 	}
 
@@ -347,7 +347,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				tr = t
 			}
 		} else {
-			tr = h.Transport
+			tr = h.LocalTransport
 		}
 
 		resp, err := tr.RoundTrip(req)
