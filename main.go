@@ -423,44 +423,44 @@ func main() {
 			}
 		}
 
-		if reverse := server.Reverse; reverse.ClientMode {
+		if tunnel := server.Tunnel; tunnel.ClientMode {
 			go func(ctx context.Context) {
 				tr := transport.Clone()
 				tr.ForceAttemptHTTP2 = false
 				if tr.TLSClientConfig != nil {
 					tr.TLSClientConfig.NextProtos = []string{"http/1.1"}
 				}
-				api := fmt.Sprintf(reverse.APIFormat, reverse.RemoteAddr)
+				api := fmt.Sprintf(tunnel.APIFormat, tunnel.RemoteAddr)
 				req, _ := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
 				resp, err := tr.RoundTrip(req)
 				if err != nil {
-					log.Error().Err(err).Str("rerverse_api", api).Msg("rerverse error: failed to connect remote api")
+					log.Error().Err(err).Str("tunnel_api", api).Msg("tunnel error: failed to connect remote api")
 					return
 				}
 				rwc, ok := resp.Body.(io.ReadWriteCloser)
 				if !ok {
-					log.Error().Str("rerverse_api", api).Int("status_code", resp.StatusCode).Msg("rerverse error: 101 switching protocols response with non-writable body")
+					log.Error().Str("tunnel_api", api).Int("status_code", resp.StatusCode).Msg("tunnel error: 101 switching protocols response with non-writable body")
 					return
 				}
 				defer rwc.Close()
 				session, err := yamux.Server(rwc, nil)
 				if err != nil {
-					log.Error().Err(err).Msg("rerverse error: create yamux session")
+					log.Error().Err(err).Msg("tunnel error: create yamux session")
 					return
 				}
 				defer session.Close()
 				for {
 					stream, err := session.Accept()
 					if err != nil {
-						log.Error().Err(err).Msg("rerverse error: accept yamux stream")
+						log.Error().Err(err).Msg("tunnel error: accept yamux stream")
 						time.Sleep(10 * time.Millisecond)
 						continue
 					}
 					go func(ctx context.Context, stream net.Conn) {
 						defer stream.Close()
-						conn, err := dialer.DialContext(ctx, "tcp", reverse.LocalAddr)
+						conn, err := dialer.DialContext(ctx, "tcp", tunnel.LocalAddr)
 						if !ok {
-							log.Error().Err(err).Str("local_addr", reverse.LocalAddr).Msg("rerverse error: failed to connect local addr")
+							log.Error().Err(err).Str("local_addr", tunnel.LocalAddr).Msg("tunnel error: failed to connect local addr")
 							return
 						}
 						defer conn.Close()
