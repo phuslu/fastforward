@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/yamux"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/quic-go/quic-go"
@@ -422,16 +423,47 @@ func main() {
 			}
 		}
 
-		if reverse := server.Reverse; reverse.Mode == "client" {
-			ctx := context.Background()
-			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, reverse.ServerAPI+"?remote_addr="+reverse.RemoteAddr, nil)
-			resp, _ := transport.RoundTrip(req)
-			rwc, _ := resp.Body.(io.ReadWriteCloser)
-			defer rwc.Close()
-			conn, _ := dialer.DialContext(ctx, "tcp", reverse.LocalAddr)
-			defer conn.Close()
-			go io.Copy(rwc, conn)
-			io.Copy(conn, rwc)
+		if reverse := server.Reverse; reverse.ClientMode {
+			go func(ctx context.Context) {
+				api := fmt.Sprintf(reverse.APIFormat, reverse.RemoteAddr)
+				req, _ := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
+				resp, err := transport.RoundTrip(req)
+				if err != nil {
+					log.Error().Err(err).Str("rerverse_api", api).Msg("rerverse error: failed to connect remote api")
+					return
+				}
+				rwc, ok := resp.Body.(io.ReadWriteCloser)
+				if !ok {
+					log.Error().Str("rerverse_api", api).Int("status_code", resp.StatusCode).Msg("rerverse error: 101 switching protocols response with non-writable body")
+					return
+				}
+				defer rwc.Close()
+				session, err := yamux.Server(rwc, nil)
+				if err != nil {
+					log.Error().Err(err).Msg("rerverse error: create yamux session")
+					return
+				}
+				defer session.Close()
+				for {
+					stream, err := session.Accept()
+					if err != nil {
+						log.Error().Err(err).Msg("rerverse error: accept yamux stream")
+						time.Sleep(10 * time.Millisecond)
+						continue
+					}
+					go func(ctx context.Context, stream net.Conn) {
+						defer stream.Close()
+						conn, err := dialer.DialContext(ctx, "tcp", reverse.LocalAddr)
+						if !ok {
+							log.Error().Err(err).Str("local_addr", reverse.LocalAddr).Msg("rerverse error: failed to connect local addr")
+							return
+						}
+						defer conn.Close()
+						go io.Copy(rwc, conn)
+						io.Copy(conn, rwc)
+					}(ctx, stream)
+				}
+			}(context.Background())
 		}
 	}
 

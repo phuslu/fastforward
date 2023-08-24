@@ -38,8 +38,8 @@ type HTTPConfig struct {
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 	Reverse struct {
-		Mode       string `json:"mode" yaml:"mode"`
-		ServerAPI  string `json:"server_api" yaml:"server_api"`
+		ClientMode bool   `json:"client_mode" yaml:"client_mode"`
+		APIFormat  string `json:"api_format" yaml:"api_format"`
 		LocalAddr  string `json:"local_addr" yaml:"local_addr"`
 		RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
 	} `json:"reverse" yaml:"reverse"`
