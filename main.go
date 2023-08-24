@@ -425,9 +425,14 @@ func main() {
 
 		if reverse := server.Reverse; reverse.ClientMode {
 			go func(ctx context.Context) {
+				tr := transport.Clone()
+				tr.ForceAttemptHTTP2 = false
+				if tr.TLSClientConfig != nil {
+					tr.TLSClientConfig.NextProtos = []string{"http/1.1"}
+				}
 				api := fmt.Sprintf(reverse.APIFormat, reverse.RemoteAddr)
 				req, _ := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
-				resp, err := transport.RoundTrip(req)
+				resp, err := tr.RoundTrip(req)
 				if err != nil {
 					log.Error().Err(err).Str("rerverse_api", api).Msg("rerverse error: failed to connect remote api")
 					return
