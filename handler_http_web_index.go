@@ -15,7 +15,6 @@ import (
 	"text/template"
 
 	"github.com/phuslu/log"
-	"golang.org/x/net/webdav"
 )
 
 type HTTPWebIndexHandler struct {
@@ -26,7 +25,6 @@ type HTTPWebIndexHandler struct {
 
 	headers *template.Template
 	body    *template.Template
-	dav     *webdav.Handler
 }
 
 //go:embed autoindex.tmpl
