@@ -35,18 +35,9 @@ type HTTPConfig struct {
 		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
 		PreferIpv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`
 		Websocket        string `json:"websocket" yaml:"websocket"`
+		Tunnel           string `json:"tunnel" yaml:"tunnel"`
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
-	Tunnel struct {
-		Client struct {
-			APIFormat  string `json:"api_format" yaml:"api_format"`
-			LocalAddr  string `json:"local_addr" yaml:"local_addr"`
-			RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
-		} `json:"client" yaml:"client"`
-		Server struct {
-			API string `json:"api" yaml:"api"`
-		} `json:"server" yaml:"server"`
-	} `json:"tunnel" yaml:"tunnel"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`
 		Index    struct {
@@ -105,6 +96,13 @@ type StreamConfig struct {
 	Log         bool     `json:"log" yaml:"log"`
 }
 
+type TunnelConfig struct {
+	APIFormat  string `json:"api_format" yaml:"api_format"`
+	LocalAddr  string `json:"local_addr" yaml:"local_addr"`
+	RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
+	Log        bool   `json:"log" yaml:"log"`
+}
+
 type Config struct {
 	Global struct {
 		LogLevel         string `json:"log_level" yaml:"log_level"`
@@ -131,6 +129,7 @@ type Config struct {
 	Http   []HTTPConfig      `json:"http" yaml:"http"`
 	Socks  []SocksConfig     `json:"socks" yaml:"socks"`
 	Stream []StreamConfig    `json:"stream" yaml:"stream"`
+	Tunnel []TunnelConfig    `json:"tunnel" yaml:"tunnel"`
 }
 
 func NewConfig(filename string) (*Config, error) {

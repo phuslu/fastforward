@@ -65,7 +65,7 @@ func main() {
 	}
 
 	// main logger
-	var forwardLogger, tunnelLogger log.Logger
+	var forwardLogger log.Logger
 	if log.IsTerminal(os.Stderr.Fd()) {
 		log.DefaultLogger = log.Logger{
 			Level:      log.ParseLevel(config.Global.LogLevel),
@@ -77,10 +77,6 @@ func main() {
 			},
 		}
 		forwardLogger = log.Logger{
-			Level:  log.ParseLevel(config.Global.LogLevel),
-			Writer: log.DefaultLogger.Writer,
-		}
-		tunnelLogger = log.Logger{
 			Level:  log.ParseLevel(config.Global.LogLevel),
 			Writer: log.DefaultLogger.Writer,
 		}
@@ -100,16 +96,6 @@ func main() {
 			Level: log.ParseLevel(config.Global.LogLevel),
 			Writer: &log.FileWriter{
 				Filename:   "forward.log",
-				MaxBackups: config.Global.LogBackups,
-				MaxSize:    config.Global.LogMaxsize,
-				LocalTime:  config.Global.LogLocaltime,
-			},
-		}
-		// tunnel logger
-		tunnelLogger = log.Logger{
-			Level: log.ParseLevel(config.Global.LogLevel),
-			Writer: &log.FileWriter{
-				Filename:   "tunnel.log",
 				MaxBackups: config.Global.LogBackups,
 				MaxSize:    config.Global.LogMaxsize,
 				LocalTime:  config.Global.LogLocaltime,
@@ -378,10 +364,6 @@ func main() {
 				Dialers:        dialers,
 				Functions:      functions,
 			},
-			TunnelHandler: &HTTPTunnelHandler{
-				Config:       server,
-				TunnelLogger: tunnelLogger,
-			},
 			WebHandler: &HTTPWebHandler{
 				Config:    server,
 				Transport: transport,
@@ -439,54 +421,6 @@ func main() {
 				}
 				hs[name] = handler
 			}
-		}
-
-		if tunnel := server.Tunnel; tunnel.Client.APIFormat != "" && tunnel.Client.RemoteAddr != "" && tunnel.Client.LocalAddr != "" {
-			go func(ctx context.Context) {
-				tr := transport.Clone()
-				tr.ForceAttemptHTTP2 = false
-				if tr.TLSClientConfig != nil {
-					tr.TLSClientConfig.NextProtos = []string{"http/1.1"}
-				}
-				api := fmt.Sprintf(tunnel.Client.APIFormat, tunnel.Client.RemoteAddr)
-				req, _ := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
-				resp, err := tr.RoundTrip(req)
-				if err != nil {
-					log.Error().Err(err).Str("tunnel_api", api).Msg("tunnel error: failed to connect remote api")
-					return
-				}
-				rwc, ok := resp.Body.(io.ReadWriteCloser)
-				if !ok {
-					log.Error().Str("tunnel_api", api).Int("status_code", resp.StatusCode).Msg("tunnel error: 101 switching protocols response with non-writable body")
-					return
-				}
-				defer rwc.Close()
-				session, err := yamux.Server(rwc, nil)
-				if err != nil {
-					log.Error().Err(err).Msg("tunnel error: create yamux session")
-					return
-				}
-				defer session.Close()
-				for {
-					stream, err := session.Accept()
-					if err != nil {
-						log.Error().Err(err).Msg("tunnel error: accept yamux stream")
-						time.Sleep(10 * time.Millisecond)
-						continue
-					}
-					go func(ctx context.Context, stream net.Conn) {
-						defer stream.Close()
-						conn, err := dialer.DialContext(ctx, "tcp", tunnel.Client.LocalAddr)
-						if !ok {
-							log.Error().Err(err).Str("local_addr", tunnel.Client.LocalAddr).Msg("tunnel error: failed to connect local addr")
-							return
-						}
-						defer conn.Close()
-						go io.Copy(rwc, conn)
-						io.Copy(conn, rwc)
-					}(ctx, stream)
-				}
-			}(context.Background())
 		}
 	}
 
@@ -578,9 +512,6 @@ func main() {
 				LocalTransport: transport,
 				Dialers:        dialers,
 				Functions:      functions,
-			},
-			TunnelHandler: &HTTPTunnelHandler{
-				Config: httpConfig,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    httpConfig,
@@ -702,6 +633,55 @@ func main() {
 				}
 			}(ln, h)
 		}
+	}
+
+	// tunnel handler
+	tunnelTransport := transport.Clone()
+	tunnelTransport.ForceAttemptHTTP2 = false
+	if tunnelTransport.TLSClientConfig != nil {
+		tunnelTransport.TLSClientConfig.NextProtos = []string{"http/1.1"}
+	}
+	for _, tunnel := range config.Tunnel {
+		go func(ctx context.Context) {
+			api := fmt.Sprintf(tunnel.APIFormat, tunnel.RemoteAddr)
+			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
+			resp, err := tunnelTransport.RoundTrip(req)
+			if err != nil {
+				log.Error().Err(err).Str("tunnel_api", api).Msg("tunnel error: failed to connect remote api")
+				return
+			}
+			rwc, ok := resp.Body.(io.ReadWriteCloser)
+			if !ok {
+				log.Error().Str("tunnel_api", api).Int("status_code", resp.StatusCode).Msg("tunnel error: 101 switching protocols response with non-writable body")
+				return
+			}
+			defer rwc.Close()
+			session, err := yamux.Server(rwc, nil)
+			if err != nil {
+				log.Error().Err(err).Msg("tunnel error: create yamux session")
+				return
+			}
+			defer session.Close()
+			for {
+				stream, err := session.Accept()
+				if err != nil {
+					log.Error().Err(err).Msg("tunnel error: accept yamux stream")
+					time.Sleep(10 * time.Millisecond)
+					continue
+				}
+				go func(ctx context.Context, stream net.Conn) {
+					defer stream.Close()
+					conn, err := dialer.DialContext(ctx, "tcp", tunnel.LocalAddr)
+					if !ok {
+						log.Error().Err(err).Str("local_addr", tunnel.LocalAddr).Msg("tunnel error: failed to connect local addr")
+						return
+					}
+					defer conn.Close()
+					go io.Copy(stream, conn)
+					io.Copy(conn, stream)
+				}(ctx, stream)
+			}
+		}(context.Background())
 	}
 
 	var cronOptions = []cron.Option{
