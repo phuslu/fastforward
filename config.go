@@ -38,10 +38,14 @@ type HTTPConfig struct {
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 	Tunnel struct {
-		ClientMode bool   `json:"client_mode" yaml:"client_mode"`
-		APIFormat  string `json:"api_format" yaml:"api_format"`
-		LocalAddr  string `json:"local_addr" yaml:"local_addr"`
-		RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
+		Client struct {
+			APIFormat  string `json:"api_format" yaml:"api_format"`
+			LocalAddr  string `json:"local_addr" yaml:"local_addr"`
+			RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
+		} `json:"client" yaml:"client"`
+		Server struct {
+			API string `json:"api" yaml:"api"`
+		} `json:"server" yaml:"server"`
 	} `json:"tunnel" yaml:"tunnel"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`

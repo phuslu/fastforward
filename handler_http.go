@@ -114,7 +114,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		h.ForwardHandler.ServeHTTP(rw, req)
 	} else if h.ServerNames.Contains(hostname) && h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0))) {
 		h.ForwardHandler.ServeHTTP(rw, req)
-	} else if h.ServerNames.Contains(hostname) && h.Config.Tunnel.APIFormat != "" && req.URL.Path == h.Config.Tunnel.APIFormat && req.Method == http.MethodGet {
+	} else if h.ServerNames.Contains(hostname) && h.Config.Tunnel.Server.API != "" && req.URL.Path == h.Config.Tunnel.Server.API {
 		h.TunnelHandler.ServeHTTP(rw, req)
 	} else {
 		h.WebHandler.ServeHTTP(rw, req)
