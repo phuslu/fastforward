@@ -6,10 +6,6 @@ global:
   dns_cache_duration: 1m
 dialer:
   proxy1: http2://phuslu:123456@phus.lu:443/?max_clients=8
-tunnel:
-  - api_format: https://phus.lu/tunnel/server/api?remote_addr=%s
-    remote_addr: 127.0.0.1:10022
-    local_addr: 192.168.2.1:22
 socks:
   - listen: [':1080']
     server_name: ['127.0.0.1']
@@ -17,3 +13,8 @@ socks:
       prefer_ipv6: false
       dialer: proxy1
       policy: bypass_auth
+tunnel:
+  - client:
+      remote_addr: phus.lu:10022
+      local_addr: 192.168.2.1:22
+      key: abc123

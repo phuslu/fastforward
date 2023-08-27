@@ -35,7 +35,6 @@ type HTTPConfig struct {
 		BindInterface    string `json:"bind_interface" yaml:"bind_interface"`
 		PreferIpv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`
 		Websocket        string `json:"websocket" yaml:"websocket"`
-		Tunnel           string `json:"tunnel" yaml:"tunnel"`
 		Log              bool   `json:"log" yaml:"log"`
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
@@ -97,10 +96,15 @@ type StreamConfig struct {
 }
 
 type TunnelConfig struct {
-	APIFormat  string `json:"api_format" yaml:"api_format"`
-	LocalAddr  string `json:"local_addr" yaml:"local_addr"`
-	RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
-	Log        bool   `json:"log" yaml:"log"`
+	Server struct {
+		Listen string `json:"listen" yaml:"listen"`
+		Key    string `json:"key" yaml:"key"`
+	} `json:"server" yaml:"server"`
+	Client struct {
+		RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
+		LocalAddr  string `json:"local_addr" yaml:"local_addr"`
+		Key        string `json:"key" yaml:"key"`
+	} `json:"client" yaml:"client"`
 }
 
 type Config struct {

@@ -636,21 +636,41 @@ func main() {
 
 	// tunnel handler
 	for _, tunnel := range config.Tunnel {
-		log.Info().Str("version", version).Str("tunnel_api", tunnel.APIFormat).Str("remote_addr", tunnel.RemoteAddr).Str("local_addr", tunnel.LocalAddr).Msg("liner tunnel and forward port")
 
 		h := &TunnelHandler{
 			Config:         tunnel,
 			ForwardLogger:  forwardLogger,
 			RegionResolver: regionResolver,
-			LocalTransport: transport,
 			LocalDialer:    dialer,
 		}
 
-		if err = h.Load(); err != nil {
-			log.Error().Err(err).Str("version", version).Str("tunnel_api", tunnel.APIFormat).Str("remote_addr", tunnel.RemoteAddr).Str("local_addr", tunnel.LocalAddr).Msg("stream hanlder load error")
-		}
+		switch {
+		case tunnel.Server.Listen != "":
+			var ln net.Listener
 
-		go h.Serve(context.Background())
+			if ln, err = lc.Listen(context.Background(), "tcp", tunnel.Server.Listen); err != nil {
+				log.Fatal().Err(err).Str("address", tunnel.Server.Listen).Msg("net.Listen error")
+			}
+
+			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and tunnel port")
+
+			if err = h.Load(); err != nil {
+				log.Fatal().Err(err).Str("address", tunnel.Server.Listen).Msg("tunnel hanlder load error")
+			}
+
+			go func(ln net.Listener, h *TunnelHandler) {
+				for {
+					conn, err := ln.Accept()
+					if err != nil {
+						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept tunnel connection error")
+						time.Sleep(10 * time.Millisecond)
+					}
+					go h.ServeConn(conn)
+				}
+			}(ln, h)
+		case tunnel.Client.RemoteAddr != "" && tunnel.Client.LocalAddr != "":
+			go h.Client(context.Background())
+		}
 	}
 
 	var cronOptions = []cron.Option{

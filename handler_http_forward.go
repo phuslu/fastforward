@@ -18,7 +18,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hashicorp/yamux"
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/publicsuffix"
@@ -96,81 +95,6 @@ func (h *HTTPForwardHandler) Load() error {
 
 func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
-
-	if h.Config.Forward.Tunnel != "" && req.URL.Path == h.Config.Forward.Tunnel && req.Method == http.MethodGet {
-		if req.ProtoAtLeast(2, 0) {
-			log.Error().Context(ri.LogContext).Msg("http2 is unsupported")
-			http.Error(rw, "http2 is unsupported", http.StatusBadRequest)
-			return
-		}
-
-		hijacker, ok := rw.(http.Hijacker)
-		if !ok {
-			log.Error().Context(ri.LogContext).Msg("cannot hijack request")
-			http.Error(rw, "cannot hijack request", http.StatusServiceUnavailable)
-			return
-		}
-
-		conn, _, err := hijacker.Hijack()
-		if err != nil {
-			log.Error().Context(ri.LogContext).Err(err).Msg("cannot hijack request")
-			http.Error(rw, err.Error(), http.StatusServiceUnavailable)
-			return
-		}
-
-		addr := req.URL.Query().Get("remote_addr")
-		ln, err := (&ListenConfig{}).Listen(req.Context(), "tcp", addr)
-		if err != nil {
-			log.Error().Context(ri.LogContext).Err(err).Msg("cannot create yamux client")
-			errmsg := err.Error()
-			fmt.Fprintf(conn, "HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nConntent-Length: %d\r\n\r\n%s", len(errmsg), errmsg)
-			return
-		}
-		defer ln.Close()
-
-		fmt.Fprintf(conn, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
-
-		session, err := yamux.Client(conn, nil)
-		if err != nil {
-			log.Error().Context(ri.LogContext).Err(err).Msg("cannot create yamux client")
-			errmsg := err.Error()
-			fmt.Fprintf(conn, "HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nConntent-Length: %d\r\n\r\n%s", len(errmsg), errmsg)
-			return
-		}
-
-		for {
-			lconn, err := ln.Accept()
-			if err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") {
-					return
-				}
-				log.Error().Context(ri.LogContext).Err(err).Msg("tunnel accept conn error")
-				time.Sleep(10 * time.Millisecond)
-				continue
-			}
-
-			stream, err := session.Open()
-			if err != nil {
-				log.Error().Context(ri.LogContext).Err(err).Msg("tunnel open stream error")
-				time.Sleep(10 * time.Millisecond)
-				lconn.Close()
-				continue
-			}
-
-			go func(stream, lconn net.Conn) {
-				defer stream.Close()
-				defer lconn.Close()
-				go io.Copy(stream, lconn)
-				_, err := io.Copy(lconn, stream)
-				if err == nil {
-					log.Error().Context(ri.LogContext).Err(err).Msg("forward tunnel end")
-					ln.Close()
-				} else {
-					log.Error().Context(ri.LogContext).Err(err).Msg("forward tunnel error")
-				}
-			}(stream, lconn)
-		}
-	}
 
 	websocket := h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0)))
 	if websocket {
