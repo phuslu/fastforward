@@ -20,7 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/yamux"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
 	"github.com/quic-go/quic-go"
@@ -619,14 +618,14 @@ func main() {
 			}
 
 			if err = h.Load(); err != nil {
-				log.Fatal().Err(err).Str("address", addr).Msg("socks hanlder load error")
+				log.Fatal().Err(err).Str("address", addr).Msg("stream hanlder load error")
 			}
 
 			go func(ln net.Listener, h *StreamHandler) {
 				for {
 					conn, err := ln.Accept()
 					if err != nil {
-						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept socks connection error")
+						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept stream connection error")
 						time.Sleep(10 * time.Millisecond)
 					}
 					go h.ServeConn(conn)
@@ -636,52 +635,22 @@ func main() {
 	}
 
 	// tunnel handler
-	tunnelTransport := transport.Clone()
-	tunnelTransport.ForceAttemptHTTP2 = false
-	if tunnelTransport.TLSClientConfig != nil {
-		tunnelTransport.TLSClientConfig.NextProtos = []string{"http/1.1"}
-	}
 	for _, tunnel := range config.Tunnel {
-		go func(ctx context.Context) {
-			api := fmt.Sprintf(tunnel.APIFormat, tunnel.RemoteAddr)
-			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
-			resp, err := tunnelTransport.RoundTrip(req)
-			if err != nil {
-				log.Error().Err(err).Str("tunnel_api", api).Msg("tunnel error: failed to connect remote api")
-				return
-			}
-			rwc, ok := resp.Body.(io.ReadWriteCloser)
-			if !ok {
-				log.Error().Str("tunnel_api", api).Int("status_code", resp.StatusCode).Msg("tunnel error: 101 switching protocols response with non-writable body")
-				return
-			}
-			defer rwc.Close()
-			session, err := yamux.Server(rwc, nil)
-			if err != nil {
-				log.Error().Err(err).Msg("tunnel error: create yamux session")
-				return
-			}
-			defer session.Close()
-			for {
-				stream, err := session.Accept()
-				if err != nil {
-					log.Error().Err(err).Msg("tunnel error: accept yamux stream")
-					time.Sleep(10 * time.Millisecond)
-					continue
-				}
-				go func(ctx context.Context, stream net.Conn) {
-					defer stream.Close()
-					conn, err := dialer.DialContext(ctx, "tcp", tunnel.LocalAddr)
-					if !ok {
-						log.Error().Err(err).Str("local_addr", tunnel.LocalAddr).Msg("tunnel error: failed to connect local addr")
-						return
-					}
-					defer conn.Close()
-					go io.Copy(stream, conn)
-					io.Copy(conn, stream)
-				}(ctx, stream)
-			}
-		}(context.Background())
+		log.Info().Str("version", version).Str("tunnel_api", tunnel.APIFormat).Str("remote_addr", tunnel.RemoteAddr).Str("local_addr", tunnel.LocalAddr).Msg("liner tunnel and forward port")
+
+		h := &TunnelHandler{
+			Config:         tunnel,
+			ForwardLogger:  forwardLogger,
+			RegionResolver: regionResolver,
+			LocalTransport: transport,
+			LocalDialer:    dialer,
+		}
+
+		if err = h.Load(); err != nil {
+			log.Error().Err(err).Str("version", version).Str("tunnel_api", tunnel.APIFormat).Str("remote_addr", tunnel.RemoteAddr).Str("local_addr", tunnel.LocalAddr).Msg("stream hanlder load error")
+		}
+
+		go h.Serve(context.Background())
 	}
 
 	var cronOptions = []cron.Option{

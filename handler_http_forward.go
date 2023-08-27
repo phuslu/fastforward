@@ -126,6 +126,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			fmt.Fprintf(conn, "HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nConntent-Length: %d\r\n\r\n%s", len(errmsg), errmsg)
 			return
 		}
+		defer ln.Close()
 
 		fmt.Fprintf(conn, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
 
@@ -140,6 +141,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		for {
 			lconn, err := ln.Accept()
 			if err != nil {
+				if strings.Contains(err.Error(), "use of closed network connection") {
+					return
+				}
 				log.Error().Context(ri.LogContext).Err(err).Msg("tunnel accept conn error")
 				time.Sleep(10 * time.Millisecond)
 				continue
@@ -153,13 +157,18 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				continue
 			}
 
-			go func(rconn, lconn net.Conn) {
-				defer rconn.Close()
+			go func(stream, lconn net.Conn) {
+				defer stream.Close()
 				defer lconn.Close()
-				go io.Copy(lconn, rconn)
-				_, err := io.Copy(rconn, lconn)
-				log.Error().Context(ri.LogContext).Err(err).Msg("forward tunnel error")
-			}(lconn, stream)
+				go io.Copy(stream, lconn)
+				_, err := io.Copy(lconn, stream)
+				if err == nil {
+					log.Error().Context(ri.LogContext).Err(err).Msg("forward tunnel end")
+					ln.Close()
+				} else {
+					log.Error().Context(ri.LogContext).Err(err).Msg("forward tunnel error")
+				}
+			}(stream, lconn)
 		}
 	}
 
