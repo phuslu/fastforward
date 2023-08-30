@@ -24,7 +24,6 @@ type HTTPServerHandler struct {
 	TLSConfigurator *TLSConfigurator
 	ServerNames     StringSet
 	ForwardHandler  HTTPHandler
-	TunnelHandler   HTTPHandler
 	WebHandler      HTTPHandler
 }
 
