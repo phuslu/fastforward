@@ -31,7 +31,7 @@ type HTTPWebIndexHandler struct {
 var autoindexTemplate []byte
 
 func (h *HTTPWebIndexHandler) Load() (err error) {
-	if h.Body == "" {
+	if h.Body == "" && h.Root != "" {
 		h.Body = string(autoindexTemplate)
 	}
 
@@ -53,7 +53,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	log.Debug().Context(ri.LogContext).Interface("headers", req.Header).Msg("web index request")
 
-	if h.Root == "" && h.Body == "" {
+	if h.Root == "" && h.Headers == "" && h.Body == "" {
 		http.NotFound(rw, req)
 		return
 	}
@@ -218,10 +218,21 @@ func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Reque
 		Request   *http.Request
 		FileInfos []fs.FileInfo
 	}{h.Root, req, nil})
+
+	var statusCode int
 	for _, line := range strings.Split(sb.String(), "\n") {
-		parts := strings.Split(line, ":")
-		if len(parts) == 2 {
-			rw.Header().Add(parts[0], strings.TrimSpace(parts[1]))
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			continue
 		}
+		key, value := parts[0], strings.TrimSpace(parts[1])
+		if key == "status" {
+			statusCode, _ = strconv.Atoi(value)
+		} else {
+			rw.Header().Add(key, value)
+		}
+	}
+	if statusCode != 0 {
+		rw.WriteHeader(statusCode)
 	}
 }
