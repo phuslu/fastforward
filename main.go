@@ -459,9 +459,10 @@ func main() {
 		}
 
 		http2.ConfigureServer(server, &http2.Server{
-			MaxUploadBufferPerConnection: 1 << 20,
+			MaxConcurrentStreams:         100,
 			MaxUploadBufferPerStream:     1 << 20,
-			MaxReadFrameSize:             1 << 20, // 256K read frame, https://github.com/golang/go/issues/47840
+			MaxUploadBufferPerConnection: 100 * 1 << 20, // 100 * 1<<20, https: //github.com/golang/go/issues/54330#issuecomment-1213576274
+			MaxReadFrameSize:             1 << 20,       // 256K read frame, https://github.com/golang/go/issues/47840
 		})
 
 		go server.Serve(TCPListener{
@@ -482,11 +483,12 @@ func main() {
 				Handler:   server.Handler,
 				TLSConfig: server.TLSConfig,
 				QuicConfig: &quic.Config{
-					Allow0RTT:               true,
-					DisablePathMTUDiscovery: false,
-					EnableDatagrams:         false,
-					// MaxStreamReceiveWindow:     6 * 1024 * 1024,
-					// MaxConnectionReceiveWindow: 15 * 1024 * 1024,
+					Allow0RTT:                  true,
+					DisablePathMTUDiscovery:    false,
+					EnableDatagrams:            false,
+					MaxIncomingStreams:         100,
+					MaxStreamReceiveWindow:     6 * 1024 * 1024,
+					MaxConnectionReceiveWindow: 100 * 6 * 1024 * 1024,
 				},
 			}).ListenAndServe()
 		}
