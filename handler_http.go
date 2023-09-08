@@ -109,11 +109,14 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	req = req.WithContext(context.WithValue(req.Context(), RequestInfoContextKey, ri))
-	if hostname != "" && !h.ServerNames.Contains(hostname) {
+	switch {
+	case hostname != "" && !h.ServerNames.Contains(hostname):
 		h.ForwardHandler.ServeHTTP(rw, req)
-	} else if h.ServerNames.Contains(hostname) && h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0))) {
+	case h.ServerNames.Contains(hostname) && h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0))):
 		h.ForwardHandler.ServeHTTP(rw, req)
-	} else {
+	case req.Method == http.MethodConnect:
+		h.ForwardHandler.ServeHTTP(rw, req)
+	default:
 		h.WebHandler.ServeHTTP(rw, req)
 	}
 }
