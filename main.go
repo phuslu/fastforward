@@ -283,7 +283,7 @@ func main() {
 				Password: first(u.User.Password()),
 				Host:     u.Hostname(),
 				Port:     u.Port(),
-				Socsk5H:  u.Scheme == "socks5h",
+				Socks5H:  u.Scheme == "socks5h",
 				Resolver: resolver,
 				Dialer:   dialer,
 			}
