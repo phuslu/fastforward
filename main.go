@@ -460,9 +460,9 @@ func main() {
 
 		http2.ConfigureServer(server, &http2.Server{
 			MaxConcurrentStreams:         100,
-			MaxUploadBufferPerStream:     1 << 20,
-			MaxUploadBufferPerConnection: 100 * 1 << 20, // 100 * 1<<20, https: //github.com/golang/go/issues/54330#issuecomment-1213576274
-			MaxReadFrameSize:             1 << 20,       // 256K read frame, https://github.com/golang/go/issues/47840
+			MaxUploadBufferPerStream:     1024 * 1024,
+			MaxUploadBufferPerConnection: 100 * 1024 * 1024, // 100 MB, https: //github.com/golang/go/issues/54330#issuecomment-1213576274
+			MaxReadFrameSize:             1024 * 1024,       // 1MB read frame, https://github.com/golang/go/issues/47840
 		})
 
 		go server.Serve(TCPListener{
