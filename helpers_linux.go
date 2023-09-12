@@ -21,9 +21,10 @@ const (
 )
 
 type ListenConfig struct {
-	ReusePort   bool
-	FastOpen    bool
-	DeferAccept bool
+	ReusePort     bool
+	FastOpen      bool
+	DeferAccept   bool
+	TcpCongestion string
 }
 
 func (lc ListenConfig) Listen(ctx context.Context, network, address string) (net.Listener, error) {
@@ -38,6 +39,9 @@ func (lc ListenConfig) Listen(ctx context.Context, network, address string) (net
 				}
 				if lc.DeferAccept {
 					syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, syscall.TCP_DEFER_ACCEPT, 1)
+				}
+				if lc.TcpCongestion != "" {
+					syscall.SetsockoptString(int(fd), syscall.IPPROTO_TCP, syscall.TCP_CONGESTION, lc.TcpCongestion)
 				}
 			})
 		},
@@ -58,6 +62,16 @@ func (lc ListenConfig) ListenPacket(ctx context.Context, network, address string
 	}
 
 	return ln.ListenPacket(ctx, network, address)
+}
+
+func SetTcpCongestion(conn *net.TCPConn, tcpCongestion string) error {
+	c, err := conn.SyscallConn()
+	if err != nil {
+		return err
+	}
+	return c.Control(func(fd uintptr) {
+		syscall.SetsockoptString(int(fd), syscall.IPPROTO_TCP, syscall.TCP_CONGESTION, tcpCongestion)
+	})
 }
 
 type DailerController struct {
