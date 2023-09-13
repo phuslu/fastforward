@@ -17,13 +17,17 @@ dialer:
 https:
   - listen: [':443']
     server_name: ['example.org']
-    keyfile: example_org.pem
+    server_config:
+      example.org:
+        keyfile: example_org.pem
     web:
       - location: /
         index: /var/www/example.org
   - listen: [':443']
     server_name: ['ip.example.org']
-    keyfile: example_org.pem
+    server_config:
+      example_org.pem:
+        keyfile: example_org.pem
     web:
       - location: /
         headers: |
@@ -32,9 +36,11 @@ https:
           {"ip":"{{host .Request.RemoteAddr}}","country":"{{country .Request.RemoteAddr}}"}
   - listen: [':443']
     server_name: ['demo.example.org']
-    keyfile: /path/to/demo.example.org.key
-    certfile: /path/to/fullchain.cer
-    prefer_chacha20: true
+    server_config:
+      demo.example.org:
+        keyfile: /path/to/demo.example.org.key
+        certfile: /path/to/fullchain.cer
+        prefer_chacha20: true
     forward:
       prefer_ipv6: false
       policy: |
