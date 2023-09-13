@@ -474,21 +474,19 @@ func main() {
 		servers = append(servers, server)
 
 		// start http3 server
-		if !config.Global.DisableHTTP3 {
-			go (&http3.Server{
-				Addr:      addr,
-				Handler:   server.Handler,
-				TLSConfig: server.TLSConfig,
-				QuicConfig: &quic.Config{
-					Allow0RTT:                  true,
-					DisablePathMTUDiscovery:    false,
-					EnableDatagrams:            false,
-					MaxIncomingStreams:         100,
-					MaxStreamReceiveWindow:     6 * 1024 * 1024,
-					MaxConnectionReceiveWindow: 100 * 6 * 1024 * 1024,
-				},
-			}).ListenAndServe()
-		}
+		go (&http3.Server{
+			Addr:      addr,
+			Handler:   server.Handler,
+			TLSConfig: server.TLSConfig,
+			QuicConfig: &quic.Config{
+				Allow0RTT:                  true,
+				DisablePathMTUDiscovery:    false,
+				EnableDatagrams:            false,
+				MaxIncomingStreams:         100,
+				MaxStreamReceiveWindow:     6 * 1024 * 1024,
+				MaxConnectionReceiveWindow: 100 * 6 * 1024 * 1024,
+			},
+		}).ListenAndServe()
 	}
 
 	// listen and serve http
@@ -720,12 +718,7 @@ func main() {
 		go func(server *http.Server) {
 			defer wg.Done()
 
-			timeout := 5 * time.Minute
-			if config.Global.GracefulTimeout > 0 {
-				timeout = time.Duration(config.Global.GracefulTimeout) * time.Second
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()
 
 			if err := server.Shutdown(ctx); err != nil {
