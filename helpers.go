@@ -259,7 +259,6 @@ func (fw FlushWriter) Write(p []byte) (n int, err error) {
 
 type TCPListener struct {
 	*net.TCPListener
-	TcpCongestion   string
 	KeepAlivePeriod time.Duration
 	ReadBufferSize  int
 	WriteBufferSize int
@@ -271,9 +270,6 @@ func (ln TCPListener) Accept() (c net.Conn, err error) {
 	tc, err := ln.AcceptTCP()
 	if err != nil {
 		return
-	}
-	if ln.TcpCongestion != "" {
-		SetTcpCongestion(tc, ln.TcpCongestion)
 	}
 	if ln.KeepAlivePeriod > 0 {
 		tc.SetKeepAlive(true)

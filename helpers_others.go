@@ -11,10 +11,9 @@ import (
 )
 
 type ListenConfig struct {
-	ReusePort     bool
-	FastOpen      bool
-	DeferAccept   bool
-	TcpCongestion string
+	ReusePort   bool
+	FastOpen    bool
+	DeferAccept bool
 }
 
 func (ln ListenConfig) Listen(ctx context.Context, network, address string) (net.Listener, error) {
@@ -28,10 +27,6 @@ func (ln ListenConfig) ListenPacket(ctx context.Context, network, address string
 	}
 
 	return net.ListenUDP(network, laddr)
-}
-
-func SetTcpCongestion(conn *net.TCPConn, tcpCongestion string) error {
-	return nil
 }
 
 type DailerController struct {

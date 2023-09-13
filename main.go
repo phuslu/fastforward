@@ -341,16 +341,10 @@ func main() {
 		Singleflight:   &singleflight.Group{},
 	}).FuncMap()
 
-	tcpCongestion := ""
-	if strings.Contains(string(first(os.ReadFile("/proc/sys/net/ipv4/tcp_allowed_congestion_control"))), " bbr") {
-		tcpCongestion = "bbr"
-	}
-
 	lc := ListenConfig{
-		FastOpen:      false,
-		ReusePort:     true,
-		DeferAccept:   true,
-		TcpCongestion: tcpCongestion,
+		FastOpen:    false,
+		ReusePort:   true,
+		DeferAccept: true,
 	}
 
 	servers := make([]*http.Server, 0)
@@ -473,7 +467,6 @@ func main() {
 
 		go server.Serve(TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
-			TcpCongestion:   tcpCongestion,
 			KeepAlivePeriod: 3 * time.Minute,
 			// ReadBufferSize:  1 << 20,
 			// WriteBufferSize: 1 << 20,
@@ -562,7 +555,6 @@ func main() {
 
 		go server.Serve(TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
-			TcpCongestion:   tcpCongestion,
 			KeepAlivePeriod: 3 * time.Minute,
 			ReadBufferSize:  32 * 1024,
 			WriteBufferSize: 32 * 1024,
