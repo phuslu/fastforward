@@ -43,10 +43,6 @@ type HTTPConfig struct {
 			Root    string `json:"root" yaml:"root"`
 			Headers string `json:"headers" yaml:"headers"`
 			Body    string `json:"body" yaml:"body"`
-			Fcgi    struct {
-				Enabled bool   `json:"enabled" yaml:"enabled"`
-				Pass    string `json:"pass" yaml:"pass"`
-			} `json:"fcgi" yaml:"fcgi"`
 		} `json:"index" yaml:"index"`
 		Dav struct {
 			Enabled           bool   `json:"enabled" yaml:"enabled"`
