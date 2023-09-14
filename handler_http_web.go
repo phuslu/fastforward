@@ -48,7 +48,6 @@ func (h *HTTPWebHandler) Load() error {
 					Transport:         h.Transport,
 					Functions:         h.Functions,
 					Pass:              web.Proxy.Pass,
-					AuthBasic:         web.Proxy.AuthBasic,
 					AuthBasicUserFile: web.Proxy.AuthBasicUserFile,
 					SetHeaders:        web.Proxy.SetHeaders,
 					DumpFailure:       web.Proxy.DumpFailure,
@@ -59,7 +58,6 @@ func (h *HTTPWebHandler) Load() error {
 				web.Location,
 				&HTTPWebDavHandler{
 					Root:              web.Dav.Root,
-					AuthBasic:         web.Dav.AuthBasic,
 					AuthBasicUserFile: web.Dav.AuthBasicUserFile,
 				},
 			})
