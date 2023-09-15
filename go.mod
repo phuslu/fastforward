@@ -12,6 +12,7 @@ require (
 	github.com/quic-go/quic-go v0.38.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.2.1
+	github.com/tidwall/hashmap v1.8.1
 	github.com/tidwall/shardmap v0.0.0-20190927132224-c190691bd211
 	github.com/valyala/bytebufferpool v1.0.0
 	go.uber.org/ratelimit v0.3.0
@@ -35,6 +36,7 @@ require (
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.12.0 // indirect
@@ -43,6 +45,7 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/tidwall/rhh v1.3.0 // indirect
+	github.com/zeebo/xxh3 v1.0.2 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect

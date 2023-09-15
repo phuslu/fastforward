@@ -26,6 +26,7 @@ import (
 
 	"github.com/cloudflare/golibs/lrucache"
 	"github.com/tg123/go-htpasswd"
+	"github.com/tidwall/hashmap"
 	"github.com/valyala/bytebufferpool"
 	"go.uber.org/ratelimit"
 	"golang.org/x/crypto/ocsp"
@@ -674,4 +675,11 @@ func GetOCSPStaple(ctx context.Context, transport http.RoundTripper, cert *x509.
 	}
 
 	return raw, nil
+}
+
+func NewStringSet(ss []string) (m hashmap.Set[string]) {
+	for _, s := range ss {
+		m.Insert(s)
+	}
+	return
 }

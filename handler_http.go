@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/phuslu/log"
+	"github.com/tidwall/hashmap"
 )
 
 type HTTPHandler interface {
@@ -22,7 +23,7 @@ type HTTPHandler interface {
 type HTTPServerHandler struct {
 	Config          HTTPConfig
 	TLSConfigurator *TLSConfigurator
-	ServerNames     StringSet
+	ServerNames     hashmap.Set[string]
 	ForwardHandler  HTTPHandler
 	WebHandler      HTTPHandler
 }
