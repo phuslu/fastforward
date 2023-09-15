@@ -69,18 +69,18 @@ type TLSConfigurator struct {
 	Sniproies        hashmap.Map[string, TLSConfiguratorSniproxy]
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
-	ConfigCache      lrucache.Cache
-	CertCache        lrucache.Cache
+	TLSConfigCache   lrucache.Cache
+	CertificateCache lrucache.Cache
 	ClientHelloCache shardmap.Map
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
-	if m.ConfigCache == nil {
-		m.ConfigCache = NewLRUCache(1024)
+	if m.TLSConfigCache == nil {
+		m.TLSConfigCache = NewLRUCache(1024)
 	}
 
-	if m.CertCache == nil {
-		m.CertCache = NewLRUCache(1024)
+	if m.CertificateCache == nil {
+		m.CertificateCache = NewLRUCache(1024)
 	}
 
 	if m.AutoCert == nil {
@@ -146,7 +146,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			cacheKey += "!tls13"
 		}
 
-		if v, ok := m.CertCache.GetNotStale(cacheKey); ok {
+		if v, ok := m.CertificateCache.GetNotStale(cacheKey); ok {
 			return v.(*tls.Certificate), nil
 		}
 
@@ -161,7 +161,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertCache.Set(cacheKey, &cert, timeNow().Add(24*time.Hour))
+		m.CertificateCache.Set(cacheKey, &cert, timeNow().Add(24*time.Hour))
 
 		return &cert, nil
 	}
@@ -261,7 +261,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		cacheKey += ":chacha20"
 	}
 
-	if v, ok := m.ConfigCache.GetNotStale(cacheKey); ok {
+	if v, ok := m.TLSConfigCache.GetNotStale(cacheKey); ok {
 		return v.(*tls.Config), nil
 	}
 
@@ -304,7 +304,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.ConfigCache.Set(cacheKey, config, timeNow().Add(24*time.Hour))
+	m.TLSConfigCache.Set(cacheKey, config, timeNow().Add(24*time.Hour))
 
 	return config, nil
 }
