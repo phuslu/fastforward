@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/golibs/lrucache"
+	"github.com/tidwall/hashmap"
 	"github.com/tidwall/shardmap"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/acme/autocert"
@@ -64,8 +65,8 @@ type TLSConfiguratorSniproxy struct {
 type TLSConfigurator struct {
 	DefaultServername string
 
-	Entries          map[string]TLSConfiguratorEntry
-	Sniproies        map[string]TLSConfiguratorSniproxy
+	Entries          hashmap.Map[string, TLSConfiguratorEntry]
+	Sniproies        hashmap.Map[string, TLSConfiguratorSniproxy]
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
 	ConfigCache      lrucache.Cache
@@ -74,10 +75,6 @@ type TLSConfigurator struct {
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
-	if m.Entries == nil {
-		m.Entries = make(map[string]TLSConfiguratorEntry)
-	}
-
 	if m.ConfigCache == nil {
 		m.ConfigCache = NewLRUCache(1024)
 	}
@@ -120,17 +117,13 @@ func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 		entry.CertFile = entry.KeyFile
 	}
 
-	m.Entries[entry.ServerName] = entry
+	m.Entries.Set(entry.ServerName, entry)
 
 	return nil
 }
 
 func (m *TLSConfigurator) AddSniproxy(sniproxy TLSConfiguratorSniproxy) error {
-	if m.Sniproies == nil {
-		m.Sniproies = make(map[string]TLSConfiguratorSniproxy)
-	}
-
-	m.Sniproies[sniproxy.ServerName] = sniproxy
+	m.Sniproies.Set(sniproxy.ServerName, sniproxy)
 
 	return nil
 }
@@ -140,7 +133,7 @@ func (m *TLSConfigurator) HostPolicy(ctx context.Context, host string) error {
 }
 
 func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	entry, ok := m.Entries[hello.ServerName]
+	entry, ok := m.Entries.Get(hello.ServerName)
 	if !ok {
 		return nil, errors.New("server_name(" + hello.ServerName + ") is not allowed")
 	}
@@ -183,7 +176,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		hello.ServerName = host
 	}
 
-	if sni, ok := m.Sniproies[hello.ServerName]; ok {
+	if sni, ok := m.Sniproies.Get(hello.ServerName); ok {
 		if mc, ok := hello.Conn.(*MirrorHeaderConn); ok {
 			rconn, err := func(ctx context.Context) (net.Conn, error) {
 				if sni.DialTimeout > 0 {
@@ -227,7 +220,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 	}
 
 	var preferChacha20, disableTLS11, disableHTTP2 bool
-	if entry, ok := m.Entries[hello.ServerName]; ok {
+	if entry, ok := m.Entries.Get(hello.ServerName); ok {
 		preferChacha20 = entry.PreferChacha20
 		disableHTTP2 = entry.DisableHTTP2
 		disableTLS11 = entry.DisableTLS11
