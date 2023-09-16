@@ -18,6 +18,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/publicsuffix"
@@ -133,7 +134,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		err = h.policy.Execute(&sb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
-		}{req, ri.ClientHelloInfo})
+			UserAgent       *useragent.UserAgent
+		}{req, ri.ClientHelloInfo, &ri.UserAgent})
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Str("forward_policy", h.Config.Forward.Policy).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Msg("execute forward_policy error")
 			http.NotFound(rw, req)
@@ -215,8 +217,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		err := h.dialer.Execute(&sb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
+			UserAgent       *useragent.UserAgent
 			User            ForwardAuthInfo
-		}{req, ri.ClientHelloInfo, ai})
+		}{req, ri.ClientHelloInfo, &ri.UserAgent, ai})
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Str("forward_dialer_name", h.Config.Forward.Dialer).Msg("execute forward_dialer error")
 			http.NotFound(rw, req)

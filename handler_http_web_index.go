@@ -14,6 +14,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 )
 
@@ -59,12 +60,13 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	}
 
 	if h.Root == "" {
-		h.addHeaders(rw, req)
+		h.addHeaders(rw, req, ri)
 		h.body.Execute(rw, struct {
 			WebRoot   string
 			Request   *http.Request
+			UserAgent *useragent.UserAgent
 			FileInfos []fs.FileInfo
-		}{h.Root, req, nil})
+		}{h.Root, req, &ri.UserAgent, nil})
 		return
 	}
 
@@ -100,7 +102,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		}
 		defer file.Close()
 
-		h.addHeaders(rw, req)
+		h.addHeaders(rw, req, ri)
 		if s := mime.TypeByExtension(filepath.Ext(fullname)); s != "" {
 			rw.Header().Set("content-type", s)
 		} else {
@@ -199,25 +201,27 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	err = h.body.Execute(&b, struct {
 		WebRoot   string
 		Request   *http.Request
+		UserAgent *useragent.UserAgent
 		FileInfos []fs.FileInfo
-	}{h.Root, req, infos})
+	}{h.Root, req, &ri.UserAgent, infos})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.addHeaders(rw, req)
+	h.addHeaders(rw, req, ri)
 	rw.Header().Set("content-type", "text/html;charset=utf-8")
 	rw.Write(b.Bytes())
 }
 
-func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request) {
+func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request, ri *RequestInfo) {
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
 		WebRoot   string
 		Request   *http.Request
+		UserAgent *useragent.UserAgent
 		FileInfos []fs.FileInfo
-	}{h.Root, req, nil})
+	}{h.Root, req, &ri.UserAgent, nil})
 
 	var statusCode int
 	for _, line := range strings.Split(sb.String(), "\n") {

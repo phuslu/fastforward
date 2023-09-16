@@ -13,6 +13,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/cryptobyte"
 )
@@ -66,8 +67,9 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	var sb strings.Builder
 	h.dialer.Execute(&sb, struct {
-		Request *http.Request
-	}{req})
+		Request   *http.Request
+		UserAgent *useragent.UserAgent
+	}{req, &ri.UserAgent})
 
 	u, err := url.Parse(sb.String())
 	if err != nil {
@@ -103,7 +105,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		// req.Header.Set("x-http-proto", req.Proto)
 		req.Header.Set("x-ja3-fingerprint", getTlsFingerprint(ri.TLSVersion, ri.ClientHelloInfo, ri.ClientHelloRaw))
 	}
-	h.setHeaders(req)
+	h.setHeaders(req, ri)
 
 	if req.ProtoAtLeast(3, 0) && req.Method == http.MethodGet {
 		req.Body = nil
@@ -209,15 +211,16 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	}
 }
 
-func (h *HTTPWebProxyHandler) setHeaders(req *http.Request) {
+func (h *HTTPWebProxyHandler) setHeaders(req *http.Request, ri *RequestInfo) {
 	if h.SetHeaders == "" {
 		return
 	}
 
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
-		Request *http.Request
-	}{req})
+		Request   *http.Request
+		UserAgent *useragent.UserAgent
+	}{req, &ri.UserAgent})
 
 	for _, line := range strings.Split(sb.String(), "\n") {
 		parts := strings.Split(line, ":")
