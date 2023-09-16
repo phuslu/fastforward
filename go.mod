@@ -37,6 +37,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
+	github.com/mileusna/useragent v1.3.4 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.12.0 // indirect

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 	"github.com/tidwall/hashmap"
 )
@@ -36,6 +37,7 @@ type RequestInfo struct {
 	ClientHelloInfo *tls.ClientHelloInfo
 	ClientHelloRaw  []byte
 	TraceID         log.XID
+	UserAgent       useragent.UserAgent
 	LogContext      log.Context
 }
 
@@ -89,6 +91,8 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		req.Proto, req.ProtoMajor, req.ProtoMinor = "HTTP/3.0", 3, 0
 	}
 
+	ri.UserAgent = useragent.Parse(req.Header.Get("User-Agent"))
+
 	ri.TraceID = log.NewXID()
 
 	ri.LogContext = log.NewContext(ri.LogContext[:0]).
@@ -102,6 +106,8 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		Str("http_proto", req.Proto).
 		Str("http_host", req.Host).
 		Str("http_url", req.URL.String()).
+		Str("useragent_os", ri.UserAgent.OS+" "+ri.UserAgent.OSVersion).
+		Str("useragent_browser", ri.UserAgent.Name+" "+ri.UserAgent.Version).
 		Value()
 
 	hostname := req.Host
