@@ -30,10 +30,11 @@ https:
         keyfile: example_org.pem
     web:
       - location: /
-        headers: |
-          content-type: application/json
-        body: |
-          {"ip":"{{host .Request.RemoteAddr}}","country":"{{country .Request.RemoteAddr}}"}
+        index:
+          headers: |
+            content-type: application/json
+          body: |
+            {"ip":"{{host .Request.RemoteAddr}}","country":"{{country .Request.RemoteAddr}}"}
   - listen: [':443']
     server_name: ['demo.example.org']
     server_config:
