@@ -54,7 +54,7 @@ func (h *HTTPWebHandler) Load() error {
 					AuthBasicUserFile: web.Dav.AuthBasicUserFile,
 				},
 			})
-		case web.Index.Root != "" || web.Index.Body != "":
+		case web.Index.Root != "" || web.Index.Body != "" || web.Index.File != "":
 			routers = append(routers, router{
 				web.Location,
 				&HTTPWebIndexHandler{
@@ -62,6 +62,7 @@ func (h *HTTPWebHandler) Load() error {
 					Root:      web.Index.Root,
 					Headers:   web.Index.Headers,
 					Body:      web.Index.Body,
+					File:      web.Index.File,
 				},
 			})
 		}

@@ -43,6 +43,7 @@ type HTTPConfig struct {
 			Root    string `json:"root" yaml:"root"`
 			Headers string `json:"headers" yaml:"headers"`
 			Body    string `json:"body" yaml:"body"`
+			File    string `json:"file" yaml:"file"`
 		} `json:"index" yaml:"index"`
 		Dav struct {
 			Enabled           bool   `json:"enabled" yaml:"enabled"`

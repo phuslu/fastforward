@@ -22,6 +22,7 @@ type HTTPWebIndexHandler struct {
 	Root      string
 	Headers   string
 	Body      string
+	File      string
 	Functions template.FuncMap
 
 	headers *template.Template
@@ -41,11 +42,9 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 		return
 	}
 
-	if !strings.HasPrefix(h.Body, "@") {
-		h.body, err = template.New(h.Body).Funcs(h.Functions).Parse(h.Body)
-		if err != nil {
-			return
-		}
+	h.body, err = template.New(h.Body).Funcs(h.Functions).Parse(h.Body)
+	if err != nil {
+		return
 	}
 
 	return
@@ -56,34 +55,33 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	log.Debug().Context(ri.LogContext).Interface("headers", req.Header).Msg("web index request")
 
-	if h.Root == "" && h.Headers == "" && h.Body == "" {
+	if h.Root == "" && h.Headers == "" && h.Body == "" && h.File == "" {
 		http.NotFound(rw, req)
 		return
 	}
 
 	if h.Root == "" {
 		h.addHeaders(rw, req, ri)
-		body := h.body
+		tmpl := h.body
 		var fi fs.FileInfo
-		if body == nil {
-			text := h.Body
-			if strings.HasPrefix(text, "@") {
-				fi, _ = os.Stat(text[1:])
-				data, err := os.ReadFile(text[1:])
-				if err != nil {
-					http.Error(rw, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				text = string(data)
-			}
-			t, err := template.New(h.Body).Funcs(h.Functions).Parse(text)
+		if h.File != "" {
+			data, err := os.ReadFile(h.File)
 			if err != nil {
 				http.Error(rw, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			body = t
+			tmpl, err = template.New(h.File).Funcs(h.Functions).Parse(string(data))
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			fi, err = os.Stat(h.File)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
-		body.Execute(rw, struct {
+		tmpl.Execute(rw, struct {
 			Request   *http.Request
 			UserAgent *useragent.UserAgent
 			FileInfo  fs.FileInfo
