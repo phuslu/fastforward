@@ -68,8 +68,6 @@ http:
       prefer_ipv6: false
       policy: bypass_auth
       dialer: https_hk
-    pac:
-      enabled: true
 EOF
 	# clean old files
 	rm liner_darwin_amd64-${revison}.tar.xz
@@ -101,8 +99,6 @@ http:
       prefer_ipv6: false
       policy: bypass_auth
       dialer: https_hk
-    pac:
-      enabled: true
 EOF
 		# clean old files
 		rm liner_windows_${arch}-${revison}.tar.xz

@@ -66,9 +66,6 @@ https:
       deny_domains_table: deny_domains.csv
       speed_limit: 10000000
     web:
-      - location: /proxy.pac
-        pac:
-          enabled: true
       - location: /dns-query
         proxy:
           pass: https://1.1.1.1
@@ -76,6 +73,9 @@ https:
       - location: /debug/
         pprof:
           enabled: true
+      - location: /china.pac
+        index:
+          body: '@/home/phuslu/liner/china.pac'
       - location: /
         proxy:
           pass: 'http://127.0.0.1:80'
@@ -120,9 +120,6 @@ http:
       - location: /
         index:
           root: 'C:/Users/phuslu/Desktop'
-      - location: /proxy.pac
-        pac:
-          enabled: true
 socks:
   - listen: [':1081']
     server_name: ['127.0.0.1']

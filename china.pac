@@ -1,7 +1,11 @@
-// {{.Version}} - updated at {{.UpdatedAt.Format "2006-01-02T15:04:05Z07:00"}}
+// updated at {{.FileInfo.ModTime.Format "2006-01-02T15:04:05Z07:00"}}
 
-var proxy = '{{.Scheme}} {{.Host}}'
 var direct = 'DIRECT'
+{{if .Request.TLS -}}
+var proxy = 'HTTPS {{.Request.Host}}:443'
+{{else}}
+var proxy = 'HTTP {{.Request.Host}}:443'
+{{end}}
 
 var prelude = {
 	// wifi hotpot

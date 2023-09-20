@@ -27,13 +27,6 @@ func (h *HTTPWebHandler) Load() error {
 	var routers []router
 	for _, web := range h.Config.Web {
 		switch {
-		case web.Pac.Enabled:
-			routers = append(routers, router{
-				web.Location,
-				&HTTPWebPacHandler{
-					Functions: h.Functions,
-				},
-			})
 		case web.Pprof.Enabled:
 			routers = append(routers, router{
 				web.Location,

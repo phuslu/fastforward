@@ -58,9 +58,6 @@ type HTTPConfig struct {
 		Pprof struct {
 			Enabled bool `json:"enabled" yaml:"enabled"`
 		} `json:"pprof" yaml:"pprof"`
-		Pac struct {
-			Enabled bool `json:"enabled" yaml:"enabled"`
-		} `json:"pac" yaml:"pac"`
 	} `json:"web" yaml:"web"`
 }
 

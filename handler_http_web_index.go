@@ -41,9 +41,11 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 		return
 	}
 
-	h.body, err = template.New(h.Body).Funcs(h.Functions).Parse(h.Body)
-	if err != nil {
-		return
+	if !strings.HasPrefix(h.Body, "@") {
+		h.body, err = template.New(h.Body).Funcs(h.Functions).Parse(h.Body)
+		if err != nil {
+			return
+		}
 	}
 
 	return
@@ -61,12 +63,31 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	if h.Root == "" {
 		h.addHeaders(rw, req, ri)
-		h.body.Execute(rw, struct {
-			WebRoot   string
+		body := h.body
+		var fi fs.FileInfo
+		if body == nil {
+			text := h.Body
+			if strings.HasPrefix(text, "@") {
+				fi, _ = os.Stat(text[1:])
+				data, err := os.ReadFile(text[1:])
+				if err != nil {
+					http.Error(rw, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				text = string(data)
+			}
+			t, err := template.New(h.Body).Funcs(h.Functions).Parse(text)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			body = t
+		}
+		body.Execute(rw, struct {
 			Request   *http.Request
 			UserAgent *useragent.UserAgent
-			FileInfos []fs.FileInfo
-		}{h.Root, req, &ri.UserAgent, nil})
+			FileInfo  fs.FileInfo
+		}{req, &ri.UserAgent, fi})
 		return
 	}
 

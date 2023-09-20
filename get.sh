@@ -64,9 +64,9 @@ https:
             proxy_pass
         {{end}}
     web:
-      - location: /*.pac
-        pac:
-          enabled: true
+      - location: /$pacfile
+        index:
+          body: '@$(pwd)/$pacfile'
       - location: /
         proxy:
           pass: 'http://127.0.0.1:80'
