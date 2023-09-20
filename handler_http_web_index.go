@@ -68,27 +68,42 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		tmpl := h.body
 		var fi fs.FileInfo
 		if h.File != "" {
-			data, err := os.ReadFile(h.File)
+			file, err := os.Open(h.File)
 			if err != nil {
 				http.Error(rw, err.Error(), http.StatusInternalServerError)
 				return
 			}
+			defer file.Close()
+
+			fi, err = file.Stat()
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if fi.Size() > 1*1024*1024 {
+				io.Copy(rw, file)
+				return
+			}
+
+			data, err := io.ReadAll(file)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 			tmpl, err = template.New(h.File).Funcs(h.Functions).Parse(string(data))
 			if err != nil {
 				http.Error(rw, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			fi, err = os.Stat(h.File)
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-				return
-			}
 		}
+
 		tmpl.Execute(rw, struct {
 			Request   *http.Request
 			UserAgent *useragent.UserAgent
 			FileInfo  fs.FileInfo
 		}{req, &ri.UserAgent, fi})
+
 		return
 	}
 
