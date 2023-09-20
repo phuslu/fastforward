@@ -7,6 +7,7 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/cloudflare/golibs v0.0.0-20210909181612-21743d7dd02a
 	github.com/hashicorp/yamux v0.1.1
+	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/phuslu/log v1.0.88
 	github.com/quic-go/quic-go v0.38.1
@@ -32,15 +33,14 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/pprof v0.0.0-20230907193218-d3ddc7976beb // indirect
+	github.com/google/pprof v0.0.0-20230912144702-c363fe2c2ed8 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/mileusna/useragent v1.3.4 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/onsi/ginkgo/v2 v2.12.0 // indirect
+	github.com/onsi/ginkgo/v2 v2.12.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.3.4 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
@@ -54,4 +54,4 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
-replace github.com/quic-go v0.38.1 => github.com/aggresss/quic-go v0.0.0-20230830060823-d23b00bee219
+replace github.com/imdario/mergo v0.3.16 => github.com/imdario/mergo v0.3.16
