@@ -62,6 +62,9 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	if h.Root == "" {
 		h.addHeaders(rw, req, ri)
+		if s := mime.TypeByExtension(filepath.Ext(req.URL.Path)); s != "" {
+			rw.Header().Set("content-type", s)
+		}
 		tmpl := h.body
 		var fi fs.FileInfo
 		if h.File != "" {
