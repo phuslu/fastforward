@@ -20,6 +20,7 @@ import (
 )
 
 type HTTPWebIndexHandler struct {
+	Location  string
 	Root      string
 	Headers   string
 	Body      string
@@ -107,7 +108,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	fullname := filepath.Join(h.Root, req.URL.Path)
+	fullname := filepath.Join(h.Root, strings.TrimPrefix(req.URL.Path, h.Location))
 
 	fi, err := os.Stat(fullname)
 	if err != nil {

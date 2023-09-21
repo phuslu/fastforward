@@ -59,6 +59,7 @@ func (h *HTTPWebHandler) Load() error {
 				web.Location,
 				&HTTPWebIndexHandler{
 					Functions: h.Functions,
+					Location:  web.Location,
 					Root:      web.Index.Root,
 					Headers:   web.Index.Headers,
 					Body:      web.Index.Body,
