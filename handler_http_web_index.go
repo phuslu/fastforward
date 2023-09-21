@@ -101,10 +101,11 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		}
 
 		tmpl.Execute(rw, struct {
-			Request   *http.Request
-			UserAgent *useragent.UserAgent
-			FileInfo  fs.FileInfo
-		}{req, &ri.UserAgent, fi})
+			Request    *http.Request
+			UserAgent  *useragent.UserAgent
+			ServerAddr string
+			FileInfo   fs.FileInfo
+		}{req, &ri.UserAgent, ri.ServerAddr, fi})
 
 		return
 	}
@@ -238,11 +239,12 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	var b bytes.Buffer
 	err = h.body.Execute(&b, struct {
-		WebRoot   string
-		Request   *http.Request
-		UserAgent *useragent.UserAgent
-		FileInfos []fs.FileInfo
-	}{h.Root, req, &ri.UserAgent, infos})
+		WebRoot    string
+		Request    *http.Request
+		UserAgent  *useragent.UserAgent
+		ServerAddr string
+		FileInfos  []fs.FileInfo
+	}{h.Root, req, &ri.UserAgent, ri.ServerAddr, infos})
 	if err != nil {
 		http.Error(rw, "500 internal server error", http.StatusInternalServerError)
 		return
@@ -256,11 +258,12 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Request, ri *RequestInfo) {
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
-		WebRoot   string
-		Request   *http.Request
-		UserAgent *useragent.UserAgent
-		FileInfos []fs.FileInfo
-	}{h.Root, req, &ri.UserAgent, nil})
+		WebRoot    string
+		Request    *http.Request
+		UserAgent  *useragent.UserAgent
+		ServerAddr string
+		FileInfos  []fs.FileInfo
+	}{h.Root, req, &ri.UserAgent, ri.ServerAddr, nil})
 
 	var statusCode int
 	for _, line := range strings.Split(sb.String(), "\n") {

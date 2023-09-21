@@ -67,9 +67,10 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	var sb strings.Builder
 	h.dialer.Execute(&sb, struct {
-		Request   *http.Request
-		UserAgent *useragent.UserAgent
-	}{req, &ri.UserAgent})
+		Request    *http.Request
+		UserAgent  *useragent.UserAgent
+		ServerAddr string
+	}{req, &ri.UserAgent, ri.ServerAddr})
 
 	u, err := url.Parse(sb.String())
 	if err != nil {
@@ -218,9 +219,10 @@ func (h *HTTPWebProxyHandler) setHeaders(req *http.Request, ri *RequestInfo) {
 
 	var sb strings.Builder
 	h.headers.Execute(&sb, struct {
-		Request   *http.Request
-		UserAgent *useragent.UserAgent
-	}{req, &ri.UserAgent})
+		Request    *http.Request
+		UserAgent  *useragent.UserAgent
+		ServerAddr string
+	}{req, &ri.UserAgent, ri.ServerAddr})
 
 	for _, line := range strings.Split(sb.String(), "\n") {
 		parts := strings.Split(line, ":")
