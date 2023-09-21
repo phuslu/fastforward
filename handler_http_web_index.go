@@ -30,12 +30,9 @@ type HTTPWebIndexHandler struct {
 	body    *template.Template
 }
 
-//go:embed autoindex.tpl
-var autoindexTemplate []byte
-
 func (h *HTTPWebIndexHandler) Load() (err error) {
 	if h.Body == "" && h.Root != "" {
-		h.Body = string(autoindexTemplate)
+		h.Body = autoindexTemplate
 	}
 
 	h.headers, err = template.New(h.Headers).Funcs(h.Functions).Parse(h.Headers)
@@ -282,3 +279,19 @@ func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Reque
 		rw.WriteHeader(statusCode)
 	}
 }
+
+const autoindexTemplate = `
+<html>
+<head><title>Index of {{.Request.URL.Path}}</title></head>
+<body>
+<h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
+{{range .FileInfos -}}
+{{if .IsDir -}}
+<a href="{{.Name}}/">{{.Name}}/</a>                                              {{.ModTime.Format "02-Jan-2006 15:04"}}       -
+{{else -}}
+<a href="{{.Name}}">{{.Name}}</a>                                              {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
+{{end -}}
+{{end}}</pre><hr></body>
+</html>
+{{ readfile "autoindex.html" }}
+`

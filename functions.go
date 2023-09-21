@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -31,6 +32,7 @@ func (f *Functions) FuncMap() template.FuncMap {
 	m["greased"] = f.greased
 	m["region"] = f.region
 	m["iplist"] = f.iplist
+	m["readfile"] = f.readfile
 
 	return m
 }
@@ -142,4 +144,9 @@ func (f *Functions) iplist(iplistUrl string) string {
 	f.LRUCache.Set(iplistUrl, data, time.Now().Add(12*time.Hour))
 
 	return data
+}
+
+func (f *Functions) readfile(filename string) string {
+	data, _ := os.ReadFile(filename)
+	return string(data)
 }

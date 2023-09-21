@@ -1,15 +1,3 @@
-<html>
-<head><title>Index of {{.Request.URL.Path}}</title></head>
-<body>
-<h1>Index of {{.Request.URL.Path}}</h1><hr><pre><a href="../">../</a>
-{{range .FileInfos -}}
-{{if .IsDir -}}
-<a href="{{.Name}}/">{{.Name}}/</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}       -
-{{else -}}
-<a href="{{.Name}}">{{.Name}}</a>                                                  {{.ModTime.Format "02-Jan-2006 15:04"}}    {{.Size}}
-{{end -}}
-{{end}}</pre><hr></body>
-</html>
 
 <!-- autoindex.html 20221104 for nginx, see https://phus.lu -->
 <script>
@@ -19,7 +7,7 @@
 	var datetime_format = '%d-%b-%Y %H:%M'
 	var enable_readme_md = true
 	var enable_footer_js = true
-	var marked_js = 'https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/marked/4.0.2/marked.min.js'
+	var marked_js = 'https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/marked/0.5.2/marked.min.js'
 	var github_markdown_css = 'https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/github-markdown-css/5.1.0/github-markdown-light.min.css'
 
 	var dom = {
@@ -281,7 +269,7 @@ table.table-hover > tbody > tr:hover > th {
 	float: left;
 	font-family: "ubuntu", "Tahoma", "Microsoft YaHei", Arial, Serif;
 }
-/* octicons */
+/* octicons, see https://phus.lu/code/octicons.css */
 .octicon {
 	background-position: center left;
 	background-repeat: no-repeat;
@@ -320,3 +308,4 @@ table.table-hover > tbody > tr:hover > th {
 	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='16' viewBox='0 0 10 16'%3E%3Cpolygon id='Shape' points='5 3 0 9 3 9 3 13 7 13 7 9 10 9'%3E%3C/polygon%3E%3C/svg%3E");
 }
 </style>
+
