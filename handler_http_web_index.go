@@ -30,7 +30,7 @@ type HTTPWebIndexHandler struct {
 	body    *template.Template
 }
 
-//go:embed autoindex.tmpl
+//go:embed autoindex.tpl
 var autoindexTemplate []byte
 
 func (h *HTTPWebIndexHandler) Load() (err error) {
