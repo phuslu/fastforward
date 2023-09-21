@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -80,7 +81,8 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 				http.Error(rw, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			if fi.Size() > 1*1024*1024 {
+
+			if !slices.Contains([]string{".tpl", ".html", ".pac"}, filepath.Ext(h.File)) {
 				io.Copy(rw, file)
 				return
 			}
