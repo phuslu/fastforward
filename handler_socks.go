@@ -161,8 +161,9 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	if h.PolicyTemplate != nil {
 		sb.Reset()
 		err := h.PolicyTemplate.Execute(&sb, struct {
-			Request SocksRequest
-		}{req})
+			Request    SocksRequest
+			ServerAddr string
+		}{req, req.ServerAddr})
 		if err != nil {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("execute forward_policy error")
 			return
@@ -189,8 +190,9 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 	if h.UpstreamTemplate != nil {
 		sb.Reset()
 		err := h.UpstreamTemplate.Execute(&sb, struct {
-			Request SocksRequest
-		}{req})
+			Request    SocksRequest
+			ServerAddr string
+		}{req, req.ServerAddr})
 		if err != nil {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Msg("execute forward_dialer error")
 			WriteSocks5Status(conn, Socks5StatusGeneralFailure)
