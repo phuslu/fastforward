@@ -41,6 +41,7 @@ type HTTP2Dialer struct {
 func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	connect := func() (*http2.Transport, error) {
 		return &http2.Transport{
+			MaxReadFrameSize:   1024 * 1024, // 1MB read frame, https://github.com/golang/go/issues/47840
 			DisableCompression: false,
 			DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
 				dialer := d.Dialer
