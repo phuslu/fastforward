@@ -67,7 +67,7 @@ func main() {
 	var forwardLogger log.Logger
 	if log.IsTerminal(os.Stderr.Fd()) {
 		log.DefaultLogger = log.Logger{
-			Level:      log.ParseLevel(config.Global.LogLevel),
+			Level:      log.ParseLevel(first(config.Global.LogLevel, "info")),
 			Caller:     1,
 			TimeFormat: "15:04:05",
 			Writer: &log.ConsoleWriter{
@@ -76,27 +76,27 @@ func main() {
 			},
 		}
 		forwardLogger = log.Logger{
-			Level:  log.ParseLevel(config.Global.LogLevel),
+			Level:  log.ParseLevel(first(config.Global.LogLevel, "info")),
 			Writer: log.DefaultLogger.Writer,
 		}
 	} else {
 		// main logger
 		log.DefaultLogger = log.Logger{
-			Level: log.ParseLevel(config.Global.LogLevel),
+			Level: log.ParseLevel(first(config.Global.LogLevel, "info")),
 			Writer: &log.FileWriter{
 				Filename:   executable + ".log",
 				MaxBackups: 1,
-				MaxSize:    config.Global.LogMaxsize,
+				MaxSize:    first(config.Global.LogMaxsize, 10*1024*1024),
 				LocalTime:  config.Global.LogLocaltime,
 			},
 		}
 		// forward logger
 		forwardLogger = log.Logger{
-			Level: log.ParseLevel(config.Global.LogLevel),
+			Level: log.ParseLevel(first(config.Global.LogLevel, "info")),
 			Writer: &log.FileWriter{
 				Filename:   "forward.log",
-				MaxBackups: config.Global.LogBackups,
-				MaxSize:    config.Global.LogMaxsize,
+				MaxBackups: first(config.Global.LogBackups, 2),
+				MaxSize:    first(config.Global.LogMaxsize, 20*1024*1024),
 				LocalTime:  config.Global.LogLocaltime,
 			},
 		}

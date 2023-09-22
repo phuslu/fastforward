@@ -44,10 +44,6 @@ fi
 
 cat <<EOF > production.yaml
 global:
-  log_level: info
-  log_backups: 2
-  log_maxsize: 1073741824
-  log_localtime: true
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 15m
