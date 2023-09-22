@@ -44,9 +44,7 @@ fi
 
 cat <<EOF > production.yaml
 global:
-  max_idle_conns: 100
-  dial_timeout: 30
-  dns_cache_duration: 15m
+  dns_server: https://8.8.8.8/dns-query
 https:
   - listen: [':443', ':8443']
     server_name: ['$domain']

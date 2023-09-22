@@ -213,16 +213,12 @@ func main() {
 		ForbidLocalAddr: config.Global.ForbidLocalAddr,
 		ReadBuffSize:    config.Global.DialReadBuffer,
 		WriteBuffSize:   config.Global.DialWriteBuffer,
-		DialTimeout:     30 * time.Second,
+		DialTimeout:     time.Duration(first(config.Global.DialTimeout, 30)) * time.Second,
 		TCPKeepAlive:    30 * time.Second,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			ClientSessionCache: tls.NewLRUClientSessionCache(2048),
 		},
-	}
-
-	if config.Global.DialTimeout > 0 {
-		dialer.DialTimeout = time.Duration(config.Global.DialTimeout) * time.Second
 	}
 
 	dialers := make(map[string]Dialer)
@@ -320,19 +316,11 @@ func main() {
 		DialContext: dialer.DialContext,
 		// DialTLSContext:        dialer.DialTLSContext,
 		TLSClientConfig:       dialer.TLSConfig,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
+		MaxIdleConns:          first(config.Global.MaxIdleConns, 100),
+		IdleConnTimeout:       time.Duration(first(config.Global.IdleConnTimeout, 90)) * time.Second,
 		TLSHandshakeTimeout:   15 * time.Second,
 		ExpectContinueTimeout: 2 * time.Second,
 		DisableCompression:    false,
-	}
-
-	if config.Global.MaxIdleConns > 0 {
-		transport.MaxIdleConns = config.Global.MaxIdleConns
-	}
-
-	if config.Global.IdleConnTimeout > 0 {
-		transport.IdleConnTimeout = time.Duration(config.Global.IdleConnTimeout) * time.Second
 	}
 
 	functions := (&Functions{
