@@ -14,6 +14,7 @@ import (
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 	"github.com/tidwall/hashmap"
+	"github.com/tidwall/shardmap"
 )
 
 type HTTPHandler interface {
@@ -22,11 +23,11 @@ type HTTPHandler interface {
 }
 
 type HTTPServerHandler struct {
-	Config          HTTPConfig
-	TLSConfigurator *TLSConfigurator
-	ServerNames     hashmap.Set[string]
-	ForwardHandler  HTTPHandler
-	WebHandler      HTTPHandler
+	Config         HTTPConfig
+	ServerNames    hashmap.Set[string]
+	ClientHelloMap *shardmap.Map // key: remote_addr value: *tls.ClientHelloInfo
+	ForwardHandler HTTPHandler
+	WebHandler     HTTPHandler
 }
 
 type RequestInfo struct {
@@ -77,8 +78,8 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	ri.ClientHelloInfo, ri.ClientHelloRaw = nil, nil
-	if h.TLSConfigurator != nil {
-		if v, ok := h.TLSConfigurator.ClientHelloCache.Get(req.RemoteAddr); ok {
+	if h.ClientHelloMap != nil {
+		if v, ok := h.ClientHelloMap.Get(req.RemoteAddr); ok {
 			ri.ClientHelloInfo = v.(*tls.ClientHelloInfo)
 			if header := GetMirrorHeader(ri.ClientHelloInfo.Conn); header != nil {
 				ri.ClientHelloRaw = header.B

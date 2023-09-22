@@ -356,9 +356,9 @@ func main() {
 				Transport: transport,
 				Functions: functions,
 			},
-			ServerNames:     NewStringSet(server.ServerName),
-			TLSConfigurator: tlsConfigurator,
-			Config:          server,
+			ServerNames:    NewStringSet(server.ServerName),
+			ClientHelloMap: &tlsConfigurator.ClientHelloMap,
+			Config:         server,
 		}
 
 		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler, handler} {
@@ -502,9 +502,9 @@ func main() {
 				Transport: transport,
 				Functions: functions,
 			},
-			ServerNames:     NewStringSet(httpConfig.ServerName),
-			TLSConfigurator: tlsConfigurator,
-			Config:          httpConfig,
+			ServerNames:    NewStringSet(httpConfig.ServerName),
+			ClientHelloMap: &tlsConfigurator.ClientHelloMap,
+			Config:         httpConfig,
 		}
 
 		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler, handler} {

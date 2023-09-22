@@ -71,7 +71,7 @@ type TLSConfigurator struct {
 	RootCA           *RootCA
 	TLSConfigCache   lrucache.Cache
 	CertificateCache lrucache.Cache
-	ClientHelloCache shardmap.Map
+	ClientHelloMap   shardmap.Map
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
@@ -170,7 +170,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 }
 
 func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
-	m.ClientHelloCache.Set(hello.Conn.RemoteAddr().String(), hello)
+	m.ClientHelloMap.Set(hello.Conn.RemoteAddr().String(), hello)
 
 	if host, _, err := net.SplitHostPort(hello.ServerName); err == nil {
 		hello.ServerName = host
@@ -315,6 +315,6 @@ func (m *TLSConfigurator) ConnState(c net.Conn, cs http.ConnState) {
 		if header := GetMirrorHeader(c); header != nil {
 			bytebufferpool.Put(header)
 		}
-		m.ClientHelloCache.Delete(c.RemoteAddr().String())
+		m.ClientHelloMap.Delete(c.RemoteAddr().String())
 	}
 }
