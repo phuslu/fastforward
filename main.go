@@ -22,6 +22,7 @@ import (
 
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
+	"github.com/phuslu/shardmap"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/robfig/cron/v3"
@@ -338,7 +339,9 @@ func main() {
 	servers := make([]*http.Server, 0)
 
 	// listen and serve https
-	tlsConfigurator := &TLSConfigurator{}
+	tlsConfigurator := &TLSConfigurator{
+		ClientHelloMap: shardmap.New[string, *tls.ClientHelloInfo](0),
+	}
 	h2handlers := map[string]map[string]HTTPHandler{}
 	for _, server := range config.Https {
 		handler := &HTTPServerHandler{
@@ -357,7 +360,7 @@ func main() {
 				Functions: functions,
 			},
 			ServerNames:    NewStringSet(server.ServerName),
-			ClientHelloMap: &tlsConfigurator.ClientHelloMap,
+			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			Config:         server,
 		}
 
@@ -503,7 +506,7 @@ func main() {
 				Functions: functions,
 			},
 			ServerNames:    NewStringSet(httpConfig.ServerName),
-			ClientHelloMap: &tlsConfigurator.ClientHelloMap,
+			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			Config:         httpConfig,
 		}
 

@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/cloudflare/golibs/lrucache"
+	"github.com/phuslu/shardmap"
 	"github.com/tidwall/hashmap"
-	"github.com/tidwall/shardmap"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sys/cpu"
@@ -71,7 +71,7 @@ type TLSConfigurator struct {
 	RootCA           *RootCA
 	TLSConfigCache   lrucache.Cache
 	CertificateCache lrucache.Cache
-	ClientHelloMap   shardmap.Map
+	ClientHelloMap   *shardmap.Map[string, *tls.ClientHelloInfo]
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
