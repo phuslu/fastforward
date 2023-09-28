@@ -56,9 +56,6 @@ type HTTPConfig struct {
 			SetHeaders        string `json:"set_headers" yaml:"set_headers"`
 			DumpFailure       bool   `json:"dump_failure" yaml:"dump_failure"`
 		} `json:"proxy" yaml:"proxy"`
-		Pprof struct {
-			Enabled bool `json:"enabled" yaml:"enabled"`
-		} `json:"pprof" yaml:"pprof"`
 	} `json:"web" yaml:"web"`
 }
 

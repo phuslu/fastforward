@@ -70,9 +70,6 @@ https:
         proxy:
           pass: https://1.1.1.1
           set_headers: "Host: 1.1.1.1"
-      - location: /debug/
-        pprof:
-          enabled: true
       - location: /china.pac
         index:
           file: /home/phuslu/liner/china.pac

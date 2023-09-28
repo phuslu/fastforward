@@ -1,8 +1,10 @@
 package main
 
 import (
+	"expvar"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"strings"
 	"text/template"
 
@@ -27,13 +29,6 @@ func (h *HTTPWebHandler) Load() error {
 	var routers []router
 	for _, web := range h.Config.Web {
 		switch {
-		case web.Pprof.Enabled:
-			routers = append(routers, router{
-				web.Location,
-				&HTTPWebPprofHandler{
-					AllowPublicNet: false,
-				},
-			})
 		case web.Proxy.Pass != "":
 			routers = append(routers, router{
 				web.Location,
@@ -91,6 +86,28 @@ func (h *HTTPWebHandler) Load() error {
 
 		h.mux.Handle(x.location, x.handler)
 	}
+
+	h.mux.HandleFunc("/debug/", func(rw http.ResponseWriter, req *http.Request) {
+		if ip, _, _ := net.SplitHostPort(req.RemoteAddr); !IsReservedIP(net.ParseIP(ip)) {
+			http.Error(rw, "403 forbidden", http.StatusForbidden)
+			return
+		}
+
+		switch req.URL.Path {
+		case "/debug/vars":
+			expvar.Handler().ServeHTTP(rw, req)
+		case "/debug/pprof/cmdline":
+			pprof.Cmdline(rw, req)
+		case "/debug/pprof/profile":
+			pprof.Profile(rw, req)
+		case "/debug/pprof/symbol":
+			pprof.Symbol(rw, req)
+		case "/debug/pprof/trace":
+			pprof.Trace(rw, req)
+		default:
+			pprof.Index(rw, req)
+		}
+	})
 
 	h.mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		for _, x := range wildcards {
