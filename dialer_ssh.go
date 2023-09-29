@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phuslu/log"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -84,7 +83,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 	if 0 < maxClient && maxClient < len(d.clients) {
 		n = maxClient
 	}
-	n = int(log.Fastrandn(uint32(n)))
+	n = int(fastrandn(uint32(n)))
 
 	if d.clients[n] == nil {
 		d.mutexes[n].Lock()
@@ -99,7 +98,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 
 	conn, err := d.clients[n].Dial(network, addr)
 	if err != nil {
-		time.Sleep(time.Duration(100+log.Fastrandn(200)) * time.Millisecond)
+		time.Sleep(time.Duration(100+fastrandn(200)) * time.Millisecond)
 		old := d.clients[n]
 		d.mutexes[n].Lock()
 		if d.clients[n] == old {

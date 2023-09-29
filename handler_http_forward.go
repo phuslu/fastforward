@@ -461,7 +461,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 }
 
 func RejectRequest(rw http.ResponseWriter, req *http.Request) {
-	time.Sleep(time.Duration(1+log.Fastrandn(3)) * time.Second)
+	time.Sleep(time.Duration(1+fastrandn(3)) * time.Second)
 	// http.Error(rw, "403 Forbidden", http.StatusForbidden)
 	http.Error(rw, "400 Bad Request", http.StatusBadRequest)
 }

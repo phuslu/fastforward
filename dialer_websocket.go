@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/phuslu/log"
 )
 
 var _ Dialer = (*WebsocketDialer)(nil)
@@ -95,7 +93,7 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 		req.Header.Set("user-agent", d.UserAgent)
 	}
 
-	secWebsocketKey := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", log.Fastrandn(1<<32-1), log.Fastrandn(1<<32-1))))
+	secWebsocketKey := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1))))
 	secWebsocketAccept := sha1.Sum([]byte(secWebsocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
 
 	req.Header.Set("Connection", "Upgrade")

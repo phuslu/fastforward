@@ -15,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phuslu/log"
 	"golang.org/x/net/http2"
 )
 
@@ -96,7 +95,7 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 	if 0 < maxClient && maxClient < len(d.clients) {
 		n = maxClient
 	}
-	n = int(log.Fastrandn(uint32(n)))
+	n = int(fastrandn(uint32(n)))
 
 	if d.clients[n] == nil {
 		d.mutexes[n].Lock()

@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/phuslu/log"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 )
@@ -50,7 +49,7 @@ func (d *HTTP3Dialer) init() {
 			host := d.Host
 			if d.Resolver != nil {
 				if ips, err := d.Resolver.LookupIP(ctx, host); err == nil && len(ips) != 0 {
-					host = ips[log.Fastrandn(uint32(len(ips)))].String()
+					host = ips[fastrandn(uint32(len(ips)))].String()
 				}
 			}
 			pconn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})

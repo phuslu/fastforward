@@ -32,6 +32,12 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
+// fastrandn returns a pseudorandom uint32 in [0,n).
+//
+//go:noescape
+//go:linkname fastrandn runtime.fastrandn
+func fastrandn(x uint32) uint32
+
 func b2s(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
