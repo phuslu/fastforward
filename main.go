@@ -22,7 +22,7 @@ import (
 
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/log"
-	"github.com/phuslu/shardmap"
+	"github.com/puzpuzpuz/xsync/v2"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/robfig/cron/v3"
@@ -340,7 +340,7 @@ func main() {
 
 	// listen and serve https
 	tlsConfigurator := &TLSConfigurator{
-		ClientHelloMap: shardmap.New[string, *tls.ClientHelloInfo](0),
+		ClientHelloMap: xsync.NewMapOf[*tls.ClientHelloInfo](),
 	}
 	h2handlers := map[string]map[string]HTTPHandler{}
 	for _, server := range config.Https {

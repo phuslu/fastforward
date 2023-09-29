@@ -13,7 +13,7 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
-	"github.com/phuslu/shardmap"
+	"github.com/puzpuzpuz/xsync/v2"
 )
 
 type HTTPHandler interface {
@@ -24,7 +24,7 @@ type HTTPHandler interface {
 type HTTPServerHandler struct {
 	Config         HTTPConfig
 	ServerNames    StringSet
-	ClientHelloMap *shardmap.Map[string, *tls.ClientHelloInfo]
+	ClientHelloMap *xsync.MapOf[string, *tls.ClientHelloInfo]
 	ForwardHandler HTTPHandler
 	WebHandler     HTTPHandler
 }
@@ -78,7 +78,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	ri.ClientHelloInfo, ri.ClientHelloRaw = nil, nil
 	if h.ClientHelloMap != nil {
-		if v, ok := h.ClientHelloMap.Get(req.RemoteAddr); ok {
+		if v, ok := h.ClientHelloMap.Load(req.RemoteAddr); ok {
 			ri.ClientHelloInfo = v
 			if header := GetMirrorHeader(ri.ClientHelloInfo.Conn); header != nil {
 				ri.ClientHelloRaw = header.B
