@@ -17,7 +17,6 @@ import (
 
 	"github.com/cloudflare/golibs/lrucache"
 	"github.com/phuslu/shardmap"
-	"github.com/tidwall/hashmap"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sys/cpu"
@@ -65,8 +64,8 @@ type TLSConfiguratorSniproxy struct {
 type TLSConfigurator struct {
 	DefaultServername string
 
-	Entries          hashmap.Map[string, TLSConfiguratorEntry]
-	Sniproies        hashmap.Map[string, TLSConfiguratorSniproxy]
+	Entries          map[string]TLSConfiguratorEntry
+	Sniproies        map[string]TLSConfiguratorSniproxy
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
 	TLSConfigCache   lrucache.Cache
@@ -117,13 +116,19 @@ func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 		entry.CertFile = entry.KeyFile
 	}
 
-	m.Entries.Set(entry.ServerName, entry)
+	if m.Entries == nil {
+		m.Entries = make(map[string]TLSConfiguratorEntry)
+	}
+	m.Entries[entry.ServerName] = entry
 
 	return nil
 }
 
 func (m *TLSConfigurator) AddSniproxy(sniproxy TLSConfiguratorSniproxy) error {
-	m.Sniproies.Set(sniproxy.ServerName, sniproxy)
+	if m.Sniproies == nil {
+		m.Sniproies = make(map[string]TLSConfiguratorSniproxy)
+	}
+	m.Sniproies[sniproxy.ServerName] = sniproxy
 
 	return nil
 }
@@ -133,7 +138,7 @@ func (m *TLSConfigurator) HostPolicy(ctx context.Context, host string) error {
 }
 
 func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	entry, ok := m.Entries.Get(hello.ServerName)
+	entry, ok := m.Entries[hello.ServerName]
 	if !ok {
 		return nil, errors.New("server_name(" + hello.ServerName + ") is not allowed")
 	}
@@ -176,7 +181,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		hello.ServerName = host
 	}
 
-	if sni, ok := m.Sniproies.Get(hello.ServerName); ok {
+	if sni, ok := m.Sniproies[hello.ServerName]; ok {
 		if mc, ok := hello.Conn.(*MirrorHeaderConn); ok {
 			rconn, err := func(ctx context.Context) (net.Conn, error) {
 				if sni.DialTimeout > 0 {
@@ -220,7 +225,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 	}
 
 	var preferChacha20, disableTLS11, disableHTTP2 bool
-	if entry, ok := m.Entries.Get(hello.ServerName); ok {
+	if entry, ok := m.Entries[hello.ServerName]; ok {
 		preferChacha20 = entry.PreferChacha20
 		disableHTTP2 = entry.DisableHTTP2
 		disableTLS11 = entry.DisableTLS11
