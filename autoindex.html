@@ -1,12 +1,11 @@
 
-<!-- autoindex.html 20221104 for nginx, see https://phus.lu -->
+<!-- autoindex.html 2023-10-01 for nginx, see https://phus.lu -->
 <script>
 !function(){
 	var website_title = ''
 	var max_name_length = 60
 	var datetime_format = '%d-%b-%Y %H:%M'
 	var enable_readme_md = true
-	var enable_footer_js = true
 	var marked_js = 'https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/marked/0.5.2/marked.min.js'
 	var github_markdown_css = 'https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/github-markdown-css/5.1.0/github-markdown-light.min.css'
 
@@ -117,22 +116,19 @@
 		tr.add('td').text(size)
 	}
 
-	var readme = '', footer = ''
+	var readme = ''
 	insert('../', '', '-')
 	for (var i in bodylines) {
 		if (m = /\s*<a href="(.+?)">(.+?)<\/a>\s+(\S+)\s+(\S+)\s+(\S+)\s*/.exec(bodylines[i])) {
 			filename = m[1]
 			datetime = m[3] + ' ' + m[4]
 			size = m[5]
-			insert(filename, datetime, size)
-			switch (filename.toLowerCase()) {
-			case 'readme.md':
+			if (filename.toLowerCase() == 'readme.md') {
 				readme = filename
-				break
-			case 'footer.js':
-				footer = filename
-				break
 			}
+			if (filename.substr(-8, 6) == '.hide.' || filename.substr(-9, 6) == '.hide.')
+				continue
+			insert(filename, datetime, size)
 		}
 	}
 
@@ -148,18 +144,12 @@
 		xhr.onload = function() {
 			if (xhr.status < 200 && xhr.status >= 400)
 				return
-			wait = function (name, callback) {
-				var interval = 10; // ms
-				window.setTimeout(function() {
-					if (window[name]) {
-						callback(window[name])
-					} else {
-						window.setTimeout(arguments.callee, interval)
-					}
-				}, interval)
-			}
 			wait('marked', function() {
 				document.getElementById("readme").innerHTML = marked.parse(xhr.responseText)
+				begin = xhr.responseText.indexOf('<!--<script>')
+				end = xhr.responseText.indexOf("\n</" + "script>-->")
+				if (begin < end)
+					div.add('script').html(xhr.responseText.substr(begin+4+8, end+1-begin-4-8))
 			})
 		}
 		xhr.send()
@@ -167,11 +157,20 @@
 		div.add('script').attr('src', marked_js)
 		div.add('link').attr('rel', 'stylesheet').attr('href', github_markdown_css)
 	}
-
-	if (enable_footer_js && footer !== '') {
-		div.add('script').attr('src', footer)
-	}
 }()
+
+function wait(name, callback) {
+	var interval = 10; // ms
+	window.setTimeout(function() {
+		if (window[name] && !(window[name] instanceof HTMLElement)) {
+			callback(window[name])
+		} else if (window[name] instanceof HTMLElement && window[name].innerHTML) {
+			callback(window[name])
+		} else {
+			window.setTimeout(arguments.callee, interval)
+		}
+	}, interval)
+}
 
 function sortby(index) {
 	rows = document.getElementsByClassName('table-hover')[0].rows
@@ -308,4 +307,3 @@ table.table-hover > tbody > tr:hover > th {
 	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='16' viewBox='0 0 10 16'%3E%3Cpolygon id='Shape' points='5 3 0 9 3 9 3 13 7 13 7 9 10 9'%3E%3C/polygon%3E%3C/svg%3E");
 }
 </style>
-
