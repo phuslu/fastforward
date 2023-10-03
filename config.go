@@ -39,17 +39,22 @@ type HTTPConfig struct {
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`
-		Index    struct {
-			Root    string `json:"root" yaml:"root"`
-			Headers string `json:"headers" yaml:"headers"`
-			Body    string `json:"body" yaml:"body"`
-			File    string `json:"file" yaml:"file"`
-		} `json:"index" yaml:"index"`
+		Cgi      struct {
+			Enabled    bool   `json:"enabled" yaml:"enabled"`
+			Root       string `json:"root" yaml:"root"`
+			DefaultAPP string `json:"default_app" yaml:"default_app"`
+		} `json:"cgi" yaml:"cgi"`
 		Dav struct {
 			Enabled           bool   `json:"enabled" yaml:"enabled"`
 			Root              string `json:"root" yaml:"root"`
 			AuthBasicUserFile string `json:"auth_basic_user_file" yaml:"auth_basic_user_file"`
 		} `json:"dav" yaml:"dav"`
+		Index struct {
+			Root    string `json:"root" yaml:"root"`
+			Headers string `json:"headers" yaml:"headers"`
+			Body    string `json:"body" yaml:"body"`
+			File    string `json:"file" yaml:"file"`
+		} `json:"index" yaml:"index"`
 		Proxy struct {
 			Pass              string `json:"pass" yaml:"pass"`
 			AuthBasicUserFile string `json:"auth_basic_user_file" yaml:"auth_basic_user_file"`

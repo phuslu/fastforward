@@ -29,16 +29,12 @@ func (h *HTTPWebHandler) Load() error {
 	var routers []router
 	for _, web := range h.Config.Web {
 		switch {
-		case web.Proxy.Pass != "":
+		case web.Cgi.Enabled:
 			routers = append(routers, router{
 				web.Location,
-				&HTTPWebProxyHandler{
-					Transport:         h.Transport,
-					Functions:         h.Functions,
-					Pass:              web.Proxy.Pass,
-					AuthBasicUserFile: web.Proxy.AuthBasicUserFile,
-					SetHeaders:        web.Proxy.SetHeaders,
-					DumpFailure:       web.Proxy.DumpFailure,
+				&HTTPWebCgiHandler{
+					Root:       web.Cgi.Root,
+					DefaultApp: web.Cgi.DefaultAPP,
 				},
 			})
 		case web.Dav.Enabled:
@@ -59,6 +55,18 @@ func (h *HTTPWebHandler) Load() error {
 					Headers:   web.Index.Headers,
 					Body:      web.Index.Body,
 					File:      web.Index.File,
+				},
+			})
+		case web.Proxy.Pass != "":
+			routers = append(routers, router{
+				web.Location,
+				&HTTPWebProxyHandler{
+					Transport:         h.Transport,
+					Functions:         h.Functions,
+					Pass:              web.Proxy.Pass,
+					AuthBasicUserFile: web.Proxy.AuthBasicUserFile,
+					SetHeaders:        web.Proxy.SetHeaders,
+					DumpFailure:       web.Proxy.DumpFailure,
 				},
 			})
 		}
