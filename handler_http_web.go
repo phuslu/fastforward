@@ -33,6 +33,7 @@ func (h *HTTPWebHandler) Load() error {
 			routers = append(routers, router{
 				web.Location,
 				&HTTPWebCgiHandler{
+					Location:   web.Location,
 					Root:       web.Cgi.Root,
 					DefaultApp: web.Cgi.DefaultAPP,
 				},
