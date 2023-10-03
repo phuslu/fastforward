@@ -8,7 +8,9 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/http/cgi"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -25,10 +27,12 @@ type HTTPWebIndexHandler struct {
 	Headers   string
 	Body      string
 	File      string
+	PhpCgi    bool
 	Functions template.FuncMap
 
 	headers *template.Template
 	body    *template.Template
+	phpcgi  string
 }
 
 func (h *HTTPWebIndexHandler) Load() (err error) {
@@ -44,6 +48,13 @@ func (h *HTTPWebIndexHandler) Load() (err error) {
 	h.body, err = template.New(h.Body).Funcs(h.Functions).Parse(h.Body)
 	if err != nil {
 		return
+	}
+
+	if h.PhpCgi {
+		h.phpcgi, err = exec.LookPath("php-cgi")
+		if err != nil {
+			return err
+		}
 	}
 
 	return
@@ -133,6 +144,24 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	}
 
 	if !fi.IsDir() {
+		if strings.HasSuffix(fullname, ".php") && h.phpcgi != "" {
+			/*
+				/etc/php/8.1/cgi/conf.d/99-enable-headers.ini
+
+					cgi.rfc2616_headers = 1
+					cgi.force_redirect = 0
+					force_cgi_redirect = 0
+			*/
+			(&cgi.Handler{
+				Path: h.phpcgi,
+				Dir:  h.Root,
+				Root: h.Root,
+				Args: []string{fullname},
+				Env:  []string{"SCRIPT_FILENAME=" + fullname},
+			}).ServeHTTP(rw, req)
+			return
+		}
+
 		file, err := os.Open(fullname)
 		if err != nil {
 			http.Error(rw, "500 internal server error", http.StatusInternalServerError)
