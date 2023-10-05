@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/cgi"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -15,12 +16,21 @@ type HTTPWebCgiHandler struct {
 	Location   string
 	Root       string
 	DefaultApp string
+
+	phpcgi string
 }
 
 func (h *HTTPWebCgiHandler) Load() (err error) {
 	root := h.Root
 	if root == "" {
 		return errors.New("empty cgi root")
+	}
+
+	if strings.HasSuffix(h.Location, ".php") {
+		h.phpcgi, err = exec.LookPath("php-cgi")
+		if err != nil {
+			return err
+		}
 	}
 
 	return
@@ -42,6 +52,24 @@ func (h *HTTPWebCgiHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	log.Info().Context(ri.LogContext).Str("fullname", fullname).Msg("web cgi request")
+
+	if strings.HasSuffix(fullname, ".php") && h.phpcgi != "" {
+		/*
+			/etc/php/8.1/cgi/conf.d/99-enable-headers.ini
+
+				cgi.rfc2616_headers = 1
+				cgi.force_redirect = 0
+				force_cgi_redirect = 0
+		*/
+		(&cgi.Handler{
+			Path: h.phpcgi,
+			Dir:  h.Root,
+			Root: h.Root,
+			Args: []string{fullname},
+			Env:  []string{"SCRIPT_FILENAME=" + fullname},
+		}).ServeHTTP(rw, req)
+		return
+	}
 
 	if strings.HasSuffix(fullname, ".cgi") {
 		(&cgi.Handler{
