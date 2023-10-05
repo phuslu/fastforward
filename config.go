@@ -54,7 +54,6 @@ type HTTPConfig struct {
 			Headers string `json:"headers" yaml:"headers"`
 			Body    string `json:"body" yaml:"body"`
 			File    string `json:"file" yaml:"file"`
-			PhpCgi  bool   `json:"php_cgi" yaml:"php_cgi"`
 		} `json:"index" yaml:"index"`
 		Proxy struct {
 			Pass              string `json:"pass" yaml:"pass"`

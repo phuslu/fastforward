@@ -56,7 +56,6 @@ func (h *HTTPWebHandler) Load() error {
 					Headers:   web.Index.Headers,
 					Body:      web.Index.Body,
 					File:      web.Index.File,
-					PhpCgi:    web.Index.PhpCgi,
 				},
 			})
 		case web.Proxy.Pass != "":
