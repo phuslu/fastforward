@@ -8,7 +8,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/bmatcuk/doublestar"
 	"github.com/phuslu/log"
 )
 
@@ -140,7 +139,7 @@ func (h *HTTPWebHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add("Alt-Svc", `h3=":`+port+`"; ma=2592000,h3-29=":`+port+`"; ma=2592000`)
 	}
 	for _, x := range h.wildcards {
-		if ok, _ := doublestar.Match(x.location, req.URL.Path); ok {
+		if WildcardMatch(x.location, req.URL.Path) {
 			x.handler.ServeHTTP(rw, req)
 			return
 		}
