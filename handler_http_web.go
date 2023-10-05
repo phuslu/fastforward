@@ -17,6 +17,10 @@ type HTTPWebHandler struct {
 	Transport *http.Transport
 	Functions template.FuncMap
 
+	wildcards []struct {
+		location string
+		handler  HTTPHandler
+	}
 	mux *http.ServeMux
 }
 
@@ -74,7 +78,6 @@ func (h *HTTPWebHandler) Load() error {
 	}
 
 	var root HTTPHandler
-	var wildcards []router
 	h.mux = http.NewServeMux()
 	for _, x := range routers {
 		err := x.handler.Load()
@@ -89,7 +92,7 @@ func (h *HTTPWebHandler) Load() error {
 		}
 
 		if strings.ContainsAny(x.location, "*?[]") {
-			wildcards = append(wildcards, x)
+			h.wildcards = append(h.wildcards, x)
 			continue
 		}
 
@@ -119,12 +122,6 @@ func (h *HTTPWebHandler) Load() error {
 	})
 
 	h.mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-		for _, x := range wildcards {
-			if ok, _ := doublestar.Match(x.location, req.URL.Path); ok {
-				x.handler.ServeHTTP(rw, req)
-				return
-			}
-		}
 
 		if root != nil {
 			root.ServeHTTP(rw, req)
@@ -141,6 +138,12 @@ func (h *HTTPWebHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if config, _ := h.Config.ServerConfig[req.Host]; !config.DisableHttp3 && req.ProtoMajor != 3 {
 		_, port, _ := net.SplitHostPort(req.Context().Value(http.LocalAddrContextKey).(net.Addr).String())
 		rw.Header().Add("Alt-Svc", `h3=":`+port+`"; ma=2592000,h3-29=":`+port+`"; ma=2592000`)
+	}
+	for _, x := range h.wildcards {
+		if ok, _ := doublestar.Match(x.location, req.URL.Path); ok {
+			x.handler.ServeHTTP(rw, req)
+			return
+		}
 	}
 	h.mux.ServeHTTP(rw, req)
 }
