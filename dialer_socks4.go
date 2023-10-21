@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -74,14 +75,17 @@ func (d *Socks4Dialer) DialContext(ctx context.Context, network, addr string) (n
 		buf = append(buf, 0, 0, 0, 1, 0)
 		buf = append(buf, []byte(host+"\x00")...)
 	} else {
-		ip, err := net.ResolveIPAddr("ip4", host)
+		ips, err := d.Resolver.LookupNetIP(ctx, "ip", host)
 		if err != nil {
 			return nil, err
 		}
-		ip4 := ip.IP.To4()
-		if len(ip4) < 4 {
-			return nil, errors.New("proxy: resolve ip address out of range: " + ip.String())
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("proxy: resolve %s return empty ip list", host)
 		}
+		if !ips[0].Is4() {
+			return nil, errors.New("proxy: resolve ip address out of range: " + ips[0].String())
+		}
+		ip4 := ips[0].As4()
 		buf = append(buf, ip4[0], ip4[1], ip4[2], ip4[3], 0)
 	}
 

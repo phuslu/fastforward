@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/netip"
 	"net/url"
 	"os"
 	"strings"
@@ -95,7 +95,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		req.Header.Set("x-forwarded-for", ri.RemoteIP)
 	}
 
-	if !IsReservedIP(net.ParseIP(ri.RemoteIP)) {
+	if ip, err := netip.ParseAddr(ri.RemoteIP); err == nil && !ip.IsLoopback() && !ip.IsPrivate() {
 		req.Header.Set("x-real-ip", ri.RemoteIP)
 	}
 

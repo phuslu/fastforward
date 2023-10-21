@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"net/netip"
 	"time"
 
 	"github.com/cloudflare/golibs/lrucache"
@@ -15,35 +16,26 @@ type Resolver struct {
 	CacheDuration time.Duration
 }
 
-func (r *Resolver) LookupIP(ctx context.Context, name string) ([]net.IP, error) {
-	return r.lookupIP(ctx, name)
-}
-
-func (r *Resolver) lookupIP(ctx context.Context, name string) ([]net.IP, error) {
+func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
 	if r.LRUCache != nil {
-		if v, ok := r.LRUCache.GetNotStale(name); ok {
-			return v.([]net.IP), nil
+		if v, ok := r.LRUCache.GetNotStale(host); ok {
+			return v.([]netip.Addr), nil
 		}
 	}
 
-	if ip := net.ParseIP(name); ip != nil {
-		return []net.IP{ip}, nil
+	if ip, err := netip.ParseAddr(host); err == nil {
+		return []netip.Addr{ip}, nil
 	}
 
-	addrs, err := r.Resolver.LookupIPAddr(ctx, name)
+	ips, err := r.Resolver.LookupNetIP(ctx, network, host)
 	if err != nil {
 		return nil, err
 	}
 
-	ips := make([]net.IP, len(addrs))
-	for i, ia := range addrs {
-		ips[i] = ia.IP
-	}
-
 	if r.LRUCache != nil && r.CacheDuration > 0 && len(ips) > 0 {
-		r.LRUCache.Set(name, ips, timeNow().Add(r.CacheDuration))
+		r.LRUCache.Set(host, ips, timeNow().Add(r.CacheDuration))
 	}
 
-	log.Debug().Msgf("lookupIP(%#v) return %+v", name, ips)
+	log.Debug().Msgf("lookupIP(%#v) return %+v", host, ips)
 	return ips, nil
 }

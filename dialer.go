@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net"
+	"net/netip"
 	"strconv"
 	"time"
 )
@@ -54,7 +55,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		return nil, err
 	}
 
-	ips, err := d.Resolver.LookupIP(ctx, host)
+	ips, err := d.Resolver.LookupNetIP(ctx, "ip", host)
 	if err != nil {
 		return nil, err
 	}
@@ -66,16 +67,16 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		break
 	default:
 		if !d.PreferIPv6 {
-			if ips[0].To4() == nil {
+			if ips[0].Is6() {
 				pos := len(ips) - 1
-				if ips[pos].To4() != nil {
+				if ips[pos].Is4() {
 					ips[0], ips[pos] = ips[pos], ips[0]
 				}
 			}
 		} else {
-			if ips[0].To4() != nil {
+			if ips[0].Is4() {
 				pos := len(ips) - 1
-				if ips[pos].To4() == nil {
+				if ips[pos].Is6() {
 					ips[0], ips[pos] = ips[pos], ips[0]
 				}
 			}
@@ -97,27 +98,26 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 
 	switch d.Concurrency {
 	case 0, 1:
-		return d.dialSerial(ctx, network, host, ips, port, tlsConfig)
+		return d.dialSerial(ctx, network, host, ips, uint16(port), tlsConfig)
 	default:
 		if len(ips) == 1 {
 			ips = append(ips, ips[0])
 		}
-		return d.dialParallel(ctx, network, host, ips, port, tlsConfig)
+		return d.dialParallel(ctx, network, host, ips, uint16(port), tlsConfig)
 	}
 }
 
-func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (conn net.Conn, err error) {
+func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, ips []netip.Addr, port uint16, tlsConfig *tls.Config) (conn net.Conn, err error) {
 	for i, ip := range ips {
-		if d.ForbidLocalAddr && IsReservedIP(ip) {
+		if d.ForbidLocalAddr && (ip.IsLoopback() || ip.IsPrivate()) {
 			return nil, net.InvalidAddrError("intranet address is rejected: " + ip.String())
 		}
 
-		raddr := &net.TCPAddr{IP: ip, Port: port}
 		dailer := &net.Dialer{}
 		if d.BindInterface != "" {
 			dailer.Control = (&DailerController{BindInterface: d.BindInterface}).Control
 		}
-		conn, err = dailer.DialContext(ctx, network, raddr.String())
+		conn, err = dailer.DialContext(ctx, network, netip.AddrPortFrom(ip, port).String())
 		if err != nil {
 			if i < len(ips)-1 {
 				continue
@@ -145,7 +145,7 @@ func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, 
 	return nil, err
 }
 
-func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string, ips []net.IP, port int, tlsConfig *tls.Config) (net.Conn, error) {
+func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string, ips []netip.Addr, port uint16, tlsConfig *tls.Config) (net.Conn, error) {
 	type dialResult struct {
 		Conn net.Conn
 		Err  error
@@ -159,8 +159,8 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 
 	lane := make(chan dialResult, level)
 	for i := 0; i < level; i++ {
-		go func(ip net.IP, port int, tlsConfig *tls.Config) {
-			if d.ForbidLocalAddr && IsReservedIP(ip) {
+		go func(ip netip.Addr, port uint16, tlsConfig *tls.Config) {
+			if d.ForbidLocalAddr && (ip.IsLoopback() || ip.IsPrivate()) {
 				lane <- dialResult{nil, net.InvalidAddrError("intranet address is rejected: " + ip.String())}
 				return
 			}
@@ -169,8 +169,7 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 			if d.BindInterface != "" {
 				dailer.Control = (&DailerController{BindInterface: d.BindInterface}).Control
 			}
-			raddr := &net.TCPAddr{IP: ip, Port: port}
-			conn, err := dailer.DialContext(ctx, network, raddr.String())
+			conn, err := dailer.DialContext(ctx, network, netip.AddrPortFrom(ip, port).String())
 			if err != nil {
 				lane <- dialResult{nil, err}
 				return

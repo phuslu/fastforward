@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"net/netip"
 	"strconv"
 	"time"
 )
@@ -47,9 +48,9 @@ func (d *Socks5Dialer) DialContext(ctx context.Context, network, addr string) (n
 	}
 
 	if !d.Socks5H && d.Resolver != nil {
-		hosts, err := d.Resolver.LookupHost(ctx, host)
-		if err == nil && len(hosts) > 0 {
-			host = hosts[0]
+		ips, err := d.Resolver.LookupNetIP(ctx, "ip", host)
+		if err == nil && len(ips) > 0 {
+			host = ips[0].String()
 		}
 	}
 
@@ -108,14 +109,13 @@ func (d *Socks5Dialer) DialContext(ctx context.Context, network, addr string) (n
 		return nil, errors.New("proxy: no support for SOCKS5 proxy connections of type " + network)
 	}
 
-	if ip := net.ParseIP(host); ip != nil {
-		if ip4 := ip.To4(); ip4 != nil {
+	if ip, err := netip.ParseAddr(host); err == nil {
+		if ip.Is4() {
 			buf = append(buf, Socks5IPv4Address)
-			ip = ip4
 		} else {
 			buf = append(buf, Socks5IPv6Address)
 		}
-		buf = append(buf, ip...)
+		buf = append(buf, ip.AsSlice()...)
 	} else {
 		if len(host) > 255 {
 			return nil, errors.New("proxy: destination hostname too long: " + host)

@@ -8,6 +8,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"net/netip"
 	"os"
 	"reflect"
 	"syscall"
@@ -66,21 +67,21 @@ type DailerController struct {
 
 func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err error) {
 	return c.Control(func(fd uintptr) {
-		ip := net.ParseIP(dc.BindInterface)
-		switch {
-		case ip != nil:
+		if ip, err := netip.ParseAddr(dc.BindInterface); err == nil {
 			var sa syscall.Sockaddr
-			if ip4 := ip.To4(); ip4 != nil {
+			if ip.Is4() {
+				ip4 := ip.As4()
 				sa = &syscall.SockaddrInet4{
-					Addr: [4]byte{ip4[0], ip4[1], ip4[3], ip4[4]},
+					Addr: [4]byte{ip4[0], ip4[1], ip4[2], ip4[3]},
 				}
 			} else {
+				ip6 := ip.As16()
 				sa = &syscall.SockaddrInet6{
 					Addr: [16]byte{
-						ip[0], ip[1], ip[3], ip[4],
-						ip[5], ip[6], ip[7], ip[8],
-						ip[9], ip[10], ip[11], ip[12],
-						ip[13], ip[14], ip[15], ip[16],
+						ip6[0], ip6[1], ip6[2], ip6[3],
+						ip6[4], ip6[5], ip6[6], ip6[7],
+						ip6[8], ip6[9], ip6[10], ip6[11],
+						ip6[12], ip6[13], ip6[14], ip6[15],
 					},
 				}
 			}
@@ -90,7 +91,7 @@ func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err
 				return
 			}
 			err = syscall.Bind(int(fd), sa)
-		case dc.BindInterface != "":
+		} else if dc.BindInterface != "" {
 			err = syscall.BindToDevice(int(fd), dc.BindInterface)
 		}
 	})

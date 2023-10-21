@@ -48,7 +48,7 @@ func (d *HTTP3Dialer) init() {
 		Dial: func(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (quic.EarlyConnection, error) {
 			host := d.Host
 			if d.Resolver != nil {
-				if ips, err := d.Resolver.LookupIP(ctx, host); err == nil && len(ips) != 0 {
+				if ips, err := d.Resolver.LookupIP(ctx, "udp", host); err == nil && len(ips) != 0 {
 					host = ips[fastrandn(uint32(len(ips)))].String()
 				}
 			}
