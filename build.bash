@@ -46,69 +46,6 @@ EOF
 	xargs --max-procs=8 -n1 -i bash -c {}
 }
 
-function packaging_macos() {
-	pushd build
-
-	local revison=$(git rev-list --count HEAD)
-
-	mkdir -p liner
-	tar xvpf liner_darwin_amd64-${revison}.tar.xz -C liner
-	cat <<EOF > liner/production.yaml
-global:
-  log_level: debug
-  max_idle_conns: 16
-  dial_timeout: 30
-  dns_cache_duration: 15m
-dialer:
-  https_hk: https://leaderone:123456@flyspace.hk:443
-http:
-  - listen: ['127.0.0.1:8087']
-    server_name: ['localhost']
-    forward:
-      prefer_ipv6: false
-      policy: bypass_auth
-      dialer: https_hk
-EOF
-	# clean old files
-	rm liner_darwin_amd64-${revison}.tar.xz
-	GZIP_OPT=-9 tar cvzpf liner_macos_amd64-${revison}.tar.gz liner
-	rm -rf liner
-
-	popd
-}
-
-function packaging_windows() {
-	pushd build
-
-	local revison=$(git rev-list --count HEAD)
-	for arch in amd64; do
-		mkdir -p liner
-		tar xvpf liner_windows_${arch}-${revison}.tar.xz -C liner
-		cat <<EOF > liner/production.yaml
-global:
-  log_level: debug
-  max_idle_conns: 16
-  dial_timeout: 30
-  dns_cache_duration: 15m
-dialer:
-  https_hk: https://leaderone:123456@flyspace.hk:443
-http:
-  - listen: ['127.0.0.1:8087']
-    server_name: ['localhost']
-    forward:
-      prefer_ipv6: false
-      policy: bypass_auth
-      dialer: https_hk
-EOF
-		# clean old files
-		rm liner_windows_${arch}-${revison}.tar.xz
-		zip -9 -r liner_windows_${arch}-${revison}.zip liner
-		rm -rf liner
-	done
-
-	popd
-}
-
 function release() {
 	pushd build
 
