@@ -9,7 +9,7 @@ require (
 	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/phuslu/log v1.0.88
-	github.com/puzpuzpuz/xsync/v2 v2.5.1
+	github.com/puzpuzpuz/xsync/v3 v3.0.0
 	github.com/quic-go/quic-go v0.39.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.2.1
