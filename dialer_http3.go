@@ -11,6 +11,7 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"sync"
+	"sync/atomic"
 
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
@@ -27,22 +28,22 @@ type HTTP3Dialer struct {
 	Resolver  *Resolver
 
 	mu        sync.Mutex
-	transport *http3.RoundTripper
+	transport atomic.Value // *http3.RoundTripper
 }
 
 func (d *HTTP3Dialer) init() {
-	if d.transport != nil {
+	if d.transport.Load() != nil {
 		return
 	}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.transport != nil {
+	if d.transport.Load() != nil {
 		return
 	}
 
-	d.transport = &http3.RoundTripper{
+	d.transport.Store(&http3.RoundTripper{
 		DisableCompression: false,
 		EnableDatagrams:    false,
 		Dial: func(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (quic.EarlyConnection, error) {
@@ -79,7 +80,7 @@ func (d *HTTP3Dialer) init() {
 				},
 			)
 		},
-	}
+	})
 
 	if d.UserAgent == "" {
 		d.UserAgent = DefaultUserAgent
@@ -117,7 +118,7 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		},
 	}))
 
-	resp, err := d.transport.RoundTripOpt(req, http3.RoundTripOpt{DontCloseRequestStream: true})
+	resp, err := d.transport.Load().(*http3.RoundTripper).RoundTripOpt(req, http3.RoundTripOpt{DontCloseRequestStream: true})
 	if err != nil {
 		return nil, err
 	}
