@@ -15,7 +15,7 @@ case $(uname -m) in
     ;;
 esac
 
-domain=$(curl -sS whatismyip.akamai.com | tr . -).sslip.io
+domain=$(curl -sS whatismyip.akamai.com | tr . -).nip.io
 checksum=$(curl https://phus.lu/liner/checksums.txt | grep -E "liner_linux_${arch}-[0-9]+.tar.xz")
 filename=$(echo $checksum | awk '{print $2}')
 pacfile=$(shuf -er -n6 1 2 3 4 5 6 7 8 9 | tr -d '\n').pac
@@ -44,11 +44,12 @@ fi
 
 cat <<EOF > production.yaml
 global:
+  log_level: info
   max_idle_conns: 100
   dial_timeout: 30
   dns_cache_duration: 15m
 https:
-  - listen: [':443', ':8443']
+  - listen: [':443']
     server_name: ['$domain']
     forward:
       log: true
