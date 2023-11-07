@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/csv"
 	"fmt"
 	"io"
 	"net"
@@ -13,11 +12,12 @@ import (
 	"net/url"
 	"os"
 	"runtime"
-	"strconv"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
 
+	"github.com/jszwec/csvutil"
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/bcrypt"
@@ -390,10 +390,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 }
 
 type ForwardAuthInfo struct {
-	Username   string
-	Password   string
-	SpeedLimit int64
-	VIP        int
+	Username   string `csv:"username"`
+	Password   string `csv:"password"`
+	SpeedLimit int64  `csv:"speedlimit"`
+	VIP        int    `csv:"vip"`
 }
 
 func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ForwardAuthInfo, error) {
@@ -419,41 +419,35 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 	username, password := parts[0], parts[1]
 
 	var ai ForwardAuthInfo
-	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
-		data, err := os.ReadFile(h.Config.Forward.AuthTable)
-		if err != nil {
-			return ai, err
-		}
-		records, err := csv.NewReader(strings.NewReader(string(data))).ReadAll()
-		if err != nil {
-			return ai, err
-		}
-		if len(records) < 2 || len(records[0]) < 4 || !(records[0][0] == "username" && records[0][1] == "password" && records[0][2] == "speedlimit" && records[0][3] == "vip") {
-			return ai, fmt.Errorf("invaild csv records")
-		}
-		for _, record := range records[1:] {
-			if record[0] != username {
-				continue
-			}
-			ai.Username = record[0]
-			ai.Password = record[1]
-			ai.SpeedLimit, _ = strconv.ParseInt(record[2], 10, 64)
-			ai.VIP, _ = strconv.Atoi(record[3])
-		}
-	} else {
+	if !strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
 		return ai, fmt.Errorf("unsupported auth_table: %s", h.Config.Forward.AuthTable)
 	}
 
-	switch {
-	case strings.HasPrefix(ai.Password, "$2a$"):
-		err = bcrypt.CompareHashAndPassword([]byte(ai.Password), []byte(password))
-	default:
-		if ai.Password != password {
-			err = fmt.Errorf("plain password mismatch")
-		}
+	data, err = os.ReadFile(h.Config.Forward.AuthTable)
+	if err != nil {
+		return ai, err
 	}
 
-	if err != nil || ai.Username == "" {
+	var records []ForwardAuthInfo
+
+	err = csvutil.Unmarshal(data, &records)
+	if err != nil {
+		return ai, err
+	}
+	if i := slices.IndexFunc(records, func(r ForwardAuthInfo) bool {
+		if r.Username != username {
+			return false
+		}
+		switch {
+		case strings.HasPrefix(r.Password, "$2a$"):
+			return bcrypt.CompareHashAndPassword([]byte(r.Password), []byte(password)) == nil
+		default:
+			return r.Password == password
+		}
+	}); i >= 0 {
+		ai = records[i]
+	}
+	if ai.Username == "" {
 		return ai, fmt.Errorf("wrong username='%s' or password='%s'", username, password)
 	}
 
