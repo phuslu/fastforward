@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"runtime"
 	"slices"
 	"strings"
@@ -36,6 +35,7 @@ type HTTPForwardHandler struct {
 	policy     *template.Template
 	dialer     *template.Template
 	transports map[string]*http.Transport
+	csvloader  *FileLoader[[]ForwardAuthInfo]
 }
 
 func (h *HTTPForwardHandler) Load() error {
@@ -65,6 +65,19 @@ func (h *HTTPForwardHandler) Load() error {
 				MaxIdleConns:        32,
 			}
 		}
+	}
+
+	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
+		h.csvloader = &FileLoader[[]ForwardAuthInfo]{
+			Filename:     h.Config.Forward.AuthTable,
+			Unmarshal:    csvutil.Unmarshal,
+			PollDuration: 15 * time.Second,
+		}
+		records := h.csvloader.Load()
+		if records == nil {
+			log.Fatal().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Forward.AuthTable).Msg("load auth_table failed")
+		}
+		log.Info().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Forward.AuthTable).Int("auth_table_size", len(*records)).Msg("load auth_table ok")
 	}
 
 	if h.Config.Forward.BindInterface != "" {
@@ -419,22 +432,12 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 	username, password := parts[0], parts[1]
 
 	var ai ForwardAuthInfo
-	if !strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
-		return ai, fmt.Errorf("unsupported auth_table: %s", h.Config.Forward.AuthTable)
-	}
 
-	data, err = os.ReadFile(h.Config.Forward.AuthTable)
-	if err != nil {
-		return ai, err
+	records := h.csvloader.Load()
+	if records == nil {
+		return ai, fmt.Errorf("empty records in csvloader %s", h.csvloader.Filename)
 	}
-
-	var records []ForwardAuthInfo
-
-	err = csvutil.Unmarshal(data, &records)
-	if err != nil {
-		return ai, err
-	}
-	if i := slices.IndexFunc(records, func(r ForwardAuthInfo) bool {
+	if i := slices.IndexFunc(*records, func(r ForwardAuthInfo) bool {
 		if r.Username != username {
 			return false
 		}
@@ -445,7 +448,7 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 			return r.Password == password
 		}
 	}); i >= 0 {
-		ai = records[i]
+		ai = (*records)[i]
 	}
 	if ai.Username == "" {
 		return ai, fmt.Errorf("wrong username='%s' or password='%s'", username, password)

@@ -20,6 +20,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 	"unsafe"
@@ -775,4 +777,46 @@ checkPattern:
 	}
 
 	return patternIndex == patternLen
+}
+
+type FileLoader[T any] struct {
+	Filename     string
+	Unmarshal    func([]byte, any) error
+	PollDuration time.Duration
+
+	once  sync.Once
+	mtime int64
+	ptr   unsafe.Pointer
+}
+
+func (f *FileLoader[T]) Load() *T {
+	f.once.Do(func() {
+		load := func() {
+			data, err := os.ReadFile(f.Filename)
+			if err != nil {
+				return
+			}
+			v := new(T)
+			err = f.Unmarshal(data, v)
+			if err != nil {
+				return
+			}
+			atomic.StorePointer(&f.ptr, (unsafe.Pointer)(v))
+		}
+		load()
+		go func() {
+			for _ = range time.Tick(f.PollDuration) {
+				fi, err := os.Stat(f.Filename)
+				if err != nil {
+					continue
+				}
+				mtime := fi.ModTime().Unix()
+				if mtime != atomic.SwapInt64(&f.mtime, mtime) {
+					load()
+				}
+			}
+		}()
+	})
+
+	return (*T)(atomic.LoadPointer(&f.ptr))
 }
