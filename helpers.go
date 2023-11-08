@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -783,36 +784,57 @@ type FileLoader[T any] struct {
 	Filename     string
 	Unmarshal    func([]byte, any) error
 	PollDuration time.Duration
+	ErrorLogger  *log.Logger
 
 	once  sync.Once
 	mtime int64
 	ptr   unsafe.Pointer
 }
 
+func (f *FileLoader[T]) load() {
+	if f.Unmarshal == nil {
+		if f.ErrorLogger != nil {
+			f.ErrorLogger.Printf("FileLoader: empty unmarshal for %+v", f.Filename)
+		}
+		return
+	}
+	data, err := os.ReadFile(f.Filename)
+	if err != nil {
+		if f.ErrorLogger != nil {
+			f.ErrorLogger.Printf("FileLoader: read file %+v error: %v", f.Filename, err)
+		}
+		return
+	}
+	v := new(T)
+	err = f.Unmarshal(data, v)
+	if err != nil {
+		if f.ErrorLogger != nil {
+			f.ErrorLogger.Printf("FileLoader: unmarshal data of %+v error: %v", f.Filename, err)
+		}
+		return
+	}
+	atomic.StorePointer(&f.ptr, (unsafe.Pointer)(v))
+}
+
 func (f *FileLoader[T]) Load() *T {
 	f.once.Do(func() {
-		load := func() {
-			data, err := os.ReadFile(f.Filename)
-			if err != nil {
-				return
-			}
-			v := new(T)
-			err = f.Unmarshal(data, v)
-			if err != nil {
-				return
-			}
-			atomic.StorePointer(&f.ptr, (unsafe.Pointer)(v))
-		}
-		load()
+		f.load()
 		go func() {
-			for _ = range time.Tick(f.PollDuration) {
+			dur := f.PollDuration
+			if dur == 0 {
+				dur = time.Minute
+			}
+			for _ = range time.Tick(dur) {
 				fi, err := os.Stat(f.Filename)
 				if err != nil {
+					if f.ErrorLogger != nil {
+						f.ErrorLogger.Printf("FileLoader: stat %+v error: %v", f.Filename, err)
+					}
 					continue
 				}
 				mtime := fi.ModTime().Unix()
 				if mtime != atomic.SwapInt64(&f.mtime, mtime) {
-					load()
+					f.load()
 				}
 			}
 		}()

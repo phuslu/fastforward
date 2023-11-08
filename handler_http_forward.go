@@ -72,6 +72,7 @@ func (h *HTTPForwardHandler) Load() error {
 			Filename:     h.Config.Forward.AuthTable,
 			Unmarshal:    csvutil.Unmarshal,
 			PollDuration: 15 * time.Second,
+			ErrorLogger:  log.DefaultLogger.Std("", 0),
 		}
 		records := h.csvloader.Load()
 		if records == nil {
