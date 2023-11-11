@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net"
 	"net/netip"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -66,19 +67,27 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 	case 1:
 		break
 	default:
-		if !d.PreferIPv6 {
-			if ips[0].Is6() {
-				pos := len(ips) - 1
-				if ips[pos].Is4() {
-					ips[0], ips[pos] = ips[pos], ips[0]
+		slices.SortFunc(ips, func(a, b netip.Addr) int {
+			switch {
+			case a.Is6() && b.Is4():
+				if d.PreferIPv6 {
+					return -1
+				} else {
+					return 1
 				}
+			case a.Is4() && b.Is6():
+				if d.PreferIPv6 {
+					return 1
+				} else {
+					return -1
+				}
+			default:
+				return 0
 			}
-		} else {
-			if ips[0].Is4() {
-				pos := len(ips) - 1
-				if ips[pos].Is6() {
-					ips[0], ips[pos] = ips[pos], ips[0]
-				}
+		})
+		if d.PreferIPv6 {
+			if i := slices.IndexFunc(ips, func(a netip.Addr) bool { return a.Is4() }); i > 0 {
+				ips = ips[:i]
 			}
 		}
 	}
