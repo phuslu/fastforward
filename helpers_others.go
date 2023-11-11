@@ -37,6 +37,10 @@ func (dc DailerController) Control(network, address string, c syscall.RawConn) e
 	return nil
 }
 
+func SetTcpBrutalRate(tc *net.TCPConn, rate uint64) error {
+	return nil
+}
+
 func SetProcessName(name string) error {
 	return nil
 }

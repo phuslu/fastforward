@@ -268,6 +268,7 @@ func (fw FlushWriter) Write(p []byte) (n int, err error) {
 
 type TCPListener struct {
 	*net.TCPListener
+	TcpBrutalRate   uint64
 	KeepAlivePeriod time.Duration
 	ReadBufferSize  int
 	WriteBufferSize int
@@ -289,6 +290,11 @@ func (ln TCPListener) Accept() (c net.Conn, err error) {
 	}
 	if ln.WriteBufferSize > 0 {
 		tc.SetWriteBuffer(ln.WriteBufferSize)
+	}
+	if ln.TcpBrutalRate > 0 {
+		if err = SetTcpBrutalRate(tc, ln.TcpBrutalRate); err != nil {
+			return
+		}
 	}
 
 	c = tc

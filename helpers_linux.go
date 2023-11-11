@@ -97,6 +97,36 @@ func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err
 	})
 }
 
+//go:linkname setsockopt syscall.setsockopt
+func setsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr) (err error)
+
+func SetTcpBrutalRate(tc *net.TCPConn, rate uint64) (err error) {
+	var c syscall.RawConn
+	c, err = tc.SyscallConn()
+	if err != nil {
+		return
+	}
+	return c.Control(func(fd uintptr) {
+		const TCP_BRUTAL_PARAMS = 23301
+		err = syscall.SetsockoptString(int(fd), syscall.IPPROTO_TCP, syscall.TCP_CONGESTION, "brutal")
+		if err != nil {
+			err = os.NewSyscallError("setsockopt IPPROTO_TCP TCP_CONGESTION brutal", err)
+		}
+		params := struct {
+			Rate     uint64
+			CwndGain uint32
+		}{
+			Rate:     rate,
+			CwndGain: 20, // hysteria2 default
+		}
+		err = setsockopt(int(fd), syscall.IPPROTO_TCP, TCP_BRUTAL_PARAMS, unsafe.Pointer(&params), unsafe.Sizeof(params))
+		if err != nil {
+			err = os.NewSyscallError("setsockopt IPPROTO_TCP TCP_BRUTAL_PARAMS", err)
+		}
+		return
+	})
+}
+
 func RedirectStderrTo(file *os.File) error {
 	return syscall.Dup3(int(file.Fd()), 2, 0)
 }
