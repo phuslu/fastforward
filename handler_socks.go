@@ -171,14 +171,10 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 		}
 
 		output := strings.TrimSpace(sb.String())
-		log.Debug().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy_output", output).Msg("execute forward_policy ok")
+		log.Debug().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Interface("request", req).Str("forward_policy_output", output).Msg("execute forward_policy ok")
 
 		switch output {
 		case "reject", "deny":
-			WriteSocks5Status(conn, Socks5StatusConnectionNotAllowedByRuleset)
-			return
-		case "require_auth", "require_socks_auth":
-			// should not reach here
 			WriteSocks5Status(conn, Socks5StatusConnectionNotAllowedByRuleset)
 			return
 		}
