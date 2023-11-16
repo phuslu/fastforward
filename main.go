@@ -359,7 +359,7 @@ func main() {
 				Transport: transport,
 				Functions: functions,
 			},
-			ServerNames:    NewStringSet(server.ServerName),
+			ServerNames:    server.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			Config:         server,
 		}
@@ -506,7 +506,7 @@ func main() {
 				Transport: transport,
 				Functions: functions,
 			},
-			ServerNames:    NewStringSet(httpConfig.ServerName),
+			ServerNames:    httpConfig.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			Config:         httpConfig,
 		}
