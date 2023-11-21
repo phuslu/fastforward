@@ -56,7 +56,7 @@ func (f *Functions) geoip(ip string) GeoipInfo {
 	}
 
 	if net.ParseIP(ip) == nil {
-		ips, _ := f.RegionResolver.Resolver.LookupIP(context.Background(), "tcp", ip)
+		ips, _ := f.RegionResolver.Resolver.LookupNetIP(context.Background(), "ip", ip)
 		if len(ips) == 0 {
 			return GeoipInfo{Country: "ZZ"}
 		}
