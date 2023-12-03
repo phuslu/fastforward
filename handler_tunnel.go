@@ -167,6 +167,4 @@ func (h *TunnelHandler) Client(ctx context.Context) {
 			}(ctx, stream)
 		}
 	}
-
-	return
 }

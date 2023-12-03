@@ -13,6 +13,8 @@ import (
 type HTTPConfig struct {
 	Listen       []string `json:"listen" yaml:"listen"`
 	ServerName   []string `json:"server_name" yaml:"server_name"`
+	Keyfile      string   `json:"keyfile" yaml:"keyfile"`
+	Certfile     string   `json:"certfile" yaml:"certfile"`
 	ServerConfig map[string]struct {
 		Keyfile        string `json:"keyfile" yaml:"keyfile"`
 		Certfile       string `json:"certfile" yaml:"certfile"`

@@ -830,7 +830,7 @@ func (f *FileLoader[T]) Load() *T {
 			if dur == 0 {
 				dur = time.Minute
 			}
-			for _ = range time.Tick(dur) {
+			for range time.Tick(dur) {
 				fi, err := os.Stat(f.Filename)
 				if err != nil {
 					if f.ErrorLogger != nil {

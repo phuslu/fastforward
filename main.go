@@ -387,6 +387,9 @@ func main() {
 			}
 			for _, name := range server.ServerName {
 				config, _ := server.ServerConfig[name]
+				if config.Keyfile == "" {
+					config.Keyfile, config.Certfile = server.Keyfile, server.Certfile
+				}
 				if config.Certfile == "" {
 					config.Certfile = config.Keyfile
 				}
