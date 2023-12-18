@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/oschwald/maxminddb-golang"
+	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
 	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/quic-go/quic-go"
@@ -28,7 +29,6 @@ import (
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
 	"golang.org/x/sync/singleflight"
-	"github.com/phuslu/geosite"
 )
 
 var (
@@ -326,16 +326,23 @@ func main() {
 	}
 
 	functions := &Functions{
-		GeoSite: &geosite.DomainListCommunity{},
+		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
 		RegionResolver: regionResolver,
 		LRUCache:       NewLRUCache(128),
 		Singleflight:   &singleflight.Group{},
 	}
 	funcmap := functions.FuncMap()
-	if err = functions.GeoSite.Load(context.Background(), geosite.DefaultTarball); err != nil {
-		log.Fatal().Err(err).Str("geosite_tarball", geosite.DefaultTarball).Msgf("%T.Load() return error: %+v", functions.GeoSite, err)
+	if err = functions.GeoSite.Load(context.Background(), geosite.InlineTarball); err != nil {
+		log.Fatal().Err(err).Int("geosite_tarball_size", len(geosite.InlineTarball)).Msgf("%T.Load() return error: %+v", functions.GeoSite, err)
 	}
-	log.Info().Str("geosite_tarball", geosite.DefaultTarball).Msgf("%T.Load() ok", functions.GeoSite)
+	if names, err := filepath.Glob("*domain-list-community*.tar.gz"); err == nil {
+		for _, name := range names {
+			if err = functions.GeoSite.Load(context.Background(), name); err != nil {
+				log.Fatal().Err(err).Str("geosite_tarball", name).Msgf("%T.Load() return error: %+v", functions.GeoSite, err)
+			}
+		}
+	}
+	log.Info().Msgf("%T.Load() ok", functions.GeoSite)
 
 	lc := ListenConfig{
 		FastOpen:    false,
@@ -683,7 +690,7 @@ func main() {
 	if !log.IsTerminal(os.Stderr.Fd()) {
 		runner.AddFunc("0 0 0 * * *", func() { log.DefaultLogger.Writer.(*log.FileWriter).Rotate() })
 		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.FileWriter).Rotate() })
-		runner.AddFunc("0 0 0 * * *", func() { functions.GeoSite.Load(context.Background(), geosite.DefaultTarball) })
+		runner.AddFunc("0 0 0 * * *", func() { functions.GeoSite.Load(context.Background(), geosite.OnlineTarball) })
 	}
 	for _, job := range config.Cron {
 		spec, command := job.Spec, job.Command

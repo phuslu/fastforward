@@ -9,6 +9,7 @@ require (
 	github.com/jszwec/csvutil v1.8.0
 	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.12.0
+	github.com/phuslu/geosite v1.0.20231219
 	github.com/phuslu/log v1.0.88
 	github.com/puzpuzpuz/xsync/v3 v3.0.2
 	github.com/quic-go/quic-go v0.40.0
@@ -36,7 +37,6 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.1 // indirect
-	github.com/phuslu/geosite v0.0.0-20231218110040-29e7541d1fe1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
