@@ -12,6 +12,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/cloudflare/golibs/lrucache"
+	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
 	"golang.org/x/sync/singleflight"
 )
@@ -19,20 +20,22 @@ import (
 type Functions struct {
 	Singleflight   *singleflight.Group
 	RegionResolver *RegionResolver
+	GeoSite        *geosite.DomainListCommunity
 	LRUCache       lrucache.Cache
 }
 
 func (f *Functions) FuncMap() template.FuncMap {
 	var m = sprig.TxtFuncMap()
 
-	m["host"] = f.host
 	m["city"] = f.city
 	m["country"] = f.country
 	m["geoip"] = f.geoip
+	m["geosite"] = f.geosite
 	m["greased"] = f.greased
-	m["region"] = f.region
+	m["host"] = f.host
 	m["iplist"] = f.iplist
 	m["readfile"] = f.readfile
+	m["region"] = f.region
 
 	return m
 }
@@ -144,6 +147,13 @@ func (f *Functions) iplist(iplistUrl string) string {
 	f.LRUCache.Set(iplistUrl, data, time.Now().Add(12*time.Hour))
 
 	return data
+}
+
+func (f *Functions) geosite(domain string) string {
+	if host, _, err := net.SplitHostPort(domain); err == nil {
+		domain = host
+	}
+	return f.GeoSite.Site(domain)
 }
 
 func (f *Functions) readfile(filename string) string {

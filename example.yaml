@@ -110,6 +110,8 @@ http:
       dialer: |
         {{if hasPrefix "scholar.google.com" .Request.Host}}
           proxy1
+        {{else if eq (geosite .Request.Host) "openai"}}
+          proxy1
         {{else if ne (country .Request.Host) "CN"}}
           proxy2
         {{end}}

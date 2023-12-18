@@ -36,6 +36,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.1 // indirect
+	github.com/phuslu/geosite v0.0.0-20231218110040-29e7541d1fe1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect

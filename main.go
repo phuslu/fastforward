@@ -28,6 +28,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
 	"golang.org/x/sync/singleflight"
+	"github.com/phuslu/geosite"
 )
 
 var (
@@ -324,11 +325,17 @@ func main() {
 		DisableCompression:    false,
 	}
 
-	functions := (&Functions{
+	functions := &Functions{
+		GeoSite: &geosite.DomainListCommunity{},
 		RegionResolver: regionResolver,
 		LRUCache:       NewLRUCache(128),
 		Singleflight:   &singleflight.Group{},
-	}).FuncMap()
+	}
+	funcmap := functions.FuncMap()
+	if err = functions.GeoSite.Load(context.Background(), geosite.DefaultTarball); err != nil {
+		log.Fatal().Err(err).Str("geosite_tarball", geosite.DefaultTarball).Msgf("%T.Load() return error: %+v", functions.GeoSite, err)
+	}
+	log.Info().Str("geosite_tarball", geosite.DefaultTarball).Msgf("%T.Load() ok", functions.GeoSite)
 
 	lc := ListenConfig{
 		FastOpen:    false,
@@ -352,12 +359,12 @@ func main() {
 				LocalDialer:    dialer,
 				LocalTransport: transport,
 				Dialers:        dialers,
-				Functions:      functions,
+				Functions:      funcmap,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    server,
 				Transport: transport,
-				Functions: functions,
+				Functions: funcmap,
 			},
 			ServerNames:    server.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
@@ -502,12 +509,12 @@ func main() {
 				LocalDialer:    dialer,
 				LocalTransport: transport,
 				Dialers:        dialers,
-				Functions:      functions,
+				Functions:      funcmap,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    httpConfig,
 				Transport: transport,
-				Functions: functions,
+				Functions: funcmap,
 			},
 			ServerNames:    httpConfig.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
@@ -570,7 +577,7 @@ func main() {
 				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
 				Upstreams:      dialers,
-				Functions:      functions,
+				Functions:      funcmap,
 			}
 
 			if err = h.Load(); err != nil {
@@ -676,6 +683,7 @@ func main() {
 	if !log.IsTerminal(os.Stderr.Fd()) {
 		runner.AddFunc("0 0 0 * * *", func() { log.DefaultLogger.Writer.(*log.FileWriter).Rotate() })
 		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.FileWriter).Rotate() })
+		runner.AddFunc("0 0 0 * * *", func() { functions.GeoSite.Load(context.Background(), geosite.DefaultTarball) })
 	}
 	for _, job := range config.Cron {
 		spec, command := job.Spec, job.Command
