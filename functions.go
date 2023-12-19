@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -18,26 +19,48 @@ import (
 )
 
 type Functions struct {
-	Singleflight   *singleflight.Group
 	RegionResolver *RegionResolver
 	GeoSite        *geosite.DomainListCommunity
-	LRUCache       lrucache.Cache
+	Singleflight   *singleflight.Group
+	GeoSiteCache   lrucache.Cache
+	IPListCache    lrucache.Cache
+
+	FuncMap template.FuncMap
 }
 
-func (f *Functions) FuncMap() template.FuncMap {
-	var m = sprig.TxtFuncMap()
+func (f *Functions) Load() error {
+	if names, _ := filepath.Glob("*domain-list-community*.tar.gz"); len(names) > 0 {
+		for _, name := range names {
+			if err := f.GeoSite.Load(context.Background(), name); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := f.GeoSite.Load(context.Background(), geosite.InlineTarball); err != nil {
+			return err
+		}
+	}
 
-	m["city"] = f.city
-	m["country"] = f.country
-	m["geoip"] = f.geoip
-	m["geosite"] = f.geosite
-	m["greased"] = f.greased
-	m["host"] = f.host
-	m["iplist"] = f.iplist
-	m["readfile"] = f.readfile
-	m["region"] = f.region
+	go func() {
+		for range time.Tick(time.Hour) {
+			if err := f.GeoSite.Load(context.Background(), geosite.OnlineTarball); err != nil {
+				log.Error().Err(err).Str("geosite_online_tarball", geosite.OnlineTarball).Msg("geosite load error")
+			}
+		}
+	}()
 
-	return m
+	f.FuncMap = sprig.TxtFuncMap()
+	f.FuncMap["city"] = f.city
+	f.FuncMap["country"] = f.country
+	f.FuncMap["geoip"] = f.geoip
+	f.FuncMap["geosite"] = f.geosite
+	f.FuncMap["greased"] = f.greased
+	f.FuncMap["host"] = f.host
+	f.FuncMap["iplist"] = f.iplist
+	f.FuncMap["readfile"] = f.readfile
+	f.FuncMap["region"] = f.region
+
+	return nil
 }
 
 func (f *Functions) host(hostport string) string {
@@ -107,7 +130,7 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 func (f *Functions) iplist(iplistUrl string) string {
 	var err error
 
-	v, ok := f.LRUCache.GetNotStale(iplistUrl)
+	v, ok := f.IPListCache.GetNotStale(iplistUrl)
 	if ok {
 		return v.(string)
 	}
@@ -144,7 +167,7 @@ func (f *Functions) iplist(iplistUrl string) string {
 	sb.WriteByte(']')
 
 	data := sb.String()
-	f.LRUCache.Set(iplistUrl, data, time.Now().Add(12*time.Hour))
+	f.IPListCache.Set(iplistUrl, data, time.Now().Add(12*time.Hour))
 
 	return data
 }
@@ -153,7 +176,17 @@ func (f *Functions) geosite(domain string) string {
 	if host, _, err := net.SplitHostPort(domain); err == nil {
 		domain = host
 	}
-	return f.GeoSite.Site(domain)
+
+	v, ok := f.GeoSiteCache.GetNotStale(domain)
+	if ok {
+		return v.(string)
+	}
+
+	site := f.GeoSite.Site(domain)
+
+	f.GeoSiteCache.Set(domain, site, time.Now().Add(24*time.Hour))
+
+	return site
 }
 
 func (f *Functions) readfile(filename string) string {

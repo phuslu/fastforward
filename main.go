@@ -326,21 +326,14 @@ func main() {
 	}
 
 	functions := &Functions{
-		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
 		RegionResolver: regionResolver,
-		LRUCache:       NewLRUCache(128),
+		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
+		GeoSiteCache:   NewLRUCache(8096),
+		IPListCache:    NewLRUCache(128),
 		Singleflight:   &singleflight.Group{},
 	}
-	funcmap := functions.FuncMap()
-	if err = functions.GeoSite.Load(context.Background(), geosite.InlineTarball); err != nil {
-		log.Fatal().Err(err).Int("geosite_tarball_size", len(geosite.InlineTarball)).Msgf("%T.Load() return error: %+v", functions.GeoSite, err)
-	}
-	if names, err := filepath.Glob("*domain-list-community*.tar.gz"); err == nil {
-		for _, name := range names {
-			if err = functions.GeoSite.Load(context.Background(), name); err != nil {
-				log.Fatal().Err(err).Str("geosite_tarball", name).Msgf("%T.Load() return error: %+v", functions.GeoSite, err)
-			}
-		}
+	if err := functions.Load(); err != nil {
+		log.Fatal().Err(err).Msgf("%T.Load() fatal", functions)
 	}
 	log.Info().Msgf("%T.Load() ok", functions.GeoSite)
 
@@ -366,12 +359,12 @@ func main() {
 				LocalDialer:    dialer,
 				LocalTransport: transport,
 				Dialers:        dialers,
-				Functions:      funcmap,
+				Functions:      functions.FuncMap,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    server,
 				Transport: transport,
-				Functions: funcmap,
+				Functions: functions.FuncMap,
 			},
 			ServerNames:    server.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
@@ -516,12 +509,12 @@ func main() {
 				LocalDialer:    dialer,
 				LocalTransport: transport,
 				Dialers:        dialers,
-				Functions:      funcmap,
+				Functions:      functions.FuncMap,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    httpConfig,
 				Transport: transport,
-				Functions: funcmap,
+				Functions: functions.FuncMap,
 			},
 			ServerNames:    httpConfig.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
@@ -584,7 +577,7 @@ func main() {
 				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
 				Upstreams:      dialers,
-				Functions:      funcmap,
+				Functions:      functions.FuncMap,
 			}
 
 			if err = h.Load(); err != nil {
@@ -690,7 +683,6 @@ func main() {
 	if !log.IsTerminal(os.Stderr.Fd()) {
 		runner.AddFunc("0 0 0 * * *", func() { log.DefaultLogger.Writer.(*log.FileWriter).Rotate() })
 		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.FileWriter).Rotate() })
-		runner.AddFunc("0 0 0 * * *", func() { functions.GeoSite.Load(context.Background(), geosite.OnlineTarball) })
 	}
 	for _, job := range config.Cron {
 		spec, command := job.Spec, job.Command
