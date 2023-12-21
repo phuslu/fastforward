@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudflare/golibs/lrucache"
+	"github.com/phuslu/lru"
 	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/acme/autocert"
@@ -68,18 +68,18 @@ type TLSConfigurator struct {
 	Sniproies        map[string]TLSConfiguratorSniproxy
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
-	TLSConfigCache   lrucache.Cache
-	CertificateCache lrucache.Cache
+	TLSConfigCache   *lru.Cache[string, *tls.Config]
+	CertificateCache *lru.Cache[string, *tls.Certificate]
 	ClientHelloMap   *xsync.MapOf[string, *tls.ClientHelloInfo]
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 	if m.TLSConfigCache == nil {
-		m.TLSConfigCache = NewLRUCache(1024)
+		m.TLSConfigCache = lru.New[string, *tls.Config](1024)
 	}
 
 	if m.CertificateCache == nil {
-		m.CertificateCache = NewLRUCache(1024)
+		m.CertificateCache = lru.New[string, *tls.Certificate](1024)
 	}
 
 	if m.AutoCert == nil {
@@ -151,8 +151,8 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			cacheKey += "!tls13"
 		}
 
-		if v, ok := m.CertificateCache.GetNotStale(cacheKey); ok {
-			return v.(*tls.Certificate), nil
+		if v := m.CertificateCache.Get(cacheKey); v != nil {
+			return v, nil
 		}
 
 		certfile, keyfile := entry.CertFile, entry.KeyFile
@@ -166,7 +166,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertificateCache.Set(cacheKey, &cert, timeNow().Add(24*time.Hour))
+		m.CertificateCache.Set(cacheKey, &cert, 24*time.Hour)
 
 		return &cert, nil
 	}
@@ -266,8 +266,8 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		cacheKey += ":chacha20"
 	}
 
-	if v, ok := m.TLSConfigCache.GetNotStale(cacheKey); ok {
-		return v.(*tls.Config), nil
+	if v := m.TLSConfigCache.Get(cacheKey); v != nil {
+		return v, nil
 	}
 
 	cert, err := m.GetCertificate(hello)
@@ -309,7 +309,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.TLSConfigCache.Set(cacheKey, config, timeNow().Add(24*time.Hour))
+	m.TLSConfigCache.Set(cacheKey, config, 24*time.Hour)
 
 	return config, nil
 }

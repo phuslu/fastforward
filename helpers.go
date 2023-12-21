@@ -18,7 +18,6 @@ import (
 	"net/url"
 	"os"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,7 +26,6 @@ import (
 	"unicode"
 	"unsafe"
 
-	"github.com/cloudflare/golibs/lrucache"
 	"github.com/tg123/go-htpasswd"
 	"github.com/valyala/bytebufferpool"
 	"go.uber.org/ratelimit"
@@ -107,14 +105,6 @@ func NewIPInt(ip string) IPInt {
 		return 0
 	}
 	return i*256 + j
-}
-
-func NewLRUCache(capacity uint) lrucache.Cache {
-	if n := uint(runtime.NumCPU()); n >= 4 {
-		return lrucache.NewMultiLRUCache(n, capacity/n)
-	} else {
-		return lrucache.NewLRUCache(capacity)
-	}
 }
 
 func AppendLowerBytes(dst []byte, src []byte) []byte {

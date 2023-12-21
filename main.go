@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"os/exec"
@@ -23,6 +24,7 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
+	"github.com/phuslu/lru"
 	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
@@ -109,7 +111,7 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: false,
 		},
-		LRUCache:      NewLRUCache(32 * 1024),
+		LRUCache:      lru.New[string, []netip.Addr](32 * 1024),
 		CacheDuration: time.Minute,
 	}
 
@@ -328,8 +330,8 @@ func main() {
 	functions := &Functions{
 		RegionResolver: regionResolver,
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
-		GeoSiteCache:   NewLRUCache(8096),
-		IPListCache:    NewLRUCache(128),
+		GeoSiteCache:   lru.New[string, *string](8192),
+		IPListCache:    lru.New[string, *string](128),
 		Singleflight:   &singleflight.Group{},
 	}
 	if err := functions.Load(); err != nil {

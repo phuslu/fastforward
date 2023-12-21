@@ -6,20 +6,20 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/cloudflare/golibs/lrucache"
 	"github.com/phuslu/log"
+	"github.com/phuslu/lru"
 )
 
 type Resolver struct {
 	*net.Resolver
-	LRUCache      lrucache.Cache
+	LRUCache      *lru.Cache[string, []netip.Addr]
 	CacheDuration time.Duration
 }
 
 func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
 	if r.LRUCache != nil {
-		if v, ok := r.LRUCache.GetNotStale(host); ok {
-			return v.([]netip.Addr), nil
+		if v := r.LRUCache.Get(host); v != nil {
+			return v, nil
 		}
 	}
 
@@ -33,7 +33,7 @@ func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]net
 	}
 
 	if r.LRUCache != nil && r.CacheDuration > 0 && len(ips) > 0 {
-		r.LRUCache.Set(host, ips, timeNow().Add(r.CacheDuration))
+		r.LRUCache.Set(host, ips, r.CacheDuration)
 	}
 
 	log.Debug().Msgf("lookupIP(%#v) return %+v", host, ips)

@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/cloudflare/golibs/lrucache"
 	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
+	"github.com/phuslu/lru"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -22,8 +22,8 @@ type Functions struct {
 	RegionResolver *RegionResolver
 	GeoSite        *geosite.DomainListCommunity
 	Singleflight   *singleflight.Group
-	GeoSiteCache   lrucache.Cache
-	IPListCache    lrucache.Cache
+	IPListCache    *lru.Cache[string, *string]
+	GeoSiteCache   *lru.Cache[string, *string]
 
 	FuncMap template.FuncMap
 }
@@ -128,14 +128,11 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 }
 
 func (f *Functions) iplist(iplistUrl string) string {
-	var err error
-
-	v, ok := f.IPListCache.GetNotStale(iplistUrl)
-	if ok {
-		return v.(string)
+	if v := f.IPListCache.Get(iplistUrl); v != nil {
+		return *v
 	}
 
-	v, err, _ = f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
+	v, err, _ := f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
 		body, err := ReadFile(iplistUrl)
 		return string(body), err
 	})
@@ -167,7 +164,7 @@ func (f *Functions) iplist(iplistUrl string) string {
 	sb.WriteByte(']')
 
 	data := sb.String()
-	f.IPListCache.Set(iplistUrl, data, time.Now().Add(12*time.Hour))
+	f.IPListCache.Set(iplistUrl, &data, 12*time.Hour)
 
 	return data
 }
@@ -177,14 +174,13 @@ func (f *Functions) geosite(domain string) string {
 		domain = host
 	}
 
-	v, ok := f.GeoSiteCache.GetNotStale(domain)
-	if ok {
-		return v.(string)
+	if v := f.GeoSiteCache.Get(domain); v != nil {
+		return *v
 	}
 
 	site := f.GeoSite.Site(domain)
 
-	f.GeoSiteCache.Set(domain, site, time.Now().Add(24*time.Hour))
+	f.GeoSiteCache.Set(domain, &site, 24*time.Hour)
 
 	return site
 }
