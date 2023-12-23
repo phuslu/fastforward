@@ -10,7 +10,7 @@ require (
 	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/phuslu/geosite v1.0.20231220-0.20231219103255-e415aba0c672
 	github.com/phuslu/log v1.0.88
-	github.com/phuslu/lru v0.0.0-20231221154625-684140a9f2c9
+	github.com/phuslu/lru v0.0.0-20231223191631-75b310c60cdd
 	github.com/puzpuzpuz/xsync/v3 v3.0.2
 	github.com/quic-go/quic-go v0.40.1
 	github.com/robfig/cron/v3 v3.0.1

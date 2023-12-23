@@ -166,7 +166,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertificateCache.Set(cacheKey, &cert, 24*time.Hour)
+		m.CertificateCache.SetWithTTL(cacheKey, &cert, 24*time.Hour)
 
 		return &cert, nil
 	}
@@ -309,7 +309,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.TLSConfigCache.Set(cacheKey, config, 24*time.Hour)
+	m.TLSConfigCache.SetWithTTL(cacheKey, config, 24*time.Hour)
 
 	return config, nil
 }

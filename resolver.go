@@ -33,7 +33,7 @@ func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]net
 	}
 
 	if r.LRUCache != nil && r.CacheDuration > 0 && len(ips) > 0 {
-		r.LRUCache.Set(host, ips, r.CacheDuration)
+		r.LRUCache.SetWithTTL(host, ips, r.CacheDuration)
 	}
 
 	log.Debug().Msgf("lookupIP(%#v) return %+v", host, ips)
