@@ -18,7 +18,7 @@ type Resolver struct {
 
 func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
 	if r.LRUCache != nil {
-		if v := r.LRUCache.Get(host); v != nil {
+		if v, ok := r.LRUCache.Get(host); ok {
 			return v, nil
 		}
 	}

@@ -128,7 +128,7 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 }
 
 func (f *Functions) iplist(iplistUrl string) string {
-	if v := f.IPListCache.Get(iplistUrl); v != nil {
+	if v, _ := f.IPListCache.Get(iplistUrl); v != nil {
 		return *v
 	}
 
@@ -174,7 +174,7 @@ func (f *Functions) geosite(domain string) string {
 		domain = host
 	}
 
-	if v := f.GeoSiteCache.Get(domain); v != nil {
+	if v, _ := f.GeoSiteCache.Get(domain); v != nil {
 		return *v
 	}
 

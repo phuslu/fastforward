@@ -151,7 +151,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			cacheKey += "!tls13"
 		}
 
-		if v := m.CertificateCache.Get(cacheKey); v != nil {
+		if v, _ := m.CertificateCache.Get(cacheKey); v != nil {
 			return v, nil
 		}
 
@@ -266,7 +266,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		cacheKey += ":chacha20"
 	}
 
-	if v := m.TLSConfigCache.Get(cacheKey); v != nil {
+	if v, _ := m.TLSConfigCache.Get(cacheKey); v != nil {
 		return v, nil
 	}
 
