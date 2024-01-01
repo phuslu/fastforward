@@ -8,9 +8,9 @@ require (
 	github.com/jszwec/csvutil v1.9.0
 	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.12.0
-	github.com/phuslu/geosite v1.0.20231220-0.20231219103255-e415aba0c672
+	github.com/phuslu/geosite v1.0.20240101
 	github.com/phuslu/log v1.0.88
-	github.com/phuslu/lru v0.0.0-20231228053519-133f245d1a2c
+	github.com/phuslu/lru v0.0.0-20240101163031-0f5bbb3ee2a1
 	github.com/puzpuzpuz/xsync/v3 v3.0.2
 	github.com/quic-go/quic-go v0.40.1
 	github.com/robfig/cron/v3 v3.0.1
@@ -30,7 +30,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/google/pprof v0.0.0-20231212022811-ec68065c825e // indirect
+	github.com/google/pprof v0.0.0-20231229205709-960ae82b1e42 // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
