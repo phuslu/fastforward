@@ -10,7 +10,7 @@ require (
 	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/phuslu/geosite v1.0.20240101
 	github.com/phuslu/log v1.0.88
-	github.com/phuslu/lru v0.0.0-20240101163031-0f5bbb3ee2a1
+	github.com/phuslu/lru v0.0.0-20240105152850-9e832817e81b
 	github.com/puzpuzpuz/xsync/v3 v3.0.2
 	github.com/quic-go/quic-go v0.40.1
 	github.com/robfig/cron/v3 v3.0.1
@@ -19,8 +19,8 @@ require (
 	go.uber.org/ratelimit v0.3.0
 	golang.org/x/crypto v0.17.0
 	golang.org/x/net v0.19.0
-	golang.org/x/sync v0.5.0
-	golang.org/x/sys v0.15.0
+	golang.org/x/sync v0.6.0
+	golang.org/x/sys v0.16.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -42,7 +42,7 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
+	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
