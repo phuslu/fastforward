@@ -14,6 +14,7 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
+	"github.com/phuslu/lru"
 	"github.com/puzpuzpuz/xsync/v3"
 )
 
@@ -26,6 +27,7 @@ type HTTPServerHandler struct {
 	Config         HTTPConfig
 	ServerNames    []string
 	ClientHelloMap *xsync.MapOf[string, *tls.ClientHelloInfo]
+	UserAgentCache *lru.Cache[string, useragent.UserAgent]
 	ForwardHandler HTTPHandler
 	WebHandler     HTTPHandler
 }
@@ -92,7 +94,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		req.Proto, req.ProtoMajor, req.ProtoMinor = "HTTP/3.0", 3, 0
 	}
 
-	ri.UserAgent = useragent.Parse(req.Header.Get("User-Agent"))
+	ri.UserAgent, _, _ = h.UserAgentCache.GetOrLoad(req.Header.Get("User-Agent"), nil)
 
 	ri.TraceID = log.NewXID()
 

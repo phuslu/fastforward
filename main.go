@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mileusna/useragent"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
@@ -327,6 +328,12 @@ func main() {
 		DisableCompression:    false,
 	}
 
+	// useragent cache
+	useragentCache := lru.NewWithLoader[string, useragent.UserAgent](2048, func(ua string) (useragent.UserAgent, time.Duration, error) {
+		return useragent.Parse(ua), 0, nil
+	})
+
+	// template functions
 	functions := &Functions{
 		RegionResolver: regionResolver,
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
@@ -370,6 +377,7 @@ func main() {
 			},
 			ServerNames:    server.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
+			UserAgentCache: useragentCache,
 			Config:         server,
 		}
 
@@ -520,6 +528,7 @@ func main() {
 			},
 			ServerNames:    httpConfig.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
+			UserAgentCache: useragentCache,
 			Config:         httpConfig,
 		}
 
