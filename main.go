@@ -329,9 +329,9 @@ func main() {
 	}
 
 	// useragent cache
-	useragentCache := lru.NewWithLoader[string, useragent.UserAgent](2048, func(ua string) (useragent.UserAgent, time.Duration, error) {
-		return useragent.Parse(ua), 0, nil
-	})
+	useragentCache := &CachingMap[string, useragent.UserAgent]{
+		Getter: func(ua string) (useragent.UserAgent, error) { return useragent.Parse(ua), nil },
+	}
 
 	// template functions
 	functions := &Functions{
