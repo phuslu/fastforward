@@ -838,3 +838,63 @@ func (f *FileLoader[T]) Load() *T {
 
 	return (*T)(atomic.LoadPointer(&f.ptr))
 }
+
+type CachingMap[K comparable, V any] struct {
+	Getter        func(K) (V, error)
+	FreshDuration time.Duration
+
+	once  sync.Once
+	queue chan struct {
+		key   K
+		value V
+	}
+	maps  [2]map[K]V
+	index int64
+}
+
+func (cm *CachingMap[K, V]) Get(key K) (value V, ok bool, err error) {
+	cm.once.Do(func() {
+		cm.queue = make(chan struct {
+			key   K
+			value V
+		}, 1024)
+		cm.maps[0], cm.maps[1] = make(map[K]V), make(map[K]V)
+		go func() {
+			dur := cm.FreshDuration
+			if dur == 0 {
+				dur = time.Minute
+			}
+			ticker := time.NewTicker(dur)
+			for {
+				select {
+				case kv := <-cm.queue:
+					cm.maps[(atomic.LoadInt64(&cm.index)+1)%2][kv.key] = kv.value
+				case <-ticker.C:
+					atomic.StoreInt64(&cm.index, (atomic.LoadInt64(&cm.index)+1)%2)
+					m := cm.maps[(atomic.LoadInt64(&cm.index)+1)%2]
+					for key, value := range cm.maps[atomic.LoadInt64(&cm.index)] {
+						if _, ok := m[key]; !ok {
+							m[key] = value
+						}
+					}
+				}
+			}
+		}()
+	})
+
+	m := cm.maps[atomic.LoadInt64(&cm.index)]
+	value, ok = m[key]
+	if ok {
+		return
+	}
+
+	value, err = cm.Getter(key)
+	if err == nil {
+		cm.queue <- struct {
+			key   K
+			value V
+		}{key, value}
+	}
+
+	return
+}
