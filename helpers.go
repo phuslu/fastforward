@@ -840,10 +840,9 @@ func (f *FileLoader[T]) Load() *T {
 }
 
 type CachingMap[K comparable, V any] struct {
-	Getter        func(K) (V, error)
-	FreshDuration time.Duration
-
-	once sync.Once
+	// double buffering mechanism
+	index int64
+	maps  [2]map[K]V
 
 	// write queue
 	queue chan struct {
@@ -851,39 +850,47 @@ type CachingMap[K comparable, V any] struct {
 		value V
 	}
 
-	// double buffering mechanism
-	maps  [2]map[K]V
-	index int64
+	getter   func(K) (V, error)
+	duration time.Duration
+}
+
+func NewCachingMap[K comparable, V any](getter func(K) (V, error), duration time.Duration) *CachingMap[K, V] {
+	cm := &CachingMap[K, V]{
+		index: 0,
+		maps: [2]map[K]V{
+			make(map[K]V),
+			make(map[K]V),
+		},
+		queue: make(chan struct {
+			key   K
+			value V
+		}, 1024),
+		getter:   getter,
+		duration: duration,
+	}
+	go func() {
+		duration := cm.duration
+		if duration == 0 {
+			duration = time.Minute
+		}
+		ticker := time.NewTicker(duration)
+		for {
+			select {
+			case kv := <-cm.queue:
+				cm.maps[(atomic.LoadInt64(&cm.index)+1)%2][kv.key] = kv.value
+			case <-ticker.C:
+				atomic.StoreInt64(&cm.index, (atomic.LoadInt64(&cm.index)+1)%2)
+				m := cm.maps[(atomic.LoadInt64(&cm.index)+1)%2]
+				for key, value := range cm.maps[atomic.LoadInt64(&cm.index)] {
+					m[key] = value
+				}
+			}
+		}
+	}()
+	return cm
 }
 
 func (cm *CachingMap[K, V]) Get(key K) (value V, ok bool, err error) {
-	cm.once.Do(func() {
-		cm.queue = make(chan struct {
-			key   K
-			value V
-		}, 1024)
-		cm.maps[0], cm.maps[1] = make(map[K]V), make(map[K]V)
-		go func() {
-			dur := cm.FreshDuration
-			if dur == 0 {
-				dur = time.Minute
-			}
-			ticker := time.NewTicker(dur)
-			for {
-				select {
-				case kv := <-cm.queue:
-					cm.maps[(atomic.LoadInt64(&cm.index)+1)%2][kv.key] = kv.value
-				case <-ticker.C:
-					atomic.StoreInt64(&cm.index, (atomic.LoadInt64(&cm.index)+1)%2)
-					m := cm.maps[(atomic.LoadInt64(&cm.index)+1)%2]
-					for key, value := range cm.maps[atomic.LoadInt64(&cm.index)] {
-						m[key] = value
-					}
-				}
-			}
-		}()
-	})
-
 	// fast path, lock-free
 	value, ok = cm.maps[atomic.LoadInt64(&cm.index)][key]
 	if ok {
@@ -891,7 +898,7 @@ func (cm *CachingMap[K, V]) Get(key K) (value V, ok bool, err error) {
 	}
 
 	// slow path
-	value, err = cm.Getter(key)
+	value, err = cm.getter(key)
 	if err == nil {
 		cm.queue <- struct {
 			key   K

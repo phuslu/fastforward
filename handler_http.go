@@ -26,7 +26,7 @@ type HTTPServerHandler struct {
 	Config         HTTPConfig
 	ServerNames    []string
 	ClientHelloMap *xsync.MapOf[string, *tls.ClientHelloInfo]
-	UserAgentCache *CachingMap[string, useragent.UserAgent]
+	UserAgentMap   *CachingMap[string, useragent.UserAgent]
 	ForwardHandler HTTPHandler
 	WebHandler     HTTPHandler
 }
@@ -93,7 +93,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		req.Proto, req.ProtoMajor, req.ProtoMinor = "HTTP/3.0", 3, 0
 	}
 
-	ri.UserAgent, _, _ = h.UserAgentCache.Get(req.Header.Get("User-Agent"))
+	ri.UserAgent, _, _ = h.UserAgentMap.Get(req.Header.Get("User-Agent"))
 
 	ri.TraceID = log.NewXID()
 

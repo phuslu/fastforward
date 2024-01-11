@@ -328,11 +328,13 @@ func main() {
 		DisableCompression:    false,
 	}
 
-	// useragent cache
-	useragentCache := &CachingMap[string, useragent.UserAgent]{
-		Getter:        func(ua string) (useragent.UserAgent, error) { return useragent.Parse(ua), nil },
-		FreshDuration: 5 * time.Minute,
-	}
+	// useragent caching map
+	useragentMap := NewCachingMap(
+		func(key string) (useragent.UserAgent, error) {
+			return useragent.Parse(key), nil
+		},
+		5*time.Minute,
+	)
 
 	// template functions
 	functions := &Functions{
@@ -378,7 +380,7 @@ func main() {
 			},
 			ServerNames:    server.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
-			UserAgentCache: useragentCache,
+			UserAgentMap:   useragentMap,
 			Config:         server,
 		}
 
@@ -529,7 +531,7 @@ func main() {
 			},
 			ServerNames:    httpConfig.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
-			UserAgentCache: useragentCache,
+			UserAgentMap:   useragentMap,
 			Config:         httpConfig,
 		}
 
