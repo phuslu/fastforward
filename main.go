@@ -330,7 +330,8 @@ func main() {
 
 	// useragent cache
 	useragentCache := &CachingMap[string, useragent.UserAgent]{
-		Getter: func(ua string) (useragent.UserAgent, error) { return useragent.Parse(ua), nil },
+		Getter:        func(ua string) (useragent.UserAgent, error) { return useragent.Parse(ua), nil },
+		FreshDuration: 5 * time.Minute,
 	}
 
 	// template functions

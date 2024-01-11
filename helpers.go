@@ -843,11 +843,15 @@ type CachingMap[K comparable, V any] struct {
 	Getter        func(K) (V, error)
 	FreshDuration time.Duration
 
-	once  sync.Once
+	once sync.Once
+
+	// write queue
 	queue chan struct {
 		key   K
 		value V
 	}
+
+	// double buffering mechanism
 	maps  [2]map[K]V
 	index int64
 }
@@ -873,21 +877,20 @@ func (cm *CachingMap[K, V]) Get(key K) (value V, ok bool, err error) {
 					atomic.StoreInt64(&cm.index, (atomic.LoadInt64(&cm.index)+1)%2)
 					m := cm.maps[(atomic.LoadInt64(&cm.index)+1)%2]
 					for key, value := range cm.maps[atomic.LoadInt64(&cm.index)] {
-						if _, ok := m[key]; !ok {
-							m[key] = value
-						}
+						m[key] = value
 					}
 				}
 			}
 		}()
 	})
 
-	m := cm.maps[atomic.LoadInt64(&cm.index)]
-	value, ok = m[key]
+	// fast path, lock-free
+	value, ok = cm.maps[atomic.LoadInt64(&cm.index)][key]
 	if ok {
 		return
 	}
 
+	// slow path
 	value, err = cm.Getter(key)
 	if err == nil {
 		cm.queue <- struct {
