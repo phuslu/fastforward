@@ -333,6 +333,7 @@ func main() {
 		func(key string) (useragent.UserAgent, error) {
 			return useragent.Parse(key), nil
 		},
+		4096,
 		5*time.Minute,
 	)
 

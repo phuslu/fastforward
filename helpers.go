@@ -851,10 +851,11 @@ type CachingMap[K comparable, V any] struct {
 	}
 
 	getter   func(K) (V, error)
+	maxsize  int
 	duration time.Duration
 }
 
-func NewCachingMap[K comparable, V any](getter func(K) (V, error), duration time.Duration) *CachingMap[K, V] {
+func NewCachingMap[K comparable, V any](getter func(K) (V, error), maxsize int, duration time.Duration) *CachingMap[K, V] {
 	cm := &CachingMap[K, V]{
 		index: 0,
 		maps: [2]map[K]V{
@@ -866,9 +867,10 @@ func NewCachingMap[K comparable, V any](getter func(K) (V, error), duration time
 			value V
 		}, 1024),
 		getter:   getter,
+		maxsize:  maxsize,
 		duration: duration,
 	}
-	go func() {
+	go func(cm *CachingMap[K, V]) {
 		duration := cm.duration
 		if duration == 0 {
 			duration = time.Minute
@@ -880,13 +882,16 @@ func NewCachingMap[K comparable, V any](getter func(K) (V, error), duration time
 				cm.maps[(atomic.LoadInt64(&cm.index)+1)%2][kv.key] = kv.value
 			case <-ticker.C:
 				atomic.StoreInt64(&cm.index, (atomic.LoadInt64(&cm.index)+1)%2)
-				m := cm.maps[(atomic.LoadInt64(&cm.index)+1)%2]
-				for key, value := range cm.maps[atomic.LoadInt64(&cm.index)] {
-					m[key] = value
+				if m := cm.maps[(atomic.LoadInt64(&cm.index)+1)%2]; maxsize <= 0 || len(m) <= maxsize {
+					for key, value := range cm.maps[atomic.LoadInt64(&cm.index)] {
+						m[key] = value
+					}
+				} else {
+					cm.maps[(atomic.LoadInt64(&cm.index)+1)%2] = make(map[K]V)
 				}
 			}
 		}
-	}()
+	}(cm)
 	return cm
 }
 
