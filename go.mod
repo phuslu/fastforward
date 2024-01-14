@@ -8,7 +8,7 @@ require (
 	github.com/jszwec/csvutil v1.9.0
 	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.12.0
-	github.com/phuslu/geosite v1.0.20240110
+	github.com/phuslu/geosite v1.0.20240111-0.20240111161529-a443cae99dee
 	github.com/phuslu/log v1.0.88
 	github.com/phuslu/lru v0.0.0-20240110140055-8e1714c35fca
 	github.com/puzpuzpuz/xsync/v3 v3.0.2
