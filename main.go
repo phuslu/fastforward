@@ -31,7 +31,6 @@ import (
 	"github.com/quic-go/quic-go/http3"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
-	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -343,7 +342,7 @@ func main() {
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
 		GeoSiteCache:   lru.New[string, *string](8192),
 		IPListCache:    lru.New[string, *string](128),
-		Singleflight:   &singleflight.Group{},
+		Singleflight:   &singleflight_Group[string, string]{},
 	}
 	if err := functions.Load(); err != nil {
 		log.Fatal().Err(err).Msgf("%T.Load() fatal", functions)

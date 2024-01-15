@@ -15,13 +15,12 @@ import (
 	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
 	"github.com/phuslu/lru"
-	"golang.org/x/sync/singleflight"
 )
 
 type Functions struct {
 	RegionResolver *RegionResolver
 	GeoSite        *geosite.DomainListCommunity
-	Singleflight   *singleflight.Group
+	Singleflight   *singleflight_Group[string, string]
 	IPListCache    *lru.Cache[string, *string]
 	GeoSiteCache   *lru.Cache[string, *string]
 
@@ -132,16 +131,14 @@ func (f *Functions) iplist(iplistUrl string) string {
 		return *v
 	}
 
-	v, err, _ := f.Singleflight.Do(iplistUrl, func() (interface{}, error) {
-		body, err := ReadFile(iplistUrl)
-		return string(body), err
+	body, err, _ := f.Singleflight.Do(iplistUrl, func() (string, error) {
+		data, err := ReadFile(iplistUrl)
+		return string(data), err
 	})
 	if err != nil {
 		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
 		return "[]"
 	}
-
-	body := v.(string)
 
 	iplist, err := MergeCIDRToIPList(strings.NewReader(body))
 	if err != nil {
