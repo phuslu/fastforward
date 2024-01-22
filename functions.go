@@ -161,7 +161,7 @@ func (f *Functions) iplist(iplistUrl string) string {
 	sb.WriteByte(']')
 
 	data := sb.String()
-	f.IPListCache.SetWithTTL(iplistUrl, &data, 12*time.Hour)
+	f.IPListCache.Set(iplistUrl, &data, 12*time.Hour)
 
 	return data
 }
@@ -177,7 +177,7 @@ func (f *Functions) geosite(domain string) string {
 
 	site := f.GeoSite.Site(domain)
 
-	f.GeoSiteCache.SetWithTTL(domain, &site, 24*time.Hour)
+	f.GeoSiteCache.Set(domain, &site, 24*time.Hour)
 
 	return site
 }

@@ -58,8 +58,8 @@ github.com/phuslu/geosite v1.0.20240122 h1:jZAwi7WJRNoxqE8WJKk4g7gpDicy/WUFkVHo5
 github.com/phuslu/geosite v1.0.20240122/go.mod h1:qKR55nWrjbN1JOvK1WvZIqh341CGpq22OHx2BLMOrKE=
 github.com/phuslu/log v1.0.88 h1:kivXMpYQ2hd9BxiJNhRM5xnaEZaGunQYlnRQdk/aBw8=
 github.com/phuslu/log v1.0.88/go.mod h1:F8osGJADo5qLK/0F88djWwdyoZZ9xDJQL1HYRHFEkS0=
-github.com/phuslu/lru v0.0.0-20240119081013-217fd705a7ac h1:jc3gNryz/PhRY989w/JvUp9dYmTuj/2/ZhsIssjIeIs=
-github.com/phuslu/lru v0.0.0-20240119081013-217fd705a7ac/go.mod h1:RQxlDkg8zuudRLgl7bE9XJO72wr2ClLhjBg3uDEa+8I=
+github.com/phuslu/lru v0.0.0-20240122123900-af86b73fa71e h1:JKO70KhV01PfPpY69UfRelZ3erh4ALQY4+RGH2OUk+k=
+github.com/phuslu/lru v0.0.0-20240122123900-af86b73fa71e/go.mod h1:RQxlDkg8zuudRLgl7bE9XJO72wr2ClLhjBg3uDEa+8I=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/puzpuzpuz/xsync/v3 v3.0.2 h1:3yESHrRFYr6xzkz61LLkvNiPFXxJEAABanTQpKbAaew=
