@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -27,14 +28,14 @@ type HTTPWebProxyHandler struct {
 	SetHeaders        string
 	DumpFailure       bool
 
-	dialer  *template.Template
-	headers *template.Template
+	proxypass *template.Template
+	headers   *template.Template
 }
 
 func (h *HTTPWebProxyHandler) Load() error {
 	var err error
 
-	h.dialer, err = template.New(h.Pass).Funcs(h.Functions).Parse(h.Pass)
+	h.proxypass, err = template.New(h.Pass).Funcs(h.Functions).Parse(h.Pass)
 	if err != nil {
 		return err
 	}
@@ -66,15 +67,21 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	}
 
 	var sb strings.Builder
-	h.dialer.Execute(&sb, struct {
+	h.proxypass.Execute(&sb, struct {
 		Request    *http.Request
 		UserAgent  *useragent.UserAgent
 		ServerAddr string
 	}{req, &ri.UserAgent, ri.ServerAddr})
 
-	u, err := url.Parse(sb.String())
+	proxypass := strings.TrimSpace(sb.String())
+	if code, _ := strconv.Atoi(proxypass); 100 <= code && code <= 999 {
+		http.Error(rw, fmt.Sprintf("%d %s", code, http.StatusText(code)), code)
+		return
+	}
+
+	u, err := url.Parse(proxypass)
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("bad dialer %+v", sb.String()), http.StatusServiceUnavailable)
+		http.Error(rw, fmt.Sprintf("bad proxypass %+v", proxypass), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -114,8 +121,8 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
-		if h.dialer != nil {
-			log.Warn().Err(err).Context(ri.LogContext).Msg("dialer error")
+		if h.proxypass != nil {
+			log.Warn().Err(err).Context(ri.LogContext).Msg("proxypass error")
 			if IsTimeout(err) {
 				http.Error(rw, "504 Gateway Timeout", http.StatusGatewayTimeout)
 			} else {
