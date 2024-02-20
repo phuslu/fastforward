@@ -55,17 +55,6 @@ func first[T, U any](t T, _ ...U) T {
 	return t
 }
 
-func or[T comparable](values ...T) (t T) {
-	var zero T
-	for _, v := range values {
-		if v != zero {
-			t = v
-			break
-		}
-	}
-	return
-}
-
 func must[T, U any](t T, u ...U) T {
 	v := any(u[len(u)-1])
 	switch v := v.(type) {

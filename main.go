@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -256,7 +257,7 @@ func main() {
 				CACert:     u.Query().Get("cacert"),
 				ClientKey:  u.Query().Get("key"),
 				ClientCert: u.Query().Get("cert"),
-				MaxClients: or(first(strconv.Atoi(u.Query().Get("max_clients"))), 8),
+				MaxClients: cmp.Or(first(strconv.Atoi(u.Query().Get("max_clients"))), 8),
 				Dialer:     dialer,
 			}
 		case "http3":
@@ -304,10 +305,10 @@ func main() {
 				PrivateKey:            string(first(os.ReadFile(u.Query().Get("key")))),
 				Host:                  u.Hostname(),
 				Port:                  u.Port(),
-				StrictHostKeyChecking: or(u.Query().Get("StrictHostKeyChecking") == "yes", u.Query().Get("strict_host_key_checking") == "yes"),
-				UserKnownHostsFile:    or(u.Query().Get("UserKnownHostsFile"), u.Query().Get("user_known_hosts_file")),
-				MaxClients:            or(first(strconv.Atoi(u.Query().Get("max_clients"))), 8),
-				Timeout:               time.Duration(or(first(strconv.Atoi(u.Query().Get("timeout"))), 10)) * time.Second,
+				StrictHostKeyChecking: cmp.Or(u.Query().Get("StrictHostKeyChecking") == "yes", u.Query().Get("strict_host_key_checking") == "yes"),
+				UserKnownHostsFile:    cmp.Or(u.Query().Get("UserKnownHostsFile"), u.Query().Get("user_known_hosts_file")),
+				MaxClients:            cmp.Or(first(strconv.Atoi(u.Query().Get("max_clients"))), 8),
+				Timeout:               time.Duration(cmp.Or(first(strconv.Atoi(u.Query().Get("timeout"))), 10)) * time.Second,
 				Dialer:                dialer,
 			}
 		default:
