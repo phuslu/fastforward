@@ -458,6 +458,14 @@ func main() {
 
 				h, _ := handlers[serverName]
 				if h == nil {
+					for key, value := range handlers {
+						if key != "" && key[0] == '*' && strings.HasSuffix(serverName, key[1:]) {
+							h = value
+							break
+						}
+					}
+				}
+				if h == nil {
 					http.NotFound(w, r)
 					return
 				}

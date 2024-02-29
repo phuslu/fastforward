@@ -116,7 +116,8 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	if h, _, err := net.SplitHostPort(req.Host); err == nil {
 		hostname = h
 	}
-	containsHostname := slices.Contains(h.ServerNames, hostname)
+	containsHostname := slices.Contains(h.ServerNames, hostname) ||
+		slices.ContainsFunc(h.ServerNames, func(s string) bool { return s[0] == '*' && strings.HasSuffix(hostname, s[1:]) })
 
 	req = req.WithContext(context.WithValue(req.Context(), RequestInfoContextKey, ri))
 	switch {

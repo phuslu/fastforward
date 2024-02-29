@@ -140,6 +140,13 @@ func (m *TLSConfigurator) HostPolicy(ctx context.Context, host string) error {
 func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	entry, ok := m.Entries[hello.ServerName]
 	if !ok {
+		for key, value := range m.Entries {
+			if key != "" && key[0] == '*' && strings.HasSuffix(hello.ServerName, key[1:]) {
+				entry, ok = value, true
+			}
+		}
+	}
+	if !ok {
 		return nil, errors.New("server_name(" + hello.ServerName + ") is not allowed")
 	}
 
