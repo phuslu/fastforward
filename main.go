@@ -72,7 +72,7 @@ func main() {
 	var forwardLogger log.Logger
 	if log.IsTerminal(os.Stderr.Fd()) {
 		log.DefaultLogger = log.Logger{
-			Level:      log.ParseLevel(first(config.Global.LogLevel, "info")),
+			Level:      log.ParseLevel(cmp.Or(config.Global.LogLevel, "info")),
 			Caller:     1,
 			TimeFormat: "15:04:05",
 			Writer: &log.ConsoleWriter{
@@ -81,27 +81,27 @@ func main() {
 			},
 		}
 		forwardLogger = log.Logger{
-			Level:  log.ParseLevel(first(config.Global.LogLevel, "info")),
+			Level:  log.ParseLevel(cmp.Or(config.Global.LogLevel, "info")),
 			Writer: log.DefaultLogger.Writer,
 		}
 	} else {
 		// main logger
 		log.DefaultLogger = log.Logger{
-			Level: log.ParseLevel(first(config.Global.LogLevel, "info")),
+			Level: log.ParseLevel(cmp.Or(config.Global.LogLevel, "info")),
 			Writer: &log.FileWriter{
 				Filename:   executable + ".log",
 				MaxBackups: 1,
-				MaxSize:    first(config.Global.LogMaxsize, 10*1024*1024),
+				MaxSize:    cmp.Or(config.Global.LogMaxsize, 10*1024*1024),
 				LocalTime:  config.Global.LogLocaltime,
 			},
 		}
 		// forward logger
 		forwardLogger = log.Logger{
-			Level: log.ParseLevel(first(config.Global.LogLevel, "info")),
+			Level: log.ParseLevel(cmp.Or(config.Global.LogLevel, "info")),
 			Writer: &log.FileWriter{
 				Filename:   "forward.log",
-				MaxBackups: first(config.Global.LogBackups, 2),
-				MaxSize:    first(config.Global.LogMaxsize, 20*1024*1024),
+				MaxBackups: cmp.Or(config.Global.LogBackups, 2),
+				MaxSize:    cmp.Or(config.Global.LogMaxsize, 20*1024*1024),
 				LocalTime:  config.Global.LogLocaltime,
 			},
 		}
@@ -218,7 +218,7 @@ func main() {
 		ForbidLocalAddr: config.Global.ForbidLocalAddr,
 		ReadBuffSize:    config.Global.DialReadBuffer,
 		WriteBuffSize:   config.Global.DialWriteBuffer,
-		DialTimeout:     time.Duration(first(config.Global.DialTimeout, 30)) * time.Second,
+		DialTimeout:     time.Duration(cmp.Or(config.Global.DialTimeout, 30)) * time.Second,
 		TCPKeepAlive:    30 * time.Second,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -321,8 +321,8 @@ func main() {
 		DialContext: dialer.DialContext,
 		// DialTLSContext:        dialer.DialTLSContext,
 		TLSClientConfig:       dialer.TLSConfig,
-		MaxIdleConns:          first(config.Global.MaxIdleConns, 100),
-		IdleConnTimeout:       time.Duration(first(config.Global.IdleConnTimeout, 90)) * time.Second,
+		MaxIdleConns:          cmp.Or(config.Global.MaxIdleConns, 100),
+		IdleConnTimeout:       time.Duration(cmp.Or(config.Global.IdleConnTimeout, 90)) * time.Second,
 		TLSHandshakeTimeout:   15 * time.Second,
 		ExpectContinueTimeout: 2 * time.Second,
 		DisableCompression:    false,
