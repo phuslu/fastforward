@@ -6,8 +6,7 @@ liner
 liner.service
 production*.yaml
 debug.yaml
-go.mod
-go.sum
+go.env
 CHANGELOG.*
 *.csv
 *.log
