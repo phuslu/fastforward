@@ -68,18 +68,18 @@ type TLSConfigurator struct {
 	Sniproies        map[string]TLSConfiguratorSniproxy
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
-	TLSConfigCache   *lru.Cache[string, *tls.Config]
-	CertificateCache *lru.Cache[string, *tls.Certificate]
+	TLSConfigCache   *lru.TTLCache[string, *tls.Config]
+	CertificateCache *lru.TTLCache[string, *tls.Certificate]
 	ClientHelloMap   *xsync.MapOf[string, *tls.ClientHelloInfo]
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 	if m.TLSConfigCache == nil {
-		m.TLSConfigCache = lru.New[string, *tls.Config](1024)
+		m.TLSConfigCache = lru.NewTTLCache[string, *tls.Config](1024)
 	}
 
 	if m.CertificateCache == nil {
-		m.CertificateCache = lru.New[string, *tls.Certificate](1024)
+		m.CertificateCache = lru.NewTTLCache[string, *tls.Certificate](1024)
 	}
 
 	if m.AutoCert == nil {

@@ -112,7 +112,7 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: false,
 		},
-		LRUCache:      lru.New[string, []netip.Addr](32 * 1024),
+		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 		CacheDuration: time.Minute,
 	}
 
@@ -341,8 +341,8 @@ func main() {
 	functions := &Functions{
 		RegionResolver: regionResolver,
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
-		GeoSiteCache:   lru.New[string, *string](8192),
-		IPListCache:    lru.New[string, *string](128),
+		GeoSiteCache:   lru.NewTTLCache[string, *string](8192),
+		IPListCache:    lru.NewTTLCache[string, *string](128),
 		Singleflight:   &singleflight_Group[string, string]{},
 	}
 	if err := functions.Load(); err != nil {

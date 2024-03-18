@@ -12,7 +12,7 @@ import (
 
 type Resolver struct {
 	*net.Resolver
-	LRUCache      *lru.Cache[string, []netip.Addr]
+	LRUCache      *lru.TTLCache[string, []netip.Addr]
 	CacheDuration time.Duration
 }
 

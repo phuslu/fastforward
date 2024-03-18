@@ -21,8 +21,8 @@ type Functions struct {
 	RegionResolver *RegionResolver
 	GeoSite        *geosite.DomainListCommunity
 	Singleflight   *singleflight_Group[string, string]
-	IPListCache    *lru.Cache[string, *string]
-	GeoSiteCache   *lru.Cache[string, *string]
+	IPListCache    *lru.TTLCache[string, *string]
+	GeoSiteCache   *lru.TTLCache[string, *string]
 
 	FuncMap template.FuncMap
 }
