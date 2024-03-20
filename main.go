@@ -110,7 +110,7 @@ func main() {
 	// global resolver
 	resolver := &Resolver{
 		Resolver: &net.Resolver{
-			PreferGo: false,
+			PreferGo: true,
 		},
 		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 		CacheDuration: time.Minute,
