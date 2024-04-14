@@ -38,6 +38,7 @@ type HTTPConfig struct {
 		PreferIpv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`
 		Websocket        string `json:"websocket" yaml:"websocket"`
 		Log              bool   `json:"log" yaml:"log"`
+		LogInterval      int64  `json:"log_interval" yaml:"log_interval"`
 	} `json:"forward" yaml:"forward"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`

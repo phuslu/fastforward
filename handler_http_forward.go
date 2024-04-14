@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"crypto/sha1"
 	"crypto/tls"
 	"encoding/base64"
@@ -347,7 +348,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("user_agent_version", ri.UserAgent.Version).
 					Value(),
 				FieldName: "transmit_bytes",
-				Interval:  10,
+				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
 		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(conn, ai.SpeedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
@@ -443,7 +444,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("user_agent_version", ri.UserAgent.Version).
 					Value(),
 				FieldName: "transmit_bytes",
-				Interval:  10,
+				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
 
