@@ -27,6 +27,7 @@ type HTTPServerHandler struct {
 	ServerNames    []string
 	ClientHelloMap *xsync.MapOf[string, *tls.ClientHelloInfo]
 	UserAgentMap   *CachingMap[string, useragent.UserAgent]
+	RegionResolver *RegionResolver
 	ForwardHandler HTTPHandler
 	WebHandler     HTTPHandler
 }
@@ -40,6 +41,7 @@ type RequestInfo struct {
 	ClientHelloRaw  []byte
 	TraceID         log.XID
 	UserAgent       useragent.UserAgent
+	GeoipInfo       GeoipInfo
 	LogContext      log.Context
 }
 
@@ -94,6 +96,9 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	ri.UserAgent, _, _ = h.UserAgentMap.Get(req.Header.Get("User-Agent"))
+	if h.RegionResolver.MaxmindReader != nil {
+		ri.GeoipInfo.Country, ri.GeoipInfo.Region, ri.GeoipInfo.City, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(ri.RemoteIP))
+	}
 
 	ri.TraceID = log.NewXID()
 
@@ -110,6 +115,9 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		Str("http_url", req.URL.String()).
 		Str("useragent_os", ri.UserAgent.OS+" "+ri.UserAgent.OSVersion).
 		Str("useragent_browser", ri.UserAgent.Name+" "+ri.UserAgent.Version).
+		Str("remote_country", ri.GeoipInfo.Country).
+		Str("remote_region", ri.GeoipInfo.Region).
+		Str("remote_city", ri.GeoipInfo.City).
 		Value()
 
 	hostname := req.Host

@@ -368,7 +368,6 @@ func main() {
 			ForwardHandler: &HTTPForwardHandler{
 				Config:         server,
 				ForwardLogger:  forwardLogger,
-				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
 				LocalTransport: transport,
 				Dialers:        dialers,
@@ -382,6 +381,7 @@ func main() {
 			ServerNames:    server.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			UserAgentMap:   useragentMap,
+			RegionResolver: regionResolver,
 			Config:         server,
 		}
 
@@ -527,7 +527,6 @@ func main() {
 			ForwardHandler: &HTTPForwardHandler{
 				Config:         httpConfig,
 				ForwardLogger:  forwardLogger,
-				RegionResolver: regionResolver,
 				LocalDialer:    dialer,
 				LocalTransport: transport,
 				Dialers:        dialers,
@@ -541,6 +540,7 @@ func main() {
 			ServerNames:    httpConfig.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			UserAgentMap:   useragentMap,
+			RegionResolver: regionResolver,
 			Config:         httpConfig,
 		}
 
