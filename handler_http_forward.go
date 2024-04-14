@@ -321,6 +321,35 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		defer conn.Close()
 
 		go io.Copy(conn, r)
+
+		if h.Config.Forward.Log {
+			w = &ForwardLogWriter{
+				Writer: w,
+				Logger: h.ForwardLogger,
+				Context: log.NewContext(nil).
+					Xid("trace_id", ri.TraceID).
+					Str("server_name", ri.ServerName).
+					Str("server_addr", ri.ServerAddr).
+					Str("tls_version", ri.TLSVersion.String()).
+					Str("username", ai.Username).
+					Str("remote_ip", ri.RemoteIP).
+					Str("remote_country", ri.GeoipInfo.Country).
+					Str("remote_region", ri.GeoipInfo.Region).
+					Str("remote_city", ri.GeoipInfo.City).
+					Str("http_method", req.Method).
+					Str("http_host", host).
+					Str("http_domain", domain).
+					Str("http_proto", req.Proto).
+					Str("user_agent", req.UserAgent()).
+					Str("user_agent_os", ri.UserAgent.OS).
+					Str("user_agent_os_version", ri.UserAgent.OSVersion).
+					Str("user_agent_name", ri.UserAgent.Name).
+					Str("user_agent_version", ri.UserAgent.Version).
+					Value(),
+				FieldName: "transmit_bytes",
+				Interval:  10,
+			}
+		}
 		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(conn, ai.SpeedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
 		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
@@ -388,12 +417,38 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		rw.WriteHeader(resp.StatusCode)
 		defer resp.Body.Close()
 
-		transmitBytes, err = io.CopyBuffer(rw, NewRateLimitReader(resp.Body, ai.SpeedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
-		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
-	}
+		var w io.Writer = rw
+		if h.Config.Forward.Log {
+			w = &ForwardLogWriter{
+				Writer: w,
+				Logger: h.ForwardLogger,
+				Context: log.NewContext(nil).
+					Xid("trace_id", ri.TraceID).
+					Str("server_name", ri.ServerName).
+					Str("server_addr", ri.ServerAddr).
+					Str("tls_version", ri.TLSVersion.String()).
+					Str("username", ai.Username).
+					Str("remote_ip", ri.RemoteIP).
+					Str("remote_country", ri.GeoipInfo.Country).
+					Str("remote_region", ri.GeoipInfo.Region).
+					Str("remote_city", ri.GeoipInfo.City).
+					Str("http_method", req.Method).
+					Str("http_host", host).
+					Str("http_domain", domain).
+					Str("http_proto", req.Proto).
+					Str("user_agent", req.UserAgent()).
+					Str("user_agent_os", ri.UserAgent.OS).
+					Str("user_agent_os_version", ri.UserAgent.OSVersion).
+					Str("user_agent_name", ri.UserAgent.Name).
+					Str("user_agent_version", ri.UserAgent.Version).
+					Value(),
+				FieldName: "transmit_bytes",
+				Interval:  10,
+			}
+		}
 
-	if h.Config.Forward.Log {
-		h.ForwardLogger.Info().Xid("trace_id", ri.TraceID).Str("server_name", ri.ServerName).Str("server_addr", ri.ServerAddr).Str("tls_version", ri.TLSVersion.String()).Str("username", ai.Username).Str("remote_ip", ri.RemoteIP).Str("remote_country", ri.GeoipInfo.Country).Str("remote_region", ri.GeoipInfo.Region).Str("remote_city", ri.GeoipInfo.City).Str("http_method", req.Method).Str("http_host", host).Str("http_domain", domain).Str("http_proto", req.Proto).Str("user_agent", req.UserAgent()).Str("user_agent_os", ri.UserAgent.OS).Str("user_agent_os_version", ri.UserAgent.OSVersion).Str("user_agent_name", ri.UserAgent.Name).Str("user_agent_version", ri.UserAgent.Version).Int64("transmit_bytes", transmitBytes).Msg("forward log")
+		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(resp.Body, ai.SpeedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 }
 
@@ -456,4 +511,28 @@ func RejectRequest(rw http.ResponseWriter, req *http.Request) {
 	time.Sleep(time.Duration(1+fastrandn(3)) * time.Second)
 	// http.Error(rw, "403 Forbidden", http.StatusForbidden)
 	http.Error(rw, "400 Bad Request", http.StatusBadRequest)
+}
+
+type ForwardLogWriter struct {
+	io.Writer
+	Logger    log.Logger
+	Context   log.Context
+	FieldName string
+	Interval  int64
+
+	timestamp int64
+	transmits int64
+}
+
+func (w *ForwardLogWriter) Write(buf []byte) (n int, err error) {
+	n, err = w.Writer.Write(buf)
+	now := time.Now().Unix()
+	if w.transmits != 0 && (w.timestamp == 0 || now-w.timestamp >= w.Interval || err != nil) {
+		w.Logger.Log().Context(w.Context).Int64(w.FieldName, w.transmits).Msg("forward log")
+		w.timestamp = now
+		w.transmits = 0
+	} else {
+		w.transmits += int64(n)
+	}
+	return
 }
