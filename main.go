@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -343,6 +344,7 @@ func main() {
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
 		GeoSiteCache:   lru.NewTTLCache[string, *string](8192),
 		IPListCache:    lru.NewTTLCache[string, *string](128),
+		RegexpCache:    xsync.NewMapOf[string, *regexp.Regexp](),
 		Singleflight:   &singleflight_Group[string, string]{},
 	}
 	if err := functions.Load(); err != nil {

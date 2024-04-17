@@ -3,7 +3,6 @@ module liner
 go 1.22
 
 require (
-	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/hashicorp/yamux v0.1.1
 	github.com/jszwec/csvutil v1.10.0
 	github.com/mileusna/useragent v1.3.4
@@ -25,25 +24,15 @@ require (
 
 require (
 	github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5 // indirect
-	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/google/pprof v0.0.0-20240409012703-83162a5b38cd // indirect
-	github.com/google/uuid v1.6.0 // indirect
-	github.com/huandu/xstrings v1.4.0 // indirect
-	github.com/imdario/mergo v1.0.0 // indirect
-	github.com/mitchellh/copystructure v1.2.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/google/pprof v0.0.0-20240416155748-26353dc0451f // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.17.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
-	github.com/spf13/cast v1.6.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 // indirect
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 )
-
-replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.16
