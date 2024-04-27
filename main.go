@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
@@ -108,6 +109,8 @@ func main() {
 		}
 	}
 
+	slog.SetDefault(log.DefaultLogger.Slog())
+
 	// global resolver
 	resolver := &Resolver{
 		Resolver: &net.Resolver{
@@ -190,7 +193,7 @@ func main() {
 						ServerName:         u.Hostname(),
 						ClientSessionCache: tls.NewLRUClientSessionCache(128),
 					},
-					QuicConfig: &quic.Config{
+					QUICConfig: &quic.Config{
 						DisablePathMTUDiscovery: false,
 						EnableDatagrams:         false,
 						MaxIncomingUniStreams:   200,
@@ -504,7 +507,7 @@ func main() {
 			Addr:      addr,
 			Handler:   server.Handler,
 			TLSConfig: server.TLSConfig,
-			QuicConfig: &quic.Config{
+			QUICConfig: &quic.Config{
 				Allow0RTT:                  true,
 				DisablePathMTUDiscovery:    false,
 				EnableDatagrams:            false,

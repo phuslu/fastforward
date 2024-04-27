@@ -8,10 +8,10 @@ require (
 	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/phuslu/geosite v1.0.20240401
-	github.com/phuslu/log v1.0.89
+	github.com/phuslu/log v1.0.92
 	github.com/phuslu/lru v1.0.15
 	github.com/puzpuzpuz/xsync/v3 v3.1.0
-	github.com/quic-go/quic-go v0.42.0
+	github.com/quic-go/quic-go v0.43.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.2.2
 	github.com/valyala/bytebufferpool v1.0.0
@@ -26,7 +26,7 @@ require (
 	github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/google/pprof v0.0.0-20240416155748-26353dc0451f // indirect
+	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.17.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect

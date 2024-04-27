@@ -118,7 +118,7 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		},
 	}))
 
-	resp, err := d.transport.Load().(*http3.RoundTripper).RoundTripOpt(req, http3.RoundTripOpt{DontCloseRequestStream: true})
+	resp, err := d.transport.Load().(*http3.RoundTripper).RoundTripOpt(req, http3.RoundTripOpt{OnlyCachedConn: false})
 	if err != nil {
 		return nil, err
 	}
