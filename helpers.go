@@ -467,6 +467,7 @@ func GetPreferedLocalIP() (net.IP, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Close()
 
 	s, _, err := net.SplitHostPort(conn.LocalAddr().String())
 	if err != nil {
