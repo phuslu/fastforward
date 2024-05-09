@@ -7,7 +7,6 @@ import (
 	"mime"
 	"net"
 	"net/http"
-	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -55,14 +54,10 @@ var riPool = sync.Pool{
 	},
 }
 
-//go:embed mime.types
-var mimeTypes string
-
 func (h *HTTPServerHandler) Load() error {
-	for _, m := range regexp.MustCompile(`(?m)(\S+)\s+(\S+)`).FindAllStringSubmatch(mimeTypes, -1) {
-		mime.AddExtensionType(strings.ToLower("."+m[2]), m[1])
+	for ext, typ := range mimeTypes {
+		mime.AddExtensionType(ext, typ)
 	}
-
 	return nil
 }
 
