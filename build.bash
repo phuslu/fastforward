@@ -32,39 +32,7 @@ function build() {
 	go mod download -x
 	golang_org_x_net="${GOPATH}/pkg/mod/$(go list -m golang.org/x/net | tr ' ' @)"
 	chmod +w ${golang_org_x_net}/http2 ${golang_org_x_net}/http2/server.go
-	patch -p1 -d ${golang_org_x_net} <<'EOF'
-diff --git a/http2/server.go b/http2/server.go
-index ce2e8b4..6477501 100644
---- a/http2/server.go
-+++ b/http2/server.go
-@@ -46,6 +46,7 @@ import (
- 	"strings"
- 	"sync"
- 	"time"
-+	_ "unsafe"
- 
- 	"golang.org/x/net/http/httpguts"
- 	"golang.org/x/net/http2/hpack"
-@@ -2596,6 +2597,9 @@ func (rws *responseWriterState) declareTrailer(k string) {
- 	}
- }
- 
-+//go:linkname http_appendTime net/http.appendTime
-+func http_appendTime([]byte, time.Time) []byte
-+
- // writeChunk writes chunks from the bufio.Writer. But because
- // bufio.Writer may bypass its chunking, sometimes p may be
- // arbitrarily large.
-@@ -2638,7 +2642,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
- 		var date string
- 		if _, ok := rws.snapHeader["Date"]; !ok {
- 			// TODO(bradfitz): be faster here, like net/http? measure.
--			date = time.Now().UTC().Format(http.TimeFormat)
-+			date = string(http_appendTime(make([]byte, 0, len(http.TimeFormat)), time.Now().UTC()))
- 		}
- 
- 		for _, v := range rws.snapHeader["Trailer"] {
-EOF
+	patch -p1 -d ${golang_org_x_net} <02-http2date.patch
 
 	go build -v .
 	go test -v .
