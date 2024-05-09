@@ -903,3 +903,16 @@ func (cm *CachingMap[K, V]) Get(key K) (value V, ok bool, err error) {
 
 	return
 }
+
+func AppendToLower(dst []byte, s string) []byte {
+	n := len(s) - 1
+	_ = s[n]
+	for i := 0; i <= n; i++ {
+		c := s[i]
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		dst = append(dst, c)
+	}
+	return dst
+}
