@@ -112,7 +112,7 @@ type Config struct {
 		LogLocaltime     bool   `json:"log_localtime" yaml:"log_localtime"`
 		ForbidLocalAddr  bool   `json:"forbid_local_addr" yaml:"forbid_local_addr"`
 		DialTimeout      int    `json:"dial_timeout" yaml:"dial_timeout"`
-		DialReadBuffer   int    `json:"dial_read_buffer" yaml:"dial_read_buffer"`
+		DialReadBuffer   int    `json:"dial_read_buffer" yaml:"dial_read_buffer"` // Danger, see https://issues.apache.org/jira/browse/KAFKA-16496
 		DialWriteBuffer  int    `json:"dial_write_buffer" yaml:"dial_write_buffer"`
 		DnsServer        string `json:"dns_server" yaml:"dns_server"`
 		DnsCacheDuration string `json:"dns_cache_duration" yaml:"dns_cache_duration"`
