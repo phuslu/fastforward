@@ -296,9 +296,11 @@ type MirrorHeaderConn struct {
 
 func (c *MirrorHeaderConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
-	if c.Header == nil && n > 0 && err == nil {
+	if c.Header == nil {
 		c.Header = bytebufferpool.Get()
 		c.Header.Reset()
+	}
+	if err == nil && n > 0 && c.Header.Len() < 1500 {
 		c.Header.Write(b[:n])
 	}
 
