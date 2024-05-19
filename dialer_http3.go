@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
@@ -90,6 +91,7 @@ func (d *HTTP3Dialer) init() {
 func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	d.init()
 
+	pr, pw := io.Pipe()
 	req := &http.Request{
 		ProtoMajor: 3,
 		Method:     http.MethodConnect,
@@ -102,7 +104,7 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 			"content-type": []string{"application/octet-stream"},
 			"user-agent":   []string{d.UserAgent},
 		},
-		Body:          nil,
+		Body:          pr,
 		ContentLength: -1,
 	}
 
@@ -129,26 +131,51 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + string(data))
 	}
 
-	streamer, ok := resp.Body.(http3.HTTPStreamer)
-	if !ok {
-		return nil, errors.New("proxy: read from " + d.Host + " error: resp body not implemented http3.HTTPStreamer")
-	}
-
 	if remoteAddr == nil || localAddr == nil {
 		remoteAddr, localAddr = &net.UDPAddr{}, &net.UDPAddr{}
 	}
 
 	return &http3Stream{
-		Stream:     streamer.HTTPStream(),
+		r:          resp.Body,
+		w:          pw,
+		closed:     make(chan struct{}),
 		remoteAddr: remoteAddr,
 		localAddr:  localAddr,
 	}, nil
 }
 
 type http3Stream struct {
-	quic.Stream
+	r io.ReadCloser
+	w io.Writer
+
+	closed chan struct{}
+
 	remoteAddr net.Addr
 	localAddr  net.Addr
+}
+
+func (c *http3Stream) Read(b []byte) (n int, err error) {
+	return c.r.Read(b)
+}
+
+func (c *http3Stream) Write(b []byte) (n int, err error) {
+	return c.w.Write(b)
+}
+
+func (c *http3Stream) Close() (err error) {
+	select {
+	case <-c.closed:
+		return
+	default:
+		close(c.closed)
+	}
+	if rc, ok := c.r.(io.Closer); ok {
+		err = rc.Close()
+	}
+	if w, ok := c.w.(io.Closer); ok {
+		err = w.Close()
+	}
+	return
 }
 
 func (c *http3Stream) RemoteAddr() net.Addr {
@@ -157,4 +184,16 @@ func (c *http3Stream) RemoteAddr() net.Addr {
 
 func (c *http3Stream) LocalAddr() net.Addr {
 	return c.localAddr
+}
+
+func (c *http3Stream) SetDeadline(t time.Time) error {
+	return &net.OpError{Op: "set", Net: "http3", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
+}
+
+func (c *http3Stream) SetReadDeadline(t time.Time) error {
+	return &net.OpError{Op: "set", Net: "http3", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
+}
+
+func (c *http3Stream) SetWriteDeadline(t time.Time) error {
+	return &net.OpError{Op: "set", Net: "http3", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }
