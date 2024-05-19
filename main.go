@@ -172,7 +172,7 @@ func main() {
 		case "https", "http2", "h2", "doh":
 			resolver.Resolver.Dial = (&DoHResolverDialer{
 				EndPoint:  strings.NewReplacer("http2", "https", "h2", "https", "doh", "https").Replace(config.Global.DnsServer),
-				UserAgent: u.Query().Get("user_agent"),
+				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Transport: &http2.Transport{
 					TLSClientConfig: &tls.Config{
 						ServerName:         u.Hostname(),
@@ -183,7 +183,7 @@ func main() {
 		case "http3", "h3":
 			resolver.Resolver.Dial = (&DoHResolverDialer{
 				EndPoint:  strings.NewReplacer("http3", "https", "h3", "https").Replace(config.Global.DnsServer),
-				UserAgent: u.Query().Get("user_agent"),
+				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Transport: &http3.RoundTripper{
 					DisableCompression: false,
 					EnableDatagrams:    false,
@@ -244,7 +244,7 @@ func main() {
 				Host:       u.Hostname(),
 				Port:       u.Port(),
 				IsTLS:      u.Scheme == "https",
-				UserAgent:  u.Query().Get("user_agent"),
+				UserAgent:  cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Insecure:   u.Query().Get("insecure") == "1",
 				CACert:     u.Query().Get("cacert"),
 				ClientKey:  u.Query().Get("key"),
@@ -257,7 +257,7 @@ func main() {
 				Password:   first(u.User.Password()),
 				Host:       u.Hostname(),
 				Port:       u.Port(),
-				UserAgent:  u.Query().Get("user_agent"),
+				UserAgent:  cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				CACert:     u.Query().Get("cacert"),
 				ClientKey:  u.Query().Get("key"),
 				ClientCert: u.Query().Get("cert"),
@@ -270,7 +270,7 @@ func main() {
 				Password:  first(u.User.Password()),
 				Host:      u.Hostname(),
 				Port:      u.Port(),
-				UserAgent: u.Query().Get("user_agent"),
+				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Resolver:  resolver,
 			}
 		case "websocket", "wss":
@@ -278,7 +278,7 @@ func main() {
 				EndpointFormat: fmt.Sprintf("https://%s%s", u.Host, u.RequestURI()),
 				Username:       u.User.Username(),
 				Password:       first(u.User.Password()),
-				UserAgent:      u.Query().Get("user_agent"),
+				UserAgent:      cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Insecure:       u.Query().Get("insecure") == "1",
 				Dialer:         dialer,
 			}
