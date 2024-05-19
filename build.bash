@@ -32,7 +32,7 @@ function build() {
 	go mod download -x
 	golang_org_x_net="${GOPATH}/pkg/mod/$(go list -m golang.org/x/net | tr ' ' @)"
 	chmod +w ${golang_org_x_net}/http2 ${golang_org_x_net}/http2/server.go
-	patch -p1 -d ${golang_org_x_net} <02-http2date.patch
+	patch -p1 -d ${golang_org_x_net} <http2date.patch
 
 	go build -v .
 	go test -v .
