@@ -507,6 +507,7 @@ func main() {
 			Addr:      addr,
 			Handler:   server.Handler,
 			TLSConfig: server.TLSConfig,
+			Logger:    log.DefaultLogger.Slog().With("logger", "http3_server"),
 			QUICConfig: &quic.Config{
 				Allow0RTT:                  true,
 				DisablePathMTUDiscovery:    false,

@@ -11,7 +11,7 @@ require (
 	github.com/phuslu/log v1.0.100
 	github.com/phuslu/lru v1.0.15
 	github.com/puzpuzpuz/xsync/v3 v3.1.0
-	github.com/quic-go/quic-go v0.43.1
+	github.com/quic-go/quic-go v0.44.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.2.2
 	github.com/valyala/bytebufferpool v1.0.0
