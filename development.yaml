@@ -6,15 +6,10 @@ global:
   dns_cache_duration: 1m
 dialer:
   proxy1: http2://phuslu:123456@phus.lu:443/?max_clients=8
-socks:
-  - listen: [':1080']
+http:
+  - listen: [':2080']
     server_name: ['127.0.0.1']
     forward:
       prefer_ipv6: false
       dialer: proxy1
       policy: bypass_auth
-tunnel:
-  - client:
-      remote_addr: phus.lu:10022
-      local_addr: 192.168.2.1:22
-      key: abc123
