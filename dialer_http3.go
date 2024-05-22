@@ -5,12 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	"log/slog"
+	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
@@ -25,61 +27,71 @@ type HTTP3Dialer struct {
 	Port      string
 	UserAgent string
 	Resolver  *Resolver
-	Logger    *slog.Logger
 
-	mu   sync.Mutex
-	conn quic.EarlyConnection
+	mu        sync.Mutex
+	transport atomic.Value // *http3.RoundTripper
+}
+
+func (d *HTTP3Dialer) init() {
+	if d.transport.Load() != nil {
+		return
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.transport.Load() != nil {
+		return
+	}
+
+	d.transport.Store(&http3.RoundTripper{
+		DisableCompression: false,
+		EnableDatagrams:    false,
+		Dial: func(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (quic.EarlyConnection, error) {
+			host := d.Host
+			if d.Resolver != nil {
+				if ips, err := d.Resolver.LookupNetIP(ctx, "ip", host); err == nil && len(ips) != 0 {
+					host = ips[fastrandn(uint32(len(ips)))].String()
+				}
+			}
+			pconn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
+			if err != nil {
+				return nil, err
+			}
+			raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(host, d.Port))
+			if err != nil {
+				return nil, err
+			}
+			return quic.DialEarly(ctx,
+				pconn,
+				raddr,
+				&tls.Config{
+					NextProtos:         []string{"h3"},
+					InsecureSkipVerify: false,
+					ServerName:         d.Host,
+					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+				},
+				&quic.Config{
+					DisablePathMTUDiscovery: false,
+					EnableDatagrams:         false,
+					MaxIncomingUniStreams:   200,
+					MaxIncomingStreams:      200,
+					// MaxStreamReceiveWindow:     6 * 1024 * 1024,
+					// MaxConnectionReceiveWindow: 15 * 1024 * 1024,
+				},
+			)
+		},
+	})
+
+	if d.UserAgent == "" {
+		d.UserAgent = DefaultUserAgent
+	}
 }
 
 func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	connect := func() (quic.EarlyConnection, error) {
-		host := d.Host
-		if d.Resolver != nil {
-			if ips, err := d.Resolver.LookupNetIP(ctx, "ip", host); err == nil && len(ips) != 0 {
-				host = ips[fastrandn(uint32(len(ips)))].String()
-			}
-		}
-		pconn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
-		if err != nil {
-			return nil, err
-		}
-		raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(host, d.Port))
-		if err != nil {
-			return nil, err
-		}
-		return quic.DialEarly(ctx,
-			pconn,
-			raddr,
-			&tls.Config{
-				NextProtos:         []string{"h3"},
-				InsecureSkipVerify: false,
-				ServerName:         d.Host,
-				ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-			},
-			&quic.Config{
-				DisablePathMTUDiscovery: false,
-				EnableDatagrams:         true,
-				MaxIncomingUniStreams:   200,
-				MaxIncomingStreams:      200,
-				// MaxStreamReceiveWindow:     6 * 1024 * 1024,
-				// MaxConnectionReceiveWindow: 15 * 1024 * 1024,
-			},
-		)
-	}
+	d.init()
 
-	if d.conn == nil {
-		d.mu.Lock()
-		if d.conn == nil {
-			c, err := connect()
-			if err != nil {
-				d.mu.Unlock()
-				return nil, err
-			}
-			d.conn = c
-		}
-		d.mu.Unlock()
-	}
-
+	pr, pw := io.Pipe()
 	req := &http.Request{
 		ProtoMajor: 3,
 		Method:     http.MethodConnect,
@@ -92,7 +104,7 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 			"content-type": []string{"application/octet-stream"},
 			"user-agent":   []string{d.UserAgent},
 		},
-		Body:          nil,
+		Body:          pr,
 		ContentLength: -1,
 	}
 
@@ -100,56 +112,70 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		req.Header.Set("proxy-authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
 
-	req = req.WithContext(ctx)
+	var remoteAddr, localAddr net.Addr
 
-	rt := &http3.SingleDestinationRoundTripper{
-		Connection:      d.conn,
-		Logger:          d.Logger,
-		EnableDatagrams: true,
-	}
+	req = req.WithContext(httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		GotConn: func(connInfo httptrace.GotConnInfo) {
+			remoteAddr, localAddr = connInfo.Conn.RemoteAddr(), connInfo.Conn.LocalAddr()
+		},
+	}))
 
-	conn := rt.Start()
-	select {
-	case <-conn.ReceivedSettings():
-	case <-ctx.Done():
-		return nil, context.Cause(ctx)
-	}
-
-	settings := conn.Settings()
-	if !settings.EnableExtendedConnect {
-		return nil, errors.New("server didn't enable Extended CONNECT")
-	}
-	if !settings.EnableDatagrams {
-		return nil, errors.New("server didn't enable HTTP/3 datagram support")
-	}
-
-	stream, err := rt.OpenRequestStream(ctx)
+	resp, err := d.transport.Load().(*http3.RoundTripper).RoundTripOpt(req, http3.RoundTripOpt{OnlyCachedConn: false})
 	if err != nil {
 		return nil, err
 	}
-	if err := stream.SendRequestHeader(req); err != nil {
-		return nil, err
+
+	if resp.StatusCode != http.StatusOK {
+		data, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + string(data))
 	}
-	resp, err := stream.ReadResponse()
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("received status %d", resp.StatusCode)
+
+	if remoteAddr == nil || localAddr == nil {
+		remoteAddr, localAddr = &net.UDPAddr{}, &net.UDPAddr{}
 	}
 
 	return &http3Stream{
-		Stream:     stream,
-		remoteAddr: d.conn.RemoteAddr(),
-		localAddr:  d.conn.LocalAddr(),
+		r:          resp.Body,
+		w:          pw,
+		closed:     make(chan struct{}),
+		remoteAddr: remoteAddr,
+		localAddr:  localAddr,
 	}, nil
 }
 
 type http3Stream struct {
-	quic.Stream
+	r io.ReadCloser
+	w io.Writer
+
+	closed chan struct{}
 
 	remoteAddr net.Addr
 	localAddr  net.Addr
+}
+
+func (c *http3Stream) Read(b []byte) (n int, err error) {
+	return c.r.Read(b)
+}
+
+func (c *http3Stream) Write(b []byte) (n int, err error) {
+	return c.w.Write(b)
+}
+
+func (c *http3Stream) Close() (err error) {
+	select {
+	case <-c.closed:
+		return
+	default:
+		close(c.closed)
+	}
+	if rc, ok := c.r.(io.Closer); ok {
+		err = rc.Close()
+	}
+	if w, ok := c.w.(io.Closer); ok {
+		err = w.Close()
+	}
+	return
 }
 
 func (c *http3Stream) RemoteAddr() net.Addr {
@@ -158,4 +184,16 @@ func (c *http3Stream) RemoteAddr() net.Addr {
 
 func (c *http3Stream) LocalAddr() net.Addr {
 	return c.localAddr
+}
+
+func (c *http3Stream) SetDeadline(t time.Time) error {
+	return &net.OpError{Op: "set", Net: "http3", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
+}
+
+func (c *http3Stream) SetReadDeadline(t time.Time) error {
+	return &net.OpError{Op: "set", Net: "http3", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
+}
+
+func (c *http3Stream) SetWriteDeadline(t time.Time) error {
+	return &net.OpError{Op: "set", Net: "http3", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }
