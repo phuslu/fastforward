@@ -87,12 +87,14 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 
 	if d.clients[n] == nil {
 		d.mutexes[n].Lock()
-		c, err := connect()
-		if err != nil {
-			d.mutexes[n].Unlock()
-			return nil, err
+		if d.clients[n] == nil {
+			c, err := connect()
+			if err != nil {
+				d.mutexes[n].Unlock()
+				return nil, err
+			}
+			d.clients[n] = c
 		}
-		d.clients[n] = c
 		d.mutexes[n].Unlock()
 	}
 
