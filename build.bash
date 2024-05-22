@@ -31,7 +31,7 @@ function build() {
 
 	go mod download -x
 	golang_org_x_net="${GOPATH}/pkg/mod/$(go list -m golang.org/x/net | tr ' ' @)"
-	chmod +w ${golang_org_x_net}/http2 ${golang_org_x_net}/http2/server.go
+	chmod -R +w ${golang_org_x_net}
 	patch -p1 -d ${golang_org_x_net} <http2date.patch
 
 	go build -v .
@@ -42,8 +42,6 @@ CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 ./make.bash build dist
 CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 ./make.bash build dist
-CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=6 ./make.bash build dist
-CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 ./make.bash build dist
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 ./make.bash build dist
 EOF
 	xargs --max-procs=8 -n1 -i bash -c {}
