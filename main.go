@@ -186,7 +186,7 @@ func main() {
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Transport: &http3.RoundTripper{
 					DisableCompression: false,
-					EnableDatagrams:    false,
+					EnableDatagrams:    true,
 					TLSClientConfig: &tls.Config{
 						NextProtos:         []string{"h3"},
 						InsecureSkipVerify: u.Query().Get("insecure") == "1",
@@ -195,7 +195,7 @@ func main() {
 					},
 					QUICConfig: &quic.Config{
 						DisablePathMTUDiscovery: false,
-						EnableDatagrams:         false,
+						EnableDatagrams:         true,
 						MaxIncomingUniStreams:   200,
 						MaxIncomingStreams:      200,
 					},
@@ -511,7 +511,7 @@ func main() {
 			QUICConfig: &quic.Config{
 				Allow0RTT:                  true,
 				DisablePathMTUDiscovery:    false,
-				EnableDatagrams:            false,
+				EnableDatagrams:            true,
 				MaxIncomingStreams:         100,
 				MaxStreamReceiveWindow:     6 * 1024 * 1024,
 				MaxConnectionReceiveWindow: 100 * 6 * 1024 * 1024,
