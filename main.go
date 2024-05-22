@@ -272,6 +272,7 @@ func main() {
 				Port:      u.Port(),
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Resolver:  resolver,
+				Logger:    log.DefaultLogger.Slog().With("logger", "http3_dialer"),
 			}
 		case "websocket", "wss":
 			dialers[name] = &WebsocketDialer{

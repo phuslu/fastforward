@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -24,6 +25,7 @@ type HTTP3Dialer struct {
 	Port      string
 	UserAgent string
 	Resolver  *Resolver
+	Logger    *slog.Logger
 
 	mu   sync.Mutex
 	conn quic.EarlyConnection
@@ -101,6 +103,7 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 	rt := &http3.SingleDestinationRoundTripper{
 		Connection:      d.conn,
 		EnableDatagrams: true,
+		Logger:          d.Logger,
 	}
 
 	conn := rt.Start()
