@@ -69,12 +69,14 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 
 	if d.conn == nil {
 		d.mu.Lock()
-		c, err := connect()
-		if err != nil {
-			d.mu.Unlock()
-			return nil, err
+		if d.conn == nil {
+			c, err := connect()
+			if err != nil {
+				d.mu.Unlock()
+				return nil, err
+			}
+			d.conn = c
 		}
-		d.conn = c
 		d.mu.Unlock()
 	}
 
@@ -102,8 +104,8 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 
 	rt := &http3.SingleDestinationRoundTripper{
 		Connection:      d.conn,
-		EnableDatagrams: true,
 		Logger:          d.Logger,
+		EnableDatagrams: true,
 	}
 
 	conn := rt.Start()
@@ -117,9 +119,9 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 	if !settings.EnableExtendedConnect {
 		return nil, errors.New("server didn't enable Extended CONNECT")
 	}
-	// if !settings.EnableDatagrams {
-	// 	return nil, errors.New("server didn't enable HTTP/3 datagram support")
-	// }
+	if !settings.EnableDatagrams {
+		return nil, errors.New("server didn't enable HTTP/3 datagram support")
+	}
 
 	stream, err := rt.OpenRequestStream(ctx)
 	if err != nil {
