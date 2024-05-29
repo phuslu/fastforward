@@ -15,7 +15,7 @@ GOARCH=${GOARCH:-$(go env GOARCH)}
 CGO_ENABLED=${CGO_ENABLED:-$(go env CGO_ENABLED)}
 
 if [ "${GOOS}" == "windows" ]; then
-    SOURCES="README.md china.pac example.yaml"
+    SOURCES="README.md china.pac example.yaml liner-gui.exe"
     BUILDDIR=${BUILDROOT}/${GOOS}_${GOARCH}
     DISTFILE=${PROJECT}_${GOOS}_${GOARCH}-${REVSION}
     GOEXE=.exe

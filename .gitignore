@@ -5,7 +5,7 @@ pki/*
 liner
 liner.service
 production*.yaml
-debug.yaml
+development.yaml
 go.env
 CHANGELOG.*
 *.csv
