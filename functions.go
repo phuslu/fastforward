@@ -63,10 +63,12 @@ func (f *Functions) Load() error {
 	f.FuncMap["region"] = f.region
 
 	// sprig copycat
-	f.FuncMap["regexMatch"] = f.regexMatch
 	f.FuncMap["contains"] = f.contains
-	f.FuncMap["hasPrefix"] = f.hasPrefix
 	f.FuncMap["hasSuffix"] = f.hasSuffix
+	f.FuncMap["hasPrefix"] = f.hasPrefix
+	f.FuncMap["hasPrefixes"] = f.hasPrefixes
+	f.FuncMap["wildcardMatch"] = f.wildcardMatch
+	f.FuncMap["regexMatch"] = f.regexMatch
 	f.FuncMap["empty"] = f.empty
 	f.FuncMap["all"] = f.all
 	f.FuncMap["any"] = f.any
@@ -210,6 +212,38 @@ func (f *Functions) hasSuffix(suffix, s string) bool {
 
 func (f *Functions) hasPrefix(suffix, s string) bool {
 	return strings.HasPrefix(s, suffix)
+}
+
+func (f *Functions) hasPrefixes(pattern, s string) bool {
+	for pattern != "" {
+		var p string
+		i := strings.IndexByte(pattern, '|')
+		if i < 0 {
+			p, pattern = pattern, ""
+		} else {
+			p, pattern = pattern[:i], pattern[i+1:]
+		}
+		if strings.HasPrefix(p, s) {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *Functions) wildcardMatch(pattern, s string) bool {
+	for pattern != "" {
+		var p string
+		i := strings.IndexByte(pattern, '|')
+		if i < 0 {
+			p, pattern = pattern, ""
+		} else {
+			p, pattern = pattern[:i], pattern[i+1:]
+		}
+		if WildcardMatch(p, s) {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *Functions) regexMatch(pattern, s string) bool {
