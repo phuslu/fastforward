@@ -92,16 +92,17 @@ type StreamConfig struct {
 	Log         bool     `json:"log" yaml:"log"`
 }
 
-type TunnelConfig struct {
-	Server struct {
-		Listen string `json:"listen" yaml:"listen"`
-		Key    string `json:"key" yaml:"key"`
-	} `json:"server" yaml:"server"`
-	Client struct {
-		RemoteAddr string `json:"remote_addr" yaml:"remote_addr"`
-		LocalAddr  string `json:"local_addr" yaml:"local_addr"`
-		Key        string `json:"key" yaml:"key"`
-	} `json:"client" yaml:"client"`
+type SSHTunConfig struct {
+	DialTimeout int    `json:"dial_timeout" yaml:"dial_timeout"`
+	LocalAddr   string `json:"local_addr" yaml:"local_addr"`
+	RemoteAddr  string `json:"remote_addr" yaml:"remote_addr"`
+	SSH         struct {
+		Host     string `json:"host" yaml:"host"`
+		Port     int    `json:"port" yaml:"port"`
+		User     string `json:"user" yaml:"user"`
+		Password string `json:"password" yaml:"password"`
+		Key      string `json:"key" yaml:"key"`
+	} `json:"ssh" yaml:"ssh"`
 }
 
 type Config struct {
@@ -128,8 +129,8 @@ type Config struct {
 	Https  []HTTPConfig      `json:"https" yaml:"https"`
 	Http   []HTTPConfig      `json:"http" yaml:"http"`
 	Socks  []SocksConfig     `json:"socks" yaml:"socks"`
+	SSHTun []SSHTunConfig    `json:"sshtun" yaml:"sshtun"`
 	Stream []StreamConfig    `json:"stream" yaml:"stream"`
-	Tunnel []TunnelConfig    `json:"tunnel" yaml:"tunnel"`
 }
 
 func NewConfig(filename string) (*Config, error) {

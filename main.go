@@ -662,43 +662,17 @@ func main() {
 		}
 	}
 
-	// tunnel handler
-	for _, tunnel := range config.Tunnel {
+	// sshtun handler
+	for _, sshtun := range config.SSHTun {
 
-		h := &TunnelHandler{
-			Config:         tunnel,
+		h := &SSHTunHandler{
+			Config:         sshtun,
 			ForwardLogger:  forwardLogger,
 			RegionResolver: regionResolver,
 			LocalDialer:    dialer,
 		}
 
-		switch {
-		case tunnel.Server.Listen != "":
-			var ln net.Listener
-
-			if ln, err = lc.Listen(context.Background(), "tcp", tunnel.Server.Listen); err != nil {
-				log.Fatal().Err(err).Str("address", tunnel.Server.Listen).Msg("net.Listen error")
-			}
-
-			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and tunnel port")
-
-			if err = h.Load(); err != nil {
-				log.Fatal().Err(err).Str("address", tunnel.Server.Listen).Msg("tunnel hanlder load error")
-			}
-
-			go func(ln net.Listener, h *TunnelHandler) {
-				for {
-					conn, err := ln.Accept()
-					if err != nil {
-						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept tunnel connection error")
-						time.Sleep(10 * time.Millisecond)
-					}
-					go h.ServeConn(conn)
-				}
-			}(ln, h)
-		case tunnel.Client.RemoteAddr != "" && tunnel.Client.LocalAddr != "":
-			go h.Client(context.Background())
-		}
+		go h.Serve(context.Background())
 	}
 
 	var cronOptions = []cron.Option{
