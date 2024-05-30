@@ -10,10 +10,11 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	"github.com/phuslu/log"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 )
@@ -29,29 +30,30 @@ type HTTP3Dialer struct {
 	Resolver  *Resolver
 
 	mu        sync.Mutex
-	transport atomic.Value // *http3.RoundTripper
+	transport *http3.RoundTripper
 }
 
 func (d *HTTP3Dialer) init() {
-	if d.transport.Load() != nil {
+	if d.transport != nil {
 		return
 	}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.transport.Load() != nil {
+	if d.transport != nil {
 		return
 	}
 
-	d.transport.Store(&http3.RoundTripper{
+	d.transport = &http3.RoundTripper{
 		DisableCompression: false,
 		EnableDatagrams:    false,
 		Dial: func(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (quic.EarlyConnection, error) {
 			host := d.Host
 			if d.Resolver != nil {
 				if ips, err := d.Resolver.LookupNetIP(ctx, "ip", host); err == nil && len(ips) != 0 {
-					host = ips[fastrandn(uint32(len(ips)))].String()
+					// host = ips[fastrandn(uint32(len(ips)))].String()
+					host = ips[0].String()
 				}
 			}
 			pconn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
@@ -81,7 +83,7 @@ func (d *HTTP3Dialer) init() {
 				},
 			)
 		},
-	})
+	}
 
 	if d.UserAgent == "" {
 		d.UserAgent = DefaultUserAgent
@@ -120,8 +122,12 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		},
 	}))
 
-	resp, err := d.transport.Load().(*http3.RoundTripper).RoundTripOpt(req, http3.RoundTripOpt{OnlyCachedConn: false})
+	resp, err := d.transport.RoundTripOpt(req, http3.RoundTripOpt{OnlyCachedConn: false})
 	if err != nil {
+		if strings.Contains(err.Error(), "timeout: ") {
+			log.Warn().Err(err).Msg("close underlying http3 connection")
+			d.transport.Close()
+		}
 		return nil, err
 	}
 
