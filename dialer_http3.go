@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apernet/quic-go"
+	"github.com/apernet/quic-go/http3"
 	"github.com/phuslu/log"
-	"github.com/quic-go/quic-go"
-	"github.com/quic-go/quic-go/http3"
 )
 
 var _ Dialer = (*HTTP3Dialer)(nil)

@@ -24,14 +24,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/apernet/quic-go"
+	"github.com/apernet/quic-go/http3"
 	"github.com/mileusna/useragent"
 	"github.com/oschwald/maxminddb-golang"
 	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
 	"github.com/phuslu/lru"
 	"github.com/puzpuzpuz/xsync/v3"
-	"github.com/quic-go/quic-go"
-	"github.com/quic-go/quic-go/http3"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/http2"
 )

@@ -3,7 +3,7 @@ module liner
 go 1.22
 
 require (
-	github.com/hashicorp/yamux v0.1.1
+	github.com/apernet/quic-go v0.44.1-0.20240520215222-bb2e53664023
 	github.com/jszwec/csvutil v1.10.0
 	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.12.0
@@ -11,7 +11,6 @@ require (
 	github.com/phuslu/log v1.0.100
 	github.com/phuslu/lru v1.0.15
 	github.com/puzpuzpuz/xsync/v3 v3.1.0
-	github.com/quic-go/quic-go v0.44.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/tg123/go-htpasswd v1.2.2
 	github.com/valyala/bytebufferpool v1.0.0
