@@ -620,7 +620,7 @@ func main() {
 						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept socks connection error")
 						time.Sleep(10 * time.Millisecond)
 					}
-					go h.ServeConn(conn)
+					go h.ServeConn(context.Background(), conn)
 				}
 			}(ln, h)
 		}

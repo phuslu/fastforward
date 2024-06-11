@@ -78,7 +78,7 @@ func (h *SocksHandler) Load() error {
 	return nil
 }
 
-func (h *SocksHandler) ServeConn(conn net.Conn) {
+func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 
 	var req SocksRequest
@@ -215,7 +215,7 @@ func (h *SocksHandler) ServeConn(conn net.Conn) {
 
 	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_dialer_name", dialerName).Msg("forward socks request")
 
-	ctx := context.WithValue(context.Background(), DialerHTTPHeaderContextKey, http.Header{
+	ctx = context.WithValue(context.Background(), DialerHTTPHeaderContextKey, http.Header{
 		"X-Forwarded-For":  []string{req.RemoteIP},
 		"X-Forwarded-User": []string{req.Username},
 	})
