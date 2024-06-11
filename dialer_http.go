@@ -120,6 +120,13 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 	if d.Username != "" {
 		buf = fmt.Appendf(buf, "Proxy-Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
+	if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {
+		for key, values := range header {
+			for _, value := range values {
+				fmt.Appendf(buf, "%s: %s\r\n", key, value)
+			}
+		}
+	}
 	buf = fmt.Appendf(buf, "\r\n")
 
 	if _, err := conn.Write(buf); err != nil {

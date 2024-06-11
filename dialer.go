@@ -15,6 +15,16 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
 }
 
+type DialerContextKey struct {
+	name string
+}
+
+func (k *DialerContextKey) String() string { return "dialer context value " + k.name }
+
+var (
+	DialerHTTPHeaderContextKey = &DialerContextKey{"dailer-http-header"}
+)
+
 var _ Dialer = (*LocalDialer)(nil)
 
 type LocalDialer struct {

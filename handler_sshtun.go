@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/phuslu/log"
@@ -73,6 +74,11 @@ connect:
 
 func (h *SSHTunHandler) handle(ctx context.Context, rconn net.Conn, laddr string) {
 	defer rconn.Close()
+
+	rhost, _, _ := net.SplitHostPort(rconn.RemoteAddr().String())
+	ctx = context.WithValue(ctx, DialerHTTPHeaderContextKey, http.Header{
+		"X-Forwarded-For": []string{rhost},
+	})
 
 	if h.Config.DialTimeout > 0 {
 		var cancel context.CancelFunc

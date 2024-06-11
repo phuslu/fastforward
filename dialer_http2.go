@@ -128,6 +128,13 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		Body:          pr,
 		ContentLength: -1,
 	}
+	if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {
+		for key, values := range header {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
+	}
 
 	if d.Username != "" && d.Password != "" {
 		req.Header.Set("proxy-authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))

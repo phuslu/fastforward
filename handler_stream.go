@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -86,6 +87,9 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 	}
 
 	rconn, err := func(ctx context.Context) (net.Conn, error) {
+		ctx = context.WithValue(ctx, DialerHTTPHeaderContextKey, http.Header{
+			"X-Forwarded-For": []string{req.RemoteIP},
+		})
 		if h.Config.DialTimeout > 0 {
 			var cancel context.CancelFunc
 			ctx, cancel = context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)

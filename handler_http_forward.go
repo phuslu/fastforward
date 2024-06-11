@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"crypto/sha1"
 	"crypto/tls"
 	"encoding/base64"
@@ -265,7 +266,25 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			dialer = h.LocalDialer
 		}
 
-		conn, err := dialer.DialContext(req.Context(), "tcp", req.Host)
+		ctx := req.Context()
+		if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {
+			if s := header.Get("x-forwarded-for"); s != "" {
+				header.Set("x-forwarded-for", s+","+ri.RemoteIP)
+			} else {
+				header.Set("x-forwarded-for", ri.RemoteIP)
+			}
+			if s := header.Get("x-forwarded-user"); s != "" {
+				header.Set("x-forwarded-user", s+","+ai.Username)
+			} else {
+				header.Set("x-forwarded-user", ai.Username)
+			}
+		} else {
+			ctx = context.WithValue(req.Context(), DialerHTTPHeaderContextKey, http.Header{
+				"x-forwarded-for":  []string{ri.RemoteIP},
+				"x-forwarded-user": []string{ai.Username},
+			})
+		}
+		conn, err := dialer.DialContext(ctx, "tcp", req.Host)
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Msg("dial host error")
 			http.Error(rw, err.Error(), http.StatusBadGateway)
