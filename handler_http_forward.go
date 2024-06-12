@@ -284,7 +284,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				"x-forwarded-user": []string{ai.Username},
 			})
 		}
-		conn, err := dialer.DialContext(ctx, "tcp", req.Host)
+		network := cmp.Or(req.Header.Get("x-forwarded-network"), "tcp")
+		conn, err := dialer.DialContext(ctx, network, req.Host)
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Msg("dial host error")
 			http.Error(rw, err.Error(), http.StatusBadGateway)

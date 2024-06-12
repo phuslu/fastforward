@@ -103,8 +103,9 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		},
 		Host: addr,
 		Header: http.Header{
-			"content-type": []string{"application/octet-stream"},
-			"user-agent":   []string{d.UserAgent},
+			"content-type":        []string{"application/octet-stream"},
+			"user-agent":          []string{d.UserAgent},
+			"x-forwarded-network": []string{network},
 		},
 		Body:          pr,
 		ContentLength: -1,
