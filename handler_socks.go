@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -57,22 +56,6 @@ func (h *SocksHandler) Load() error {
 		if h.UpstreamTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
-	}
-
-	if h.Config.Forward.BindInterface != "" {
-		if runtime.GOOS != "linux" {
-			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_interface is only available on linux")
-		}
-		if h.Config.Forward.Dialer != "" {
-			log.Fatal().Strs("server_listen", h.Config.Listen).Msg("option bind_interface is confilict with option dialer")
-		}
-
-		dialer := new(LocalDialer)
-		*dialer = *h.LocalDialer
-		dialer.BindInterface = h.Config.Forward.BindInterface
-		dialer.PreferIPv6 = h.Config.Forward.PreferIpv6
-
-		h.LocalDialer = dialer
 	}
 
 	return nil

@@ -8,6 +8,7 @@ global:
   dns_cache_duration: 15m
   dns_server: https://1.1.1.1/dns-query
 dialer:
+  wireguard: local://wg0
   torsocks: socks5h://127.0.0.1:9050
   sshtun: ssh://phuslu:123456@phus.lu:22/?timeout=8&max_clients=4&key=/home/phuslu/.ssh/id_rsa
   proxyws: wss://phuslu:123456@www.phus.lu:443/wss/connect?h=%s&p=%d

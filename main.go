@@ -237,6 +237,20 @@ func main() {
 			log.Fatal().Err(err).Str("dailer", dailer).Msg("parse dailer url failed")
 		}
 		switch u.Scheme {
+		case "local":
+			dialers[name] = &LocalDialer{
+				Resolver:        resolver,
+				BindInterface:   u.Host,
+				Concurrency:     2,
+				PreferIPv6:      u.Query().Get("prefer_ipv6") == "true",
+				ForbidLocalAddr: config.Global.ForbidLocalAddr,
+				DialTimeout:     time.Duration(cmp.Or(config.Global.DialTimeout, 30)) * time.Second,
+				TCPKeepAlive:    30 * time.Second,
+				TLSConfig: &tls.Config{
+					InsecureSkipVerify: true,
+					ClientSessionCache: tls.NewLRUClientSessionCache(2048),
+				},
+			}
 		case "http", "https":
 			dialers[name] = &HTTPDialer{
 				Username:   u.User.Username(),

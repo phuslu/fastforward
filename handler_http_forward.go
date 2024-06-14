@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"runtime"
 	"slices"
 	"strings"
 	"text/template"
@@ -79,30 +78,6 @@ func (h *HTTPForwardHandler) Load() error {
 			log.Fatal().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Forward.AuthTable).Msg("load auth_table failed")
 		}
 		log.Info().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Forward.AuthTable).Int("auth_table_size", len(*records)).Msg("load auth_table ok")
-	}
-
-	if h.Config.Forward.BindInterface != "" {
-		if runtime.GOOS != "linux" {
-			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is only available on linux")
-		}
-		if h.Config.Forward.Dialer != "" {
-			log.Fatal().Strs("server_name", h.Config.ServerName).Msg("option bind_device is confilict with option dialer")
-		}
-
-		dialer := new(LocalDialer)
-		*dialer = *h.LocalDialer
-		dialer.BindInterface = h.Config.Forward.BindInterface
-		dialer.PreferIPv6 = h.Config.Forward.PreferIpv6
-
-		h.LocalDialer = dialer
-		h.LocalTransport = &http.Transport{
-			DialContext:         dialer.DialContext,
-			TLSClientConfig:     h.LocalTransport.TLSClientConfig,
-			TLSHandshakeTimeout: h.LocalTransport.TLSHandshakeTimeout,
-			IdleConnTimeout:     h.LocalTransport.IdleConnTimeout,
-			MaxIdleConns:        h.LocalTransport.MaxIdleConns,
-			DisableCompression:  h.LocalTransport.DisableCompression,
-		}
 	}
 
 	return nil
