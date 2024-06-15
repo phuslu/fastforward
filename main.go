@@ -240,14 +240,14 @@ func main() {
 		case "local":
 			dialers[name] = &LocalDialer{
 				Resolver:        resolver,
-				BindInterface:   u.Host,
+				Interface:       u.Host,
 				Concurrency:     2,
-				PreferIPv6:      u.Query().Get("prefer_ipv6") == "true",
+				PreferIPv6:      u.Query().Get("prefer_ipv6") == "1",
 				ForbidLocalAddr: config.Global.ForbidLocalAddr,
-				DialTimeout:     time.Duration(cmp.Or(config.Global.DialTimeout, 30)) * time.Second,
+				DialTimeout:     time.Duration(cmp.Or(first(strconv.Atoi(u.Query().Get("dial_timeout"))), config.Global.DialTimeout, 30)) * time.Second,
 				TCPKeepAlive:    30 * time.Second,
 				TLSConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: u.Query().Get("insecure") == "1",
 					ClientSessionCache: tls.NewLRUClientSessionCache(2048),
 				},
 			}

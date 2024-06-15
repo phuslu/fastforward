@@ -30,7 +30,7 @@ func (ln ListenConfig) ListenPacket(ctx context.Context, network, address string
 }
 
 type DailerController struct {
-	BindInterface string
+	Interface string
 }
 
 func (dc DailerController) Control(network, address string, c syscall.RawConn) error {

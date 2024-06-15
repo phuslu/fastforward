@@ -30,7 +30,7 @@ var _ Dialer = (*LocalDialer)(nil)
 type LocalDialer struct {
 	Resolver *Resolver
 
-	BindInterface   string
+	Interface       string
 	PreferIPv6      bool
 	ForbidLocalAddr bool
 	Concurrency     int
@@ -133,8 +133,8 @@ func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, 
 		}
 
 		dailer := &net.Dialer{}
-		if d.BindInterface != "" {
-			dailer.Control = (&DailerController{BindInterface: d.BindInterface}).Control
+		if d.Interface != "" {
+			dailer.Control = (&DailerController{Interface: d.Interface}).Control
 		}
 		conn, err = dailer.DialContext(ctx, network, netip.AddrPortFrom(ip, port).String())
 		if err != nil {
@@ -185,8 +185,8 @@ func (d *LocalDialer) dialParallel(ctx context.Context, network, hostname string
 			}
 
 			dailer := &net.Dialer{}
-			if d.BindInterface != "" {
-				dailer.Control = (&DailerController{BindInterface: d.BindInterface}).Control
+			if d.Interface != "" {
+				dailer.Control = (&DailerController{Interface: d.Interface}).Control
 			}
 			conn, err := dailer.DialContext(ctx, network, netip.AddrPortFrom(ip, port).String())
 			if err != nil {

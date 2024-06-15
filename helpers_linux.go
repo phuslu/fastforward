@@ -62,12 +62,12 @@ func (lc ListenConfig) ListenPacket(ctx context.Context, network, address string
 }
 
 type DailerController struct {
-	BindInterface string
+	Interface string
 }
 
 func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err error) {
 	return c.Control(func(fd uintptr) {
-		if ip, err := netip.ParseAddr(dc.BindInterface); err == nil {
+		if ip, err := netip.ParseAddr(dc.Interface); err == nil {
 			var sa syscall.Sockaddr
 			if ip.Is4() {
 				ip4 := ip.As4()
@@ -91,8 +91,8 @@ func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err
 				return
 			}
 			err = syscall.Bind(int(fd), sa)
-		} else if dc.BindInterface != "" {
-			err = syscall.BindToDevice(int(fd), dc.BindInterface)
+		} else if dc.Interface != "" {
+			err = syscall.BindToDevice(int(fd), dc.Interface)
 		}
 	})
 }
