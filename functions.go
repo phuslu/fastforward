@@ -224,7 +224,7 @@ func (f *Functions) hasSuffixes(pattern, s string) bool {
 		} else {
 			p, pattern = pattern[:i], pattern[i+1:]
 		}
-		if strings.HasSuffix(p, s) {
+		if strings.HasSuffix(s, p) {
 			return true
 		}
 	}
@@ -240,7 +240,7 @@ func (f *Functions) hasPrefixes(pattern, s string) bool {
 		} else {
 			p, pattern = pattern[:i], pattern[i+1:]
 		}
-		if strings.HasPrefix(p, s) {
+		if strings.HasPrefix(s, p) {
 			return true
 		}
 	}
