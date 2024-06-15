@@ -17,6 +17,7 @@ import (
 	"github.com/phuslu/log"
 	"github.com/phuslu/lru"
 	"github.com/puzpuzpuz/xsync/v3"
+	"golang.org/x/net/publicsuffix"
 )
 
 type Functions struct {
@@ -61,6 +62,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["iplist"] = f.iplist
 	f.FuncMap["readfile"] = f.readfile
 	f.FuncMap["region"] = f.region
+	f.FuncMap["domain"] = f.domain
 
 	// sprig copycat
 	f.FuncMap["contains"] = f.contains
@@ -132,6 +134,11 @@ func (f *Functions) region(ip string) string {
 
 func (f *Functions) city(ip string) string {
 	return f.geoip(ip).City
+}
+
+func (f *Functions) domain(domain string) string {
+	s, _ := publicsuffix.EffectiveTLDPlusOne(domain)
+	return s
 }
 
 func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
