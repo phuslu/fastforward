@@ -66,6 +66,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["contains"] = f.contains
 	f.FuncMap["hasSuffix"] = f.hasSuffix
 	f.FuncMap["hasPrefix"] = f.hasPrefix
+	f.FuncMap["hasSuffixes"] = f.hasSuffixes
 	f.FuncMap["hasPrefixes"] = f.hasPrefixes
 	f.FuncMap["wildcardMatch"] = f.wildcardMatch
 	f.FuncMap["regexMatch"] = f.regexMatch
@@ -212,6 +213,22 @@ func (f *Functions) hasSuffix(suffix, s string) bool {
 
 func (f *Functions) hasPrefix(suffix, s string) bool {
 	return strings.HasPrefix(s, suffix)
+}
+
+func (f *Functions) hasSuffixes(pattern, s string) bool {
+	for pattern != "" {
+		var p string
+		i := strings.IndexByte(pattern, '|')
+		if i < 0 {
+			p, pattern = pattern, ""
+		} else {
+			p, pattern = pattern[:i], pattern[i+1:]
+		}
+		if strings.HasSuffix(p, s) {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *Functions) hasPrefixes(pattern, s string) bool {
