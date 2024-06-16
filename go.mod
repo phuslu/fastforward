@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/apernet/quic-go v0.44.1-0.20240520215222-bb2e53664023
+	github.com/go-task/slim-sprig/v3 v3.0.0
 	github.com/jszwec/csvutil v1.10.0
 	github.com/mileusna/useragent v1.3.4
 	github.com/oschwald/maxminddb-golang v1.13.0
@@ -24,7 +25,6 @@ require (
 require (
 	github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
-	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/pprof v0.0.0-20240528025155-186aa0362fba // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.19.0 // indirect

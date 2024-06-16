@@ -13,6 +13,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/go-task/slim-sprig/v3"
 	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
 	"github.com/phuslu/lru"
@@ -52,9 +53,18 @@ func (f *Functions) Load() error {
 		}
 	}()
 
-	f.FuncMap = template.FuncMap{}
+	f.FuncMap = template.FuncMap(sprig.GenericFuncMap())
+
+	// sprig supplement
+	f.FuncMap["hasPrefixes"] = f.hasPrefixes
+	f.FuncMap["hasSuffixes"] = f.hasSuffixes
+	f.FuncMap["regexMatch"] = f.regexMatch
+	f.FuncMap["wildcardMatch"] = f.wildcardMatch
+
+	// http related
 	f.FuncMap["city"] = f.city
 	f.FuncMap["country"] = f.country
+	f.FuncMap["domain"] = f.domain
 	f.FuncMap["geoip"] = f.geoip
 	f.FuncMap["geosite"] = f.geosite
 	f.FuncMap["greased"] = f.greased
@@ -62,20 +72,6 @@ func (f *Functions) Load() error {
 	f.FuncMap["iplist"] = f.iplist
 	f.FuncMap["readfile"] = f.readfile
 	f.FuncMap["region"] = f.region
-	f.FuncMap["domain"] = f.domain
-
-	// sprig copycat
-	f.FuncMap["contains"] = f.contains
-	f.FuncMap["hasSuffix"] = f.hasSuffix
-	f.FuncMap["hasPrefix"] = f.hasPrefix
-	f.FuncMap["hasSuffixes"] = f.hasSuffixes
-	f.FuncMap["hasPrefixes"] = f.hasPrefixes
-	f.FuncMap["wildcardMatch"] = f.wildcardMatch
-	f.FuncMap["regexMatch"] = f.regexMatch
-	f.FuncMap["empty"] = f.empty
-	f.FuncMap["all"] = f.all
-	f.FuncMap["any"] = f.any
-	f.FuncMap["ternary"] = f.ternary
 
 	return nil
 }
