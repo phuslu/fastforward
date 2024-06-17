@@ -3,7 +3,6 @@ module liner
 go 1.22
 
 require (
-	github.com/BurntSushi/toml v1.4.0
 	github.com/apernet/quic-go v0.44.1-0.20240520215222-bb2e53664023
 	github.com/go-task/slim-sprig/v3 v3.0.0
 	github.com/jszwec/csvutil v1.10.0
