@@ -8,8 +8,10 @@ var proxy = 'HTTP {{.Request.Host}}:443'
 {{end}}
 
 var prelude = {
-	// wifi hotpot
+	// wifi captive portal
 	"captive.apple.com":0,
+	"connectivitycheck.android.com":0,
+	"ipv6.msftconnecttest.com":0,
 	"www.msftconnecttest.com":0,
 	"www.msftncsi.com":0,
 	// direct domains
