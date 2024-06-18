@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/valyala/bytebufferpool"
 )
 
 var _ Dialer = (*DoHResolverDialer)(nil)
@@ -16,25 +18,35 @@ var _ Dialer = (*DoHResolverDialer)(nil)
 type DoHResolverDialer struct {
 	EndPoint  string
 	UserAgent string
+	Timeout   time.Duration
 	Transport http.RoundTripper
 }
 
 func (d *DoHResolverDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	return &dohConn{d, nil}, nil
+	return &dohConn{dialer: d}, nil
 }
 
 type dohConn struct {
 	dialer *DoHResolverDialer
-	buffer *bytes.Buffer
+	buffer *bytebufferpool.ByteBuffer
+	data   []byte
 }
 
 func (c *dohConn) Read(b []byte) (n int, err error) {
-	if c.buffer == nil {
+	if c.data == nil {
 		err = io.ErrUnexpectedEOF
 		return
 	}
-	n, err = c.buffer.Read(b)
-	return
+
+	n = copy(b, c.data)
+	if n < len(c.data) {
+		c.data = c.data[n:]
+	} else {
+		c.data = nil
+		bytebufferpool.Put(c.buffer)
+	}
+
+	return n, nil
 }
 
 func (c *dohConn) Write(b []byte) (n int, err error) {
@@ -60,7 +72,11 @@ func (c *dohConn) Write(b []byte) (n int, err error) {
 		tr = http.DefaultTransport
 	}
 
-	ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+	timeout := c.dialer.Timeout
+	if timeout == 0 {
+		timeout = 5 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(req.Context(), timeout)
 	defer cancel()
 
 	resp, err := tr.RoundTrip(req.WithContext(ctx))
@@ -82,12 +98,13 @@ func (c *dohConn) Write(b []byte) (n int, err error) {
 		return 0, errors.New("proxy: read from " + c.dialer.EndPoint + " error: " + resp.Status + ": " + errmsg)
 	}
 
-	c.buffer = new(bytes.Buffer)
+	c.buffer = bytebufferpool.Get()
 	binary.Write(c.buffer, binary.BigEndian, uint16(resp.ContentLength))
 	_, err = io.Copy(c.buffer, resp.Body)
 	if err != nil {
 		return 0, err
 	}
+	c.data = c.buffer.B
 
 	return len(b), nil
 }

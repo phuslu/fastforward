@@ -24,9 +24,9 @@ func TestDoHResolver(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		v, err := r.LookupHost(context.Background(), c.Host)
+		v, err := r.LookupNetIP(context.Background(), "ip4", c.Host)
 		// t.Logf("LookupAddr(%#v) return v=%+v err=%+v", c.Host, v, err)
-		if err != nil || v[0] != c.IP {
+		if err != nil || v[0].String() != c.IP {
 			t.Errorf("LookupAddr(%#v) must return %#v, not %+v, err=%+v", c.Host, c.IP, v, err)
 		}
 	}
