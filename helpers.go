@@ -374,6 +374,27 @@ func (c *ConnWithBuffers) Read(b []byte) (int, error) {
 	return total, nil
 }
 
+type BytesReader struct {
+	B []byte
+}
+
+// Read implements io.Reader.
+func (r *BytesReader) Read(b []byte) (n int, err error) {
+	if len(r.B) == 0 {
+		err = io.EOF
+	} else {
+		n = copy(b, r.B)
+		r.B = r.B[n:]
+	}
+	return
+}
+
+// WriteTo implements io.WriterTo.
+func (r *BytesReader) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write(r.B)
+	return int64(n), err
+}
+
 // https://github.com/hankjacobs/cidr
 func GetIPRange(cidr string) (from, to net.IP, err error) {
 	ip, ipNet, err := net.ParseCIDR(cidr)
@@ -653,9 +674,8 @@ func GetOCSPStaple(ctx context.Context, transport http.RoundTripper, cert *x509.
 	if err != nil {
 		return nil, err
 	}
-	r := bytes.NewReader(b)
 
-	resp, err = http.Post(cert.OCSPServer[0], "text/ocsp", r)
+	resp, err = http.Post(cert.OCSPServer[0], "text/ocsp", &BytesReader{b})
 	if resp != nil {
 		defer resp.Body.Close()
 	}
