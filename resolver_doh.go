@@ -34,7 +34,7 @@ type dohConn struct {
 
 func (c *dohConn) Read(b []byte) (n int, err error) {
 	if c.data == nil {
-		err = io.ErrUnexpectedEOF
+		err = io.EOF
 		return
 	}
 
