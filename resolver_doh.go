@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -56,7 +57,7 @@ func (c *dohConn) Write(b []byte) (n int, err error) {
 		return 0, errors.New("dns message head size mismath")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.dialer.EndPoint, &BytesReader{b[2:]})
+	req, err := http.NewRequest(http.MethodPost, c.dialer.EndPoint, bytes.NewReader(b[2:]))
 	if err != nil {
 		return 0, err
 	}
