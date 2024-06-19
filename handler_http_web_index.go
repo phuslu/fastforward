@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	_ "embed"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
+	"github.com/valyala/bytebufferpool"
 )
 
 type HTTPWebIndexHandler struct {
@@ -236,8 +236,9 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		}
 	}
 
-	var b bytes.Buffer
-	err = h.body.Execute(&b, struct {
+	b := bytebufferpool.Get()
+	defer bytebufferpool.Put(b)
+	err = h.body.Execute(b, struct {
 		WebRoot    string
 		Request    *http.Request
 		UserAgent  *useragent.UserAgent
