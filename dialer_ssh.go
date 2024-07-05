@@ -5,7 +5,9 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -85,7 +87,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 	}
 	n = int(fastrandn(uint32(n)))
 
-	if d.clients[n] == nil {
+	if atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&d.clients[n]))) == nil {
 		d.mutexes[n].Lock()
 		if d.clients[n] == nil {
 			c, err := connect()
@@ -93,7 +95,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 				d.mutexes[n].Unlock()
 				return nil, err
 			}
-			d.clients[n] = c
+			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&d.clients[n])), unsafe.Pointer(c))
 		}
 		d.mutexes[n].Unlock()
 	}
