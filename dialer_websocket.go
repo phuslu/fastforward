@@ -100,6 +100,13 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 	req.Header.Set("Upgrade", "websocket")
 	req.Header.Set("Sec-WebSocket-Version", "13")
 	req.Header.Set("Sec-WebSocket-Key", secWebsocketKey)
+	if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {
+		for key, values := range header {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
+	}
 
 	resp, err := d.transport.RoundTrip(req)
 	if err != nil {
