@@ -411,6 +411,9 @@ func MergeCIDRToIPList(r io.Reader) ([]IPInt, error) {
 
 	for scanner.Scan() {
 		cidr := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(cidr, "#") || strings.HasPrefix(cidr, "//") {
+			continue
+		}
 
 		from, to, err := GetIPRange(cidr)
 		if err != nil {
