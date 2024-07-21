@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"io"
 	"net"
@@ -100,7 +101,35 @@ func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err
 //go:linkname setsockopt syscall.setsockopt
 func setsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr) (err error)
 
-func SetTcpCongestion(tc *net.TCPConn, name string, value any) (err error) {
+func intof(n any) int {
+	switch n := n.(type) {
+	case int:
+		return int(n)
+	case int8:
+		return int(n)
+	case int16:
+		return int(n)
+	case int32:
+		return int(n)
+	case int64:
+		return int(n)
+	case uint:
+		return int(n)
+	case uint8:
+		return int(n)
+	case uint16:
+		return int(n)
+	case uint32:
+		return int(n)
+	case uint64:
+		return int(n)
+	case uintptr:
+		return int(n)
+	}
+	return 0
+}
+
+func SetTcpCongestion(tc *net.TCPConn, name string, values ...any) (err error) {
 	var c syscall.RawConn
 	c, err = tc.SyscallConn()
 	if err != nil {
@@ -117,8 +146,8 @@ func SetTcpCongestion(tc *net.TCPConn, name string, value any) (err error) {
 				Rate     uint64
 				CwndGain uint32
 			}{
-				Rate:     value.(uint64),
-				CwndGain: 20, // hysteria2 default
+				Rate:     uint64(intof(values[0])),
+				CwndGain: uint32(cmp.Or(intof(values[1]), 20)), // 20, hysteria2 default
 			}
 			const TCP_BRUTAL_PARAMS = 23301
 			err = setsockopt(int(fd), syscall.IPPROTO_TCP, TCP_BRUTAL_PARAMS, unsafe.Pointer(&params), unsafe.Sizeof(params))

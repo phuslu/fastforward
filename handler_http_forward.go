@@ -223,24 +223,31 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			http.Error(rw, err.Error(), http.StatusBadGateway)
 			return
 		}
-		if parts := strings.Fields(sb.String()); len(parts) >= 1 {
-			switch name := parts[0]; name {
+		if options := strings.Fields(sb.String()); len(options) >= 1 {
+			switch name := options[0]; name {
 			case "brutal":
-				if len(parts) < 2 {
-					log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_parts", parts).Msg("parse forward_tcp_congestion error")
+				if len(options) < 2 {
+					log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_options", options).Msg("parse forward_tcp_congestion error")
 					http.Error(rw, err.Error(), http.StatusBadGateway)
 					return
 				}
-				if rate, _ := strconv.ParseUint(parts[1], 10, 64); rate > 0 {
-					if err := SetTcpCongestion(ri.ClientTCPConn, "brutal", uint64(rate)); err != nil {
-						log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_parts", parts).Msg("set forward_tcp_congestion error")
+				if rate, _ := strconv.Atoi(options[1]); rate > 0 {
+					gain := 20 // hysteria2 default
+					if len(options) >= 3 {
+						if n, _ := strconv.Atoi(options[2]); n > 0 {
+							gain = n
+						}
+					}
+					if err := SetTcpCongestion(ri.ClientTCPConn, name, uint64(rate), uint32(gain)); err != nil {
+						log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_options", options).Msg("set forward_tcp_congestion error")
 						http.Error(rw, err.Error(), http.StatusBadGateway)
 						return
 					}
+					log.Debug().Str("remote_ip", ri.RemoteIP).Strs("forward_tcp_congestion_options", options).Msg("set forward_tcp_congestion ok")
 				}
 			default:
-				if err := SetTcpCongestion(ri.ClientTCPConn, name, nil); err != nil {
-					log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_parts", parts).Msg("set forward_tcp_congestion error")
+				if err := SetTcpCongestion(ri.ClientTCPConn, name); err != nil {
+					log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_options", options).Msg("set forward_tcp_congestion error")
 					http.Error(rw, err.Error(), http.StatusBadGateway)
 					return
 				}
