@@ -32,6 +32,7 @@ type HTTPConfig struct {
 		Policy           string `json:"policy" yaml:"policy"`
 		AuthTable        string `json:"auth_table" yaml:"auth_table"`
 		Dialer           string `json:"dialer" yaml:"dialer"`
+		TcpCongestion    string `json:"tcp_congestion" yaml:"tcp_congestion"`
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
 		PreferIpv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`

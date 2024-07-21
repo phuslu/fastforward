@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -31,10 +32,11 @@ type HTTPForwardHandler struct {
 	Dialers        map[string]Dialer
 	Functions      template.FuncMap
 
-	policy     *template.Template
-	dialer     *template.Template
-	transports map[string]*http.Transport
-	csvloader  *FileLoader[[]ForwardAuthInfo]
+	policy        *template.Template
+	tcpcongestion *template.Template
+	dialer        *template.Template
+	transports    map[string]*http.Transport
+	csvloader     *FileLoader[[]ForwardAuthInfo]
 }
 
 func (h *HTTPForwardHandler) Load() error {
@@ -42,6 +44,12 @@ func (h *HTTPForwardHandler) Load() error {
 
 	if s := h.Config.Forward.Policy; s != "" {
 		if h.policy, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+			return err
+		}
+	}
+
+	if s := h.Config.Forward.TcpCongestion; s != "" {
+		if h.tcpcongestion, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
@@ -198,6 +206,39 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	if ai.VIP == 0 {
 		if ai.SpeedLimit == 0 && h.Config.Forward.SpeedLimit > 0 {
 			ai.SpeedLimit = h.Config.Forward.SpeedLimit
+		}
+	}
+
+	if h.tcpcongestion != nil && ri.ClientTCPConn != nil && req.ProtoMajor <= 2 {
+		sb.Reset()
+		err := h.tcpcongestion.Execute(&sb, struct {
+			Request         *http.Request
+			ClientHelloInfo *tls.ClientHelloInfo
+			UserAgent       *useragent.UserAgent
+			ServerAddr      string
+			User            ForwardAuthInfo
+		}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ai})
+		if err != nil {
+			log.Error().Err(err).Context(ri.LogContext).Str("forward_tcp_congestion", h.Config.Forward.TcpCongestion).Msg("execute forward_tcp_congestion error")
+			http.Error(rw, err.Error(), http.StatusBadGateway)
+			return
+		}
+		if parts := strings.Fields(sb.String()); len(parts) >= 1 {
+			switch name := parts[0]; name {
+			case "brutal":
+				if len(parts) < 2 {
+					log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_parts", parts).Msg("parse forward_tcp_congestion error")
+					http.Error(rw, err.Error(), http.StatusBadGateway)
+					return
+				}
+				if rate, _ := strconv.ParseUint(parts[1], 10, 64); rate > 0 {
+					if err := SetTcpBrutalRate(ri.ClientTCPConn, rate); err != nil {
+						log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_parts", parts).Msg("set forward_tcp_congestion error")
+						http.Error(rw, err.Error(), http.StatusBadGateway)
+						return
+					}
+				}
+			}
 		}
 	}
 
