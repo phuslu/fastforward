@@ -232,11 +232,17 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					return
 				}
 				if rate, _ := strconv.ParseUint(parts[1], 10, 64); rate > 0 {
-					if err := SetTcpBrutalRate(ri.ClientTCPConn, rate); err != nil {
+					if err := SetTcpCongestion(ri.ClientTCPConn, "brutal", uint64(rate)); err != nil {
 						log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_parts", parts).Msg("set forward_tcp_congestion error")
 						http.Error(rw, err.Error(), http.StatusBadGateway)
 						return
 					}
+				}
+			default:
+				if err := SetTcpCongestion(ri.ClientTCPConn, name, nil); err != nil {
+					log.Error().Context(ri.LogContext).Strs("forward_tcp_congestion_parts", parts).Msg("set forward_tcp_congestion error")
+					http.Error(rw, err.Error(), http.StatusBadGateway)
+					return
 				}
 			}
 		}

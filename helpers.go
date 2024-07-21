@@ -271,7 +271,7 @@ func (ln TCPListener) Accept() (c net.Conn, err error) {
 		tc.SetWriteBuffer(ln.WriteBufferSize)
 	}
 	if ln.TcpBrutalRate > 0 {
-		if err = SetTcpBrutalRate(tc, ln.TcpBrutalRate); err != nil {
+		if err = SetTcpCongestion(tc, "brutal", uint64(ln.TcpBrutalRate)); err != nil {
 			return
 		}
 	}
