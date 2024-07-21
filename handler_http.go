@@ -38,6 +38,7 @@ type RequestInfo struct {
 	TLSVersion      TLSVersion
 	ClientHelloInfo *tls.ClientHelloInfo
 	ClientHelloRaw  []byte
+	ClientTCPConn   *net.TCPConn
 	TraceID         log.XID
 	UserAgent       useragent.UserAgent
 	GeoipInfo       GeoipInfo
@@ -75,12 +76,24 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		ri.TLSVersion = 0
 	}
 
-	ri.ClientHelloInfo, ri.ClientHelloRaw = nil, nil
+	ri.ClientHelloInfo, ri.ClientHelloRaw, ri.ClientTCPConn = nil, nil, nil
 	if h.ClientHelloMap != nil {
 		if v, ok := h.ClientHelloMap.Load(req.RemoteAddr); ok {
 			ri.ClientHelloInfo = v
 			if header := GetMirrorHeader(ri.ClientHelloInfo.Conn); header != nil {
 				ri.ClientHelloRaw = header.B
+			}
+			if req.ProtoMajor <= 2 {
+				conn := ri.ClientHelloInfo.Conn
+				if c, ok := conn.(*tls.Conn); ok && c != nil {
+					conn = c.NetConn()
+				}
+				if c, ok := conn.(*MirrorHeaderConn); ok && c != nil {
+					conn = c.Conn
+				}
+				if tc, ok := conn.(*net.TCPConn); ok && tc != nil {
+					ri.ClientTCPConn = tc
+				}
 			}
 		}
 	}
