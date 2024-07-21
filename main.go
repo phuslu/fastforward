@@ -506,7 +506,6 @@ func main() {
 
 		go server.Serve(TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
-			TcpBrutalRate:   config.Global.TcpBrutalRate,
 			KeepAlivePeriod: 3 * time.Minute,
 			// ReadBufferSize:  1 << 20,
 			// WriteBufferSize: 1 << 20,
