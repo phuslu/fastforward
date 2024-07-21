@@ -61,9 +61,11 @@ https:
         {{else}}
           proxy_pass
         {{end}}
-      auth_table: authuser.csv
+      tcp_congestion: |
+        {{if eq "CN" (country .Request.RemoteAddr)}}brutal 5242880 16{{end}}
       dialer: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
+      auth_table: authuser.csv
       deny_domains_table: deny_domains.csv
       speed_limit: 10000000
     web:
