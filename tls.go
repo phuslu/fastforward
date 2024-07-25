@@ -52,6 +52,7 @@ type TLSConfiguratorEntry struct {
 	DisableHTTP2   bool
 	DisableTLS11   bool
 	PreferChacha20 bool
+	DisableOCSP    bool
 }
 
 type TLSConfiguratorSniproxy struct {
@@ -231,11 +232,12 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		serverName = m.DefaultServername
 	}
 
-	var preferChacha20, disableTLS11, disableHTTP2 bool
+	var preferChacha20, disableTLS11, disableHTTP2, disableOCSP bool
 	if entry, ok := m.Entries[hello.ServerName]; ok {
 		preferChacha20 = entry.PreferChacha20
 		disableHTTP2 = entry.DisableHTTP2
 		disableTLS11 = entry.DisableTLS11
+		disableOCSP = entry.DisableOCSP
 	}
 
 	hasAES := (cpu.X86.HasAES && cpu.X86.HasPCLMULQDQ) || (cpu.ARM64.HasAES && cpu.ARM64.HasPMULL)
@@ -259,6 +261,9 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 	}
 	if disableHTTP2 {
 		cacheKey += "!h2"
+	}
+	if disableOCSP {
+		cacheKey += "!ocsp"
 	}
 	if !hasAES {
 		cacheKey += "!aes"
@@ -287,9 +292,11 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		cacert, _ = x509.ParseCertificate(cert.Certificate[n-2])
 	}
 
-	cert.OCSPStaple, err = GetOCSPStaple(hello.Context(), http.DefaultTransport, cacert)
-	if err != nil {
-		// log error
+	if !disableOCSP {
+		cert.OCSPStaple, err = GetOCSPStaple(hello.Context(), http.DefaultTransport, cacert)
+		if err != nil {
+			// log error
+		}
 	}
 
 	config := &tls.Config{

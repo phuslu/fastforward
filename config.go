@@ -21,6 +21,7 @@ type HTTPConfig struct {
 		DisableHttp2   bool   `json:"disable_http2" yaml:"disable_http2"`
 		DisableHttp3   bool   `json:"disable_http3" yaml:"disable_http3"`
 		DisableTls11   bool   `json:"disable_tls11" yaml:"disable_tls11"`
+		DisableOcsp    bool   `json:"disable_ocsp" yaml:"disable_ocsp"`
 		PreferChacha20 bool   `json:"perfer_chacha20" yaml:"perfer_chacha20"`
 	} `json:"server_config" yaml:"server_config"`
 	Sniproxy []struct {
