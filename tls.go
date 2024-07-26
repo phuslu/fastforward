@@ -255,30 +255,30 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		}
 	}
 
-	cacheKey := serverName
+	cacheKey := append(make([]byte, 0, 128), serverName...)
 	if disableTLS11 {
-		cacheKey += "!tls11"
+		cacheKey = append(cacheKey, "!tls11"...)
 	}
 	if disableHTTP2 {
-		cacheKey += "!h2"
+		cacheKey = append(cacheKey, "!h2"...)
 	}
 	if disableOCSP {
-		cacheKey += "!ocsp"
+		cacheKey = append(cacheKey, "!ocsp"...)
 	}
 	if !hasAES {
-		cacheKey += "!aes"
+		cacheKey = append(cacheKey, "!aes"...)
 	}
 	if !hasTLS13 {
-		cacheKey += "!tls13"
+		cacheKey = append(cacheKey, "!tls13"...)
 	}
 	if ecsdaCipher == 0 {
-		cacheKey += "!ecdsa"
+		cacheKey = append(cacheKey, "!ecdsa"...)
 	}
 	if hasChaCha20 {
-		cacheKey += ":chacha20"
+		cacheKey = append(cacheKey, ":chacha20"...)
 	}
 
-	if v, _ := m.TLSConfigCache.Get(cacheKey); v != nil {
+	if v, _ := m.TLSConfigCache.Get(b2s(cacheKey)); v != nil {
 		return v, nil
 	}
 
@@ -323,7 +323,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.TLSConfigCache.Set(cacheKey, config, 24*time.Hour)
+	m.TLSConfigCache.Set(string(cacheKey), config, 24*time.Hour)
 
 	return config, nil
 }
