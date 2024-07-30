@@ -44,7 +44,7 @@ func (v TLSVersion) String() string {
 	return ""
 }
 
-type TLSConfiguratorEntry struct {
+type TLSInspectorEntry struct {
 	ServerName     string
 	KeyFile        string
 	CertFile       string
@@ -54,14 +54,14 @@ type TLSConfiguratorEntry struct {
 	DisableOCSP    bool
 }
 
-type TLSConfiguratorSniproxy struct {
+type TLSInspectorSniproxy struct {
 	ServerName  string
 	ProxyPass   string
 	DialTimeout int
 	Dialer      Dialer
 }
 
-type TLSConfiguratorCacheKey struct {
+type TLSInspectorCacheKey struct {
 	ServerName     string
 	DisableTLS11   bool
 	DisableHTTP2   bool
@@ -72,30 +72,30 @@ type TLSConfiguratorCacheKey struct {
 	HasChaCha20    bool
 }
 
-type TLSConfiguratorCacheValue[T any] struct {
+type TLSInspectorCacheValue[T any] struct {
 	Value     T
 	CreatedAt int64
 }
 
-type TLSConfigurator struct {
+type TLSInspector struct {
 	DefaultServername string
 
-	Entries          map[string]TLSConfiguratorEntry
-	Sniproies        map[string]TLSConfiguratorSniproxy
+	Entries          map[string]TLSInspectorEntry
+	Sniproies        map[string]TLSInspectorSniproxy
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
-	TLSConfigCache   *xsync.MapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Config]]
-	CertificateCache *xsync.MapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Certificate]]
+	TLSConfigCache   *xsync.MapOf[TLSInspectorCacheKey, TLSInspectorCacheValue[*tls.Config]]
+	CertificateCache *xsync.MapOf[TLSInspectorCacheKey, TLSInspectorCacheValue[*tls.Certificate]]
 	ClientHelloMap   *xsync.MapOf[string, *tls.ClientHelloInfo]
 }
 
-func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
+func (m *TLSInspector) AddCertEntry(entry TLSInspectorEntry) error {
 	if m.TLSConfigCache == nil {
-		m.TLSConfigCache = xsync.NewMapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Config]]()
+		m.TLSConfigCache = xsync.NewMapOf[TLSInspectorCacheKey, TLSInspectorCacheValue[*tls.Config]]()
 	}
 
 	if m.CertificateCache == nil {
-		m.CertificateCache = xsync.NewMapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Certificate]]()
+		m.CertificateCache = xsync.NewMapOf[TLSInspectorCacheKey, TLSInspectorCacheValue[*tls.Certificate]]()
 	}
 
 	if m.AutoCert == nil {
@@ -133,27 +133,27 @@ func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 	}
 
 	if m.Entries == nil {
-		m.Entries = make(map[string]TLSConfiguratorEntry)
+		m.Entries = make(map[string]TLSInspectorEntry)
 	}
 	m.Entries[entry.ServerName] = entry
 
 	return nil
 }
 
-func (m *TLSConfigurator) AddSniproxy(sniproxy TLSConfiguratorSniproxy) error {
+func (m *TLSInspector) AddSniproxy(sniproxy TLSInspectorSniproxy) error {
 	if m.Sniproies == nil {
-		m.Sniproies = make(map[string]TLSConfiguratorSniproxy)
+		m.Sniproies = make(map[string]TLSInspectorSniproxy)
 	}
 	m.Sniproies[sniproxy.ServerName] = sniproxy
 
 	return nil
 }
 
-func (m *TLSConfigurator) HostPolicy(ctx context.Context, host string) error {
+func (m *TLSInspector) HostPolicy(ctx context.Context, host string) error {
 	return nil
 }
 
-func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+func (m *TLSInspector) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	entry, ok := m.Entries[hello.ServerName]
 	if !ok {
 		for key, value := range m.Entries {
@@ -167,7 +167,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 	}
 
 	if entry.KeyFile != "" {
-		cacheKey := TLSConfiguratorCacheKey{ServerName: entry.ServerName}
+		cacheKey := TLSInspectorCacheKey{ServerName: entry.ServerName}
 		cacheKey.HasTLS13, _ = LookupEcdsaCiphers(hello)
 
 		if v, _ := m.CertificateCache.Load(cacheKey); v.Value != nil && time.Now().Unix()-v.CreatedAt < 24*3600 {
@@ -185,7 +185,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertificateCache.Store(cacheKey, TLSConfiguratorCacheValue[*tls.Certificate]{&cert, time.Now().Unix()})
+		m.CertificateCache.Store(cacheKey, TLSInspectorCacheValue[*tls.Certificate]{&cert, time.Now().Unix()})
 
 		return &cert, nil
 	}
@@ -193,7 +193,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 	return m.AutoCert.GetCertificate(hello)
 }
 
-func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
+func (m *TLSInspector) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
 	m.ClientHelloMap.Store(hello.Conn.RemoteAddr().String(), hello)
 
 	if host, _, err := net.SplitHostPort(hello.ServerName); err == nil {
@@ -266,7 +266,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		}
 	}
 
-	cacheKey := TLSConfiguratorCacheKey{
+	cacheKey := TLSInspectorCacheKey{
 		ServerName:     serverName,
 		DisableTLS11:   disableTLS11,
 		DisableHTTP2:   disableHTTP2,
@@ -322,12 +322,12 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.TLSConfigCache.Store(cacheKey, TLSConfiguratorCacheValue[*tls.Config]{config, time.Now().Unix()})
+	m.TLSConfigCache.Store(cacheKey, TLSInspectorCacheValue[*tls.Config]{config, time.Now().Unix()})
 
 	return config, nil
 }
 
-func (m *TLSConfigurator) ConnState(c net.Conn, cs http.ConnState) {
+func (m *TLSInspector) ConnState(c net.Conn, cs http.ConnState) {
 	switch cs {
 	case http.StateHijacked, http.StateClosed:
 		if header := GetMirrorHeader(c); header != nil {

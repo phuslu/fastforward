@@ -378,7 +378,7 @@ func main() {
 	servers := make([]*http.Server, 0)
 
 	// listen and serve https
-	tlsConfigurator := &TLSConfigurator{
+	tlsConfigurator := &TLSInspector{
 		ClientHelloMap: xsync.NewMapOf[string, *tls.ClientHelloInfo](),
 	}
 	h2handlers := map[string]map[string]HTTPHandler{}
@@ -419,7 +419,7 @@ func main() {
 
 		for _, listen := range server.Listen {
 			for _, sniproxy := range server.Sniproxy {
-				tlsConfigurator.AddSniproxy(TLSConfiguratorSniproxy{
+				tlsConfigurator.AddSniproxy(TLSInspectorSniproxy{
 					ServerName: sniproxy.ServerName,
 					ProxyPass:  sniproxy.ProxyPass,
 					Dialer:     dialer,
@@ -433,7 +433,7 @@ func main() {
 				if config.Certfile == "" {
 					config.Certfile = config.Keyfile
 				}
-				tlsConfigurator.AddCertEntry(TLSConfiguratorEntry{
+				tlsConfigurator.AddCertEntry(TLSInspectorEntry{
 					ServerName:     name,
 					KeyFile:        config.Keyfile,
 					CertFile:       config.Certfile,
