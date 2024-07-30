@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/phuslu/lru"
 	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/acme/autocert"
@@ -62,6 +61,22 @@ type TLSConfiguratorSniproxy struct {
 	Dialer      Dialer
 }
 
+type TLSConfiguratorCacheKey struct {
+	ServerName     string
+	DisableTLS11   bool
+	DisableHTTP2   bool
+	DisableOCSP    bool
+	HasAES         bool
+	HasTLS13       bool
+	HasEcsdaCipher bool
+	HasChaCha20    bool
+}
+
+type TLSConfiguratorCacheValue[T any] struct {
+	Value     T
+	CreatedAt int64
+}
+
 type TLSConfigurator struct {
 	DefaultServername string
 
@@ -69,18 +84,18 @@ type TLSConfigurator struct {
 	Sniproies        map[string]TLSConfiguratorSniproxy
 	AutoCert         *autocert.Manager
 	RootCA           *RootCA
-	TLSConfigCache   *lru.TTLCache[string, *tls.Config]
-	CertificateCache *lru.TTLCache[string, *tls.Certificate]
+	TLSConfigCache   *xsync.MapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Config]]
+	CertificateCache *xsync.MapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Certificate]]
 	ClientHelloMap   *xsync.MapOf[string, *tls.ClientHelloInfo]
 }
 
 func (m *TLSConfigurator) AddCertEntry(entry TLSConfiguratorEntry) error {
 	if m.TLSConfigCache == nil {
-		m.TLSConfigCache = lru.NewTTLCache[string, *tls.Config](1024)
+		m.TLSConfigCache = xsync.NewMapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Config]]()
 	}
 
 	if m.CertificateCache == nil {
-		m.CertificateCache = lru.NewTTLCache[string, *tls.Certificate](1024)
+		m.CertificateCache = xsync.NewMapOf[TLSConfiguratorCacheKey, TLSConfiguratorCacheValue[*tls.Certificate]]()
 	}
 
 	if m.AutoCert == nil {
@@ -151,20 +166,16 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 		return nil, errors.New("server_name(" + hello.ServerName + ") is not allowed")
 	}
 
-	hasTLS13, _ := LookupEcdsaCiphers(hello)
-
 	if entry.KeyFile != "" {
-		cacheKey := "cert:" + entry.ServerName
-		if !hasTLS13 {
-			cacheKey += "!tls13"
-		}
+		cacheKey := TLSConfiguratorCacheKey{ServerName: entry.ServerName}
+		cacheKey.HasTLS13, _ = LookupEcdsaCiphers(hello)
 
-		if v, _ := m.CertificateCache.Get(cacheKey); v != nil {
-			return v, nil
+		if v, _ := m.CertificateCache.Load(cacheKey); v.Value != nil && time.Now().Unix()-v.CreatedAt < 24*3600 {
+			return v.Value, nil
 		}
 
 		certfile, keyfile := entry.CertFile, entry.KeyFile
-		if !hasTLS13 {
+		if !cacheKey.HasTLS13 {
 			if _, err := os.Stat(certfile + "+rsa"); err == nil {
 				certfile, keyfile = certfile+"+rsa", keyfile+"+rsa"
 			}
@@ -174,7 +185,7 @@ func (m *TLSConfigurator) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certi
 			return nil, err
 		}
 
-		m.CertificateCache.Set(cacheKey, &cert, 24*time.Hour)
+		m.CertificateCache.Store(cacheKey, TLSConfiguratorCacheValue[*tls.Certificate]{&cert, time.Now().Unix()})
 
 		return &cert, nil
 	}
@@ -255,31 +266,19 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		}
 	}
 
-	cacheKey := append(make([]byte, 0, 128), serverName...)
-	if disableTLS11 {
-		cacheKey = append(cacheKey, "!tls11"...)
-	}
-	if disableHTTP2 {
-		cacheKey = append(cacheKey, "!h2"...)
-	}
-	if disableOCSP {
-		cacheKey = append(cacheKey, "!ocsp"...)
-	}
-	if !hasAES {
-		cacheKey = append(cacheKey, "!aes"...)
-	}
-	if !hasTLS13 {
-		cacheKey = append(cacheKey, "!tls13"...)
-	}
-	if ecsdaCipher == 0 {
-		cacheKey = append(cacheKey, "!ecdsa"...)
-	}
-	if hasChaCha20 {
-		cacheKey = append(cacheKey, ":chacha20"...)
+	cacheKey := TLSConfiguratorCacheKey{
+		ServerName:     serverName,
+		DisableTLS11:   disableTLS11,
+		DisableHTTP2:   disableHTTP2,
+		DisableOCSP:    disableOCSP,
+		HasAES:         hasAES,
+		HasTLS13:       hasTLS13,
+		HasEcsdaCipher: ecsdaCipher != 0,
+		HasChaCha20:    hasChaCha20,
 	}
 
-	if v, _ := m.TLSConfigCache.Get(b2s(cacheKey)); v != nil {
-		return v, nil
+	if v, _ := m.TLSConfigCache.Load(cacheKey); v.Value != nil && time.Now().Unix()-v.CreatedAt < 24*3600 {
+		return v.Value, nil
 	}
 
 	cert, err := m.GetCertificate(hello)
@@ -323,7 +322,7 @@ func (m *TLSConfigurator) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.C
 		config.PreferServerCipherSuites = false
 	}
 
-	m.TLSConfigCache.Set(string(cacheKey), config, 24*time.Hour)
+	m.TLSConfigCache.Store(cacheKey, TLSConfiguratorCacheValue[*tls.Config]{config, time.Now().Unix()})
 
 	return config, nil
 }
