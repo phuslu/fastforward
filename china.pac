@@ -8,6 +8,8 @@ var proxy = 'HTTP {{.Request.Host}}:443'
 {{end}}
 
 var prelude = {
+	// self reference
+	"{{.Request.Host}}":0,
 	// wifi captive portal
 	"captive.apple.com":0,
 	"connectivitycheck.android.com":0,
