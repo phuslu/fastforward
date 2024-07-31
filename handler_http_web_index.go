@@ -61,8 +61,10 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	if h.Root == "" {
 		h.addHeaders(rw, req, ri)
-		if s := mime.TypeByExtension(filepath.Ext(req.URL.Path)); s != "" {
-			rw.Header().Set("content-type", s)
+		if rw.Header().Get("content-type") == "" {
+			if s := mime.TypeByExtension(filepath.Ext(req.URL.Path)); s != "" {
+				rw.Header().Set("content-type", s)
+			}
 		}
 		tmpl := h.body
 		var fi fs.FileInfo
@@ -271,7 +273,7 @@ func (h *HTTPWebIndexHandler) addHeaders(rw http.ResponseWriter, req *http.Reque
 		if len(parts) != 2 {
 			continue
 		}
-		key, value := parts[0], strings.TrimSpace(parts[1])
+		key, value := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 		if key == "status" {
 			statusCode, _ = strconv.Atoi(value)
 		} else {
