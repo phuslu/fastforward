@@ -26,7 +26,7 @@ import (
 	"unicode"
 	"unsafe"
 
-	"github.com/tg123/go-htpasswd"
+	"github.com/nathanaelle/password/v2"
 	"github.com/valyala/bytebufferpool"
 	"go.uber.org/ratelimit"
 	"golang.org/x/crypto/ocsp"
@@ -589,10 +589,12 @@ func ReadFile(s string) (body []byte, err error) {
 }
 
 func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
-	htfile, err := htpasswd.New(htpasswdFile, htpasswd.DefaultSystems, nil)
+	file, err := os.Open(htpasswdFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("open htpasswd file %s error: %w", htpasswdFile, err)
 	}
+	defer file.Close()
+
 	s := req.Header.Get("authorization")
 	if s == "" {
 		return errors.New("no authorization header")
@@ -608,12 +610,27 @@ func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid authorization header: %+v", s)
 	}
+	user, pass := parts[0], parts[1]
 
-	if !htfile.Match(parts[0], parts[1]) {
-		return fmt.Errorf("wrong username or password: %+v", s)
+	factory := &password.Factory{}
+	factory.Register(password.MD5, password.SHA256, password.SHA512, password.BCRYPT)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if i := strings.IndexByte(line, ':'); i > 0 && line[:i] == user {
+			factory.Set(strings.TrimSpace(line[i+1:]))
+			if factory.CrypterFound().Verify(s2b(pass)) {
+				return nil
+			}
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("read htpasswd file %s error: %w", htpasswdFile, err)
 	}
 
-	return nil
+	return fmt.Errorf("wrong username or password: %+v", parts)
 }
 
 func GetOCSPStaple(ctx context.Context, transport http.RoundTripper, cert *x509.Certificate) ([]byte, error) {

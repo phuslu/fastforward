@@ -7,13 +7,13 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0
 	github.com/jszwec/csvutil v1.10.0
 	github.com/mileusna/useragent v1.3.4
+	github.com/nathanaelle/password/v2 v2.0.1
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/phuslu/geosite v1.0.20240701
 	github.com/phuslu/log v1.0.107
 	github.com/phuslu/lru v1.0.15
 	github.com/puzpuzpuz/xsync/v3 v3.4.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/tg123/go-htpasswd v1.2.2
 	github.com/valyala/bytebufferpool v1.0.0
 	go.uber.org/ratelimit v0.3.1
 	golang.org/x/crypto v0.25.0
@@ -23,7 +23,6 @@ require (
 )
 
 require (
-	github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/google/pprof v0.0.0-20240721033354-7089f98c1d14 // indirect
 	github.com/onsi/ginkgo/v2 v2.19.0 // indirect

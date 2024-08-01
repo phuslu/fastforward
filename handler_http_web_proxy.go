@@ -57,7 +57,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	// }
 
 	if h.AuthBasicUserFile != "" {
-		if err := HtpasswdVerify(h.AuthBasicUserFile, req); err != nil && !os.IsNotExist(err) {
+		if err := HtpasswdVerify(h.AuthBasicUserFile, req); err != nil && !errors.Is(err, os.ErrNotExist) {
 			log.Error().Context(ri.LogContext).Err(err).Msg("web dav auth error")
 			rw.Header().Set("www-authenticate", `Basic realm="`+h.AuthBasic+`"`)
 			http.Error(rw, "401 unauthorised: "+err.Error(), http.StatusUnauthorized)
