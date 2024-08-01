@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -151,29 +152,60 @@ func NewConfig(filename string) (*Config, error) {
 		}
 	}
 
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
+	datas := [][]byte{}
+	if data, err := os.ReadFile(filename); err == nil {
+		data = regexp.MustCompilePOSIX(`^( *)upstream:`).ReplaceAll(data, []byte("${1}dialer:"))
+		datas = append(datas, data)
 	}
 
-	data = regexp.MustCompilePOSIX(`^( *)upstream:`).ReplaceAll(data, []byte("${1}dialer:"))
-
-	c := new(Config)
-	switch filepath.Ext(filename) {
-	case ".json":
-		err = json.Unmarshal(data, c)
-	case ".yaml":
-		err = yaml.Unmarshal(data, c)
-	default:
-		err = fmt.Errorf("format of %s not supportted", filename)
+	dir, ext := filename[:len(filename)-len(filepath.Ext(filename))]+".d", filepath.Ext(filename)
+	if entries, err := os.ReadDir(dir); err == nil {
+		for _, entry := range entries {
+			if name := entry.Name(); strings.HasSuffix(name, ext) {
+				if data, err := os.ReadFile(filepath.Join(dir, name)); err == nil {
+					datas = append(datas, data)
+				}
+			}
+		}
 	}
-	if err != nil {
-		return nil, fmt.Errorf("yaml.Decode(%#v) error: %w", filename, err)
+
+	configs := []*Config{}
+	for _, data := range datas {
+		c := new(Config)
+		var err error
+		switch filepath.Ext(filename) {
+		case ".json":
+			err = json.Unmarshal(data, c)
+		case ".yaml":
+			err = yaml.Unmarshal(data, c)
+		default:
+			err = fmt.Errorf("format of %s not supportted", filename)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("yaml.Decode(%#v) error: %w", filename, err)
+		}
+		configs = append(configs, c)
+	}
+
+	config := configs[0]
+	for _, c := range configs[1:] {
+		config.Cron = append(config.Cron, c.Cron...)
+		for key, value := range c.Dialer {
+			if config.Dialer == nil {
+				config.Dialer = make(map[string]string)
+			}
+			config.Dialer[key] = value
+		}
+		config.Https = append(config.Https, c.Https...)
+		config.Http = append(config.Http, c.Http...)
+		config.Socks = append(config.Socks, c.Socks...)
+		config.SSHTun = append(config.SSHTun, c.SSHTun...)
+		config.Stream = append(config.Stream, c.Stream...)
 	}
 
 	if filename == "development.yaml" {
 		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
 	}
 
-	return c, nil
+	return config, nil
 }
