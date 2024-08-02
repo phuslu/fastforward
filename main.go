@@ -360,6 +360,8 @@ func main() {
 		RegionResolver: regionResolver,
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
 		GeoSiteCache:   lru.NewTTLCache[string, *string](8192),
+		FetchTransport: transport,
+		FetchCache:     lru.NewTTLCache[string, *FetchResponse](8192),
 		IPListCache:    lru.NewTTLCache[string, *string](128),
 		RegexpCache:    xsync.NewMapOf[string, *regexp.Regexp](),
 		Singleflight:   &singleflight_Group[string, string]{},

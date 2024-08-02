@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -24,6 +26,8 @@ type Functions struct {
 	RegionResolver *RegionResolver
 	GeoSite        *geosite.DomainListCommunity
 	Singleflight   *singleflight_Group[string, string]
+	FetchTransport *http.Transport
+	FetchCache     *lru.TTLCache[string, *FetchResponse]
 	IPListCache    *lru.TTLCache[string, *string]
 	GeoSiteCache   *lru.TTLCache[string, *string]
 	RegexpCache    *xsync.MapOf[string, *regexp.Regexp]
@@ -64,6 +68,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["city"] = f.city
 	f.FuncMap["country"] = f.country
 	f.FuncMap["domain"] = f.domain
+	f.FuncMap["fetch"] = f.fetch
 	f.FuncMap["geoip"] = f.geoip
 	f.FuncMap["geosite"] = f.geosite
 	f.FuncMap["greased"] = f.greased
@@ -142,6 +147,59 @@ func (f *Functions) greased(info *tls.ClientHelloInfo) bool {
 	}
 	c := info.CipherSuites[0]
 	return c&0x0f0f == 0x0a0a && c&0xff == c>>8
+}
+
+type FetchResponse struct {
+	Status    int
+	Headers   http.Header
+	Body      string
+	Error     error
+	CreatedAt time.Time
+}
+
+func (f *Functions) fetch(uri string, timeout, cacheSeconds int) (response FetchResponse) {
+	loader := func(ctx context.Context, s string) (*FetchResponse, time.Duration, error) {
+		ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
+		if err != nil {
+			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
+			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
+		}
+
+		resp, err := f.FetchTransport.RoundTrip(req)
+		if err != nil {
+			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
+			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
+			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
+		}
+
+		result := &FetchResponse{
+			Status:    resp.StatusCode,
+			Headers:   resp.Header,
+			Body:      string(body),
+			CreatedAt: time.Now(),
+		}
+
+		log.Info().Str("fetch_url", uri).Any("fetch_response", result).Msg("fetch ok")
+
+		return result, time.Duration(cacheSeconds), nil
+	}
+
+	resp, _, ok := f.FetchCache.GetOrLoad(context.Background(), uri, loader)
+	if resp == nil || !ok {
+		return
+	}
+
+	response = *resp
+	return
 }
 
 func (f *Functions) iplist(iplistUrl string) string {
