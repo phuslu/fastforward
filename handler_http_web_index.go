@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -83,7 +82,8 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 				return
 			}
 
-			if !slices.Contains([]string{".tpl", ".html", ".pac"}, filepath.Ext(h.File)) {
+			ext := filepath.Ext(h.File)
+			if !(ext == ".pac" || ext == ".tpl" || strings.HasPrefix(mime.TypeByExtension(ext), "text/")) {
 				io.Copy(rw, file)
 				return
 			}
