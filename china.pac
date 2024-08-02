@@ -4,13 +4,16 @@ var direct = 'DIRECT'
 {{if .Request.TLS -}}
 var proxy = 'HTTPS {{.Request.Host}}:443'
 {{else}}
-var proxy = 'HTTP {{.Request.Host}}:443'
+var proxy = 'HTTP {{.Request.Host}}:8080'
 {{end}}
 
 var prelude = {
+	{{ .Request.URL.Query.Get "prelude" }}
+	{{ readfile "prelude.txt" }}
 	// self reference
-	"{{.Request.Host}}":0,
+	"{{domain .Request.Host}}":0,
 	// wifi captive portal
+	"asusrouter.com":0,
 	"captive.apple.com":0,
 	"connectivitycheck.android.com":0,
 	"ipv6.msftconnecttest.com":0,
