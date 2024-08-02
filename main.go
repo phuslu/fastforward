@@ -362,9 +362,7 @@ func main() {
 		GeoSiteCache:   lru.NewTTLCache[string, *string](8192),
 		FetchTransport: transport,
 		FetchCache:     lru.NewTTLCache[string, *FetchResponse](8192),
-		IPListCache:    lru.NewTTLCache[string, *string](128),
 		RegexpCache:    xsync.NewMapOf[string, *regexp.Regexp](),
-		Singleflight:   &singleflight_Group[string, string]{},
 	}
 	if err := functions.Load(); err != nil {
 		log.Fatal().Err(err).Msgf("%T.Load() fatal", functions)

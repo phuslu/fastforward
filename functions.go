@@ -25,10 +25,8 @@ import (
 type Functions struct {
 	RegionResolver *RegionResolver
 	GeoSite        *geosite.DomainListCommunity
-	Singleflight   *singleflight_Group[string, string]
 	FetchTransport *http.Transport
 	FetchCache     *lru.TTLCache[string, *FetchResponse]
-	IPListCache    *lru.TTLCache[string, *string]
 	GeoSiteCache   *lru.TTLCache[string, *string]
 	RegexpCache    *xsync.MapOf[string, *regexp.Regexp]
 
@@ -193,8 +191,8 @@ func (f *Functions) fetch(uri string, timeout, cacheSeconds int) (response Fetch
 		return result, time.Duration(cacheSeconds), nil
 	}
 
-	resp, _, ok := f.FetchCache.GetOrLoad(context.Background(), uri, loader)
-	if resp == nil || !ok {
+	resp, _, _ := f.FetchCache.GetOrLoad(context.Background(), uri, loader)
+	if resp == nil {
 		return
 	}
 
@@ -202,23 +200,13 @@ func (f *Functions) fetch(uri string, timeout, cacheSeconds int) (response Fetch
 	return
 }
 
-func (f *Functions) iplist(iplistUrl string) string {
-	if v, _ := f.IPListCache.Get(iplistUrl); v != nil {
-		return *v
-	}
-
-	body, err, _ := f.Singleflight.Do(iplistUrl, func() (string, error) {
-		data, err := ReadFile(iplistUrl)
-		return string(data), err
-	})
-	if err != nil {
-		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("read iplist url error")
+func (f *Functions) iplist(text string) string {
+	if text == "" {
 		return "[]"
 	}
 
-	iplist, err := MergeCIDRToIPList(strings.NewReader(body))
+	iplist, err := MergeCIDRToIPList(strings.NewReader(text))
 	if err != nil {
-		log.Error().Err(err).Str("iplist_url", iplistUrl).Msg("parse iplist url error")
 		return "[]"
 	}
 
@@ -236,10 +224,7 @@ func (f *Functions) iplist(iplistUrl string) string {
 	}
 	sb.WriteByte(']')
 
-	data := sb.String()
-	f.IPListCache.Set(iplistUrl, &data, 12*time.Hour)
-
-	return data
+	return sb.String()
 }
 
 func (f *Functions) geosite(domain string) string {
