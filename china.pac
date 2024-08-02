@@ -1,4 +1,4 @@
-// updated at {{.FileInfo.ModTime.Format "2006-01-02T15:04:05Z07:00"}}
+// v{{.ServerVersion}} updated at {{.FileInfo.ModTime.Format "2006-01-02T15:04:05Z07:00"}}
 
 var direct = 'DIRECT'
 {{if .Request.TLS -}}
@@ -10,8 +10,6 @@ var proxy = 'HTTP {{.Request.Host}}:8080'
 var prelude = {
 	{{ .Request.URL.Query.Get "prelude" }}
 	{{ readfile "prelude.txt" }}
-	// self reference
-	"{{domain .Request.Host}}":0,
 	// wifi captive portal
 	"asusrouter.com":0,
 	"captive.apple.com":0,
@@ -20,6 +18,7 @@ var prelude = {
 	"www.msftconnecttest.com":0,
 	"www.msftncsi.com":0,
 	// direct domains
+	"{{domain .Request.Host}}":0,
 	"alicdn.com":0,
 	"google-analytics.com":0,
 	"gtimg.com":0,

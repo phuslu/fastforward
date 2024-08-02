@@ -102,11 +102,12 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		}
 
 		tmpl.Execute(rw, struct {
-			Request    *http.Request
-			UserAgent  *useragent.UserAgent
-			ServerAddr string
-			FileInfo   fs.FileInfo
-		}{req, &ri.UserAgent, ri.ServerAddr, fi})
+			ServerVersion string
+			ServerAddr    string
+			Request       *http.Request
+			UserAgent     *useragent.UserAgent
+			FileInfo      fs.FileInfo
+		}{version, ri.ServerAddr, req, &ri.UserAgent, fi})
 
 		return
 	}
