@@ -15,6 +15,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"reflect"
@@ -368,66 +369,45 @@ func (c *ConnWithBuffers) Read(b []byte) (int, error) {
 	return total, nil
 }
 
-// https://github.com/hankjacobs/cidr
-func GetIPRange(cidr string) (from, to net.IP, err error) {
-	ip, ipNet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	from = ip.Mask(ipNet.Mask)
-	ones, total := ipNet.Mask.Size()
-	zeros := total - ones
-	count := (1 << uint32(zeros)) // 2 ^ zeros
-
-	to = make(net.IP, len(from))
-	copy(to, from)
-
-	i := len(to) - 1
-	for i >= 0 {
-		if count%256 == 0 {
-			to[i] = 255
-			count /= 256
-		} else {
-			to[i] += byte(count - 1)
-			break
-		}
-		i--
-	}
-
-	return
+// IPRange represents a range of IP addresses
+type IPRange struct {
+	StartInt uint32
+	EndInt   uint32
+	StartIP  netip.Addr
+	EndIP    netip.Addr
+	Length   int
 }
 
-func MergeCIDRToIPList(r io.Reader) ([]IPInt, error) {
-	scanner := bufio.NewScanner(r)
-
-	ips := make([]IPInt, 0)
-
-	for scanner.Scan() {
-		cidr := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(cidr, "#") || strings.HasPrefix(cidr, "//") {
-			continue
-		}
-
-		from, to, err := GetIPRange(cidr)
-		if err != nil {
-			continue
-		}
-
-		a, b := NewIPInt(from.String()), NewIPInt(to.String())
-
-		if len(ips) > 0 && ips[len(ips)-1] == a-1 {
-			ips[len(ips)-1] = b
-		} else {
-			ips = append(ips, a, b)
-		}
+// iprange calculates the start IP, end IP, and number of IPs in a CIDR range
+func GetIPRange(cidr string) (result IPRange, err error) {
+	prefix, err := netip.ParsePrefix(cidr)
+	if err != nil {
+		return IPRange{}, err
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
+	startIP := prefix.Addr()
+	startIPBytes := startIP.As4()
+	startInt := uint32(startIPBytes[0])<<24 | uint32(startIPBytes[1])<<16 | uint32(startIPBytes[2])<<8 | uint32(startIPBytes[3])
+	length := 1 << (32 - prefix.Bits()) // Number of IPs in the CIDR block
+
+	// Calculate the end IP by adding the number of IPs in the range to the start IP
+	endInt := startInt + uint32(length-1)
+	endIP := netip.AddrFrom4([4]byte{
+		byte(endInt >> 24),
+		byte(endInt >> 16),
+		byte(endInt >> 8),
+		byte(endInt),
+	})
+
+	result = IPRange{
+		StartInt: startInt,
+		EndInt:   endInt,
+		StartIP:  startIP,
+		EndIP:    endIP,
+		Length:   length,
 	}
 
-	return ips, nil
+	return result, nil
 }
 
 func LookupEcdsaCiphers(clientHello *tls.ClientHelloInfo) (bool, uint16) {

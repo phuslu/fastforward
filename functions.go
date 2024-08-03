@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -71,7 +70,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["geosite"] = f.geosite
 	f.FuncMap["greased"] = f.greased
 	f.FuncMap["host"] = f.host
-	f.FuncMap["iplist"] = f.iplist
+	f.FuncMap["iprange"] = f.iprange
 	f.FuncMap["readfile"] = f.readfile
 	f.FuncMap["region"] = f.region
 
@@ -200,31 +199,9 @@ func (f *Functions) fetch(uri string, timeout, cacheSeconds int) (response Fetch
 	return
 }
 
-func (f *Functions) iplist(text string) string {
-	if text == "" {
-		return "[]"
-	}
-
-	iplist, err := MergeCIDRToIPList(strings.NewReader(text))
-	if err != nil {
-		return "[]"
-	}
-
-	var sb strings.Builder
-	sb.WriteByte('[')
-	for i := 0; i < len(iplist); i++ {
-		if i > 0 {
-			sb.WriteByte(',')
-		}
-		if i%2 == 0 {
-			fmt.Fprintf(&sb, "%d", iplist[i])
-		} else {
-			fmt.Fprintf(&sb, "%d", iplist[i]-iplist[i-1])
-		}
-	}
-	sb.WriteByte(']')
-
-	return sb.String()
+func (f *Functions) iprange(cidr string) (result IPRange) {
+	result, _ = GetIPRange(cidr)
+	return
 }
 
 func (f *Functions) geosite(domain string) string {

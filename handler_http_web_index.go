@@ -101,13 +101,16 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			}
 		}
 
-		tmpl.Execute(rw, struct {
+		err := tmpl.Execute(rw, struct {
 			ServerVersion string
 			ServerAddr    string
 			Request       *http.Request
 			UserAgent     *useragent.UserAgent
 			FileInfo      fs.FileInfo
 		}{version, ri.ServerAddr, req, &ri.UserAgent, fi})
+		if err != nil {
+			log.Error().Err(err).Msg("execute index file error")
+		}
 
 		return
 	}
