@@ -70,7 +70,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["geosite"] = f.geosite
 	f.FuncMap["greased"] = f.greased
 	f.FuncMap["host"] = f.host
-	f.FuncMap["iprange"] = f.iprange
+	f.FuncMap["ipRange"] = f.ipRange
 	f.FuncMap["readfile"] = f.readfile
 	f.FuncMap["region"] = f.region
 
@@ -199,7 +199,7 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 	return
 }
 
-func (f *Functions) iprange(cidr string) (result IPRange) {
+func (f *Functions) ipRange(cidr string) (result IPRange) {
 	result, _ = GetIPRange(cidr)
 	return
 }

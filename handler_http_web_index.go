@@ -109,7 +109,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			FileInfo      fs.FileInfo
 		}{version, ri.ServerAddr, req, &ri.UserAgent, fi})
 		if err != nil {
-			log.Error().Err(err).Msg("execute index file error")
+			log.Error().Context(ri.LogContext).Err(err).Msg("execute index file error")
 		}
 
 		return

@@ -378,7 +378,7 @@ type IPRange struct {
 	Length   int
 }
 
-// iprange calculates the start IP, end IP, and number of IPs in a CIDR range
+// GetIPRange calculates the start IP, end IP, and number of IPs in a CIDR range
 func GetIPRange(cidr string) (result IPRange, err error) {
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {

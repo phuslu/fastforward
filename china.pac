@@ -68,7 +68,7 @@ var blacklist = {"10.10.10.10":1,"127.0.0.2":1,"243.185.187.3":1,"243.185.187.30
 var iplist = [0,0
 	{{- $lines := splitList "\n" (fetch 10 86400 "https://cdn.jsdelivr.net/gh/misakaio/chnroutes2/chnroutes.txt").Body }}
 	{{- range $lines }}
-	{{- with iprange . }}
+	{{- with ipRange . }}
 	{{- if .Length }},{{ .StartInt }},{{ sub .Length 1 }}{{ end -}}
 	{{- end }}
 	{{- end -}}
