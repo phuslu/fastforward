@@ -360,7 +360,7 @@ func main() {
 		RegionResolver: regionResolver,
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
 		GeoSiteCache:   lru.NewTTLCache[string, *string](8192),
-		FetchTransport: transport,
+		FetchClient:    &http.Client{Transport: transport},
 		FetchCache:     lru.NewTTLCache[string, *FetchResponse](8192),
 		RegexpCache:    xsync.NewMapOf[string, *regexp.Regexp](),
 	}

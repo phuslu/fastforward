@@ -24,7 +24,7 @@ import (
 type Functions struct {
 	RegionResolver *RegionResolver
 	GeoSite        *geosite.DomainListCommunity
-	FetchTransport *http.Transport
+	FetchClient    *http.Client
 	FetchCache     *lru.TTLCache[string, *FetchResponse]
 	GeoSiteCache   *lru.TTLCache[string, *string]
 	RegexpCache    *xsync.MapOf[string, *regexp.Regexp]
@@ -166,7 +166,7 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
 		}
 
-		resp, err := f.FetchTransport.RoundTrip(req)
+		resp, err := f.FetchClient.Do(req)
 		if err != nil {
 			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
 			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
