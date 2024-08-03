@@ -150,6 +150,7 @@ type FetchResponse struct {
 	Status    int
 	Headers   http.Header
 	Body      string
+	Lines     []string
 	Error     error
 	CreatedAt time.Time
 }
@@ -185,7 +186,11 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 			CreatedAt: time.Now(),
 		}
 
-		log.Info().Str("fetch_url", uri).Any("fetch_response", result).Msg("fetch ok")
+		if strings.HasPrefix(result.Headers.Get("content-type"), "text/") {
+			result.Lines = strings.Split(result.Body, "\n")
+		}
+
+		log.Info().Str("fetch_url", uri).Int("fetch_response_status", result.Status).Any("fetch_response_headers", result.Headers).Int("fetch_response_length", len(result.Body)).Msg("fetch ok")
 
 		return result, time.Duration(cacheSeconds), nil
 	}
@@ -200,7 +205,7 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 }
 
 func (f *Functions) ipRange(cidr string) (result IPRange) {
-	result, _ = GetIPRange(cidr)
+	result, _ = GetIPRange(strings.TrimSpace(cidr))
 	return
 }
 
