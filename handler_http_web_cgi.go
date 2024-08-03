@@ -39,58 +39,57 @@ func (h *HTTPWebCgiHandler) Load() (err error) {
 func (h *HTTPWebCgiHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
-	var fullname string
-	if strings.TrimRight(req.URL.Path, "/") == strings.TrimRight(h.Location, "/") && h.DefaultApp != "" {
-		fullname = h.DefaultApp
-		if !strings.HasPrefix(fullname, "/") {
-			fullname = filepath.Join(h.Root, fullname)
+	filename := req.URL.Path
+	if strings.HasSuffix(filename, "/") {
+		switch {
+		case h.DefaultApp != "":
+			filename += h.DefaultApp
+		case h.phpcgi != "":
+			filename += "index.php"
+		default:
+			filename += "index.cgi"
 		}
 	}
 
-	if fullname == "" {
-		fullname = filepath.Join(h.Root, strings.TrimPrefix(req.URL.Path, h.Location))
-	}
+	filename = filepath.Join(h.Root, strings.TrimPrefix(req.URL.Path, filepath.Dir(h.Location)))
 
-	log.Info().Context(ri.LogContext).Str("fullname", fullname).Msg("web cgi request")
+	log.Info().Context(ri.LogContext).Str("filename", filename).Msg("web cgi request")
 
-	if strings.HasSuffix(fullname, ".php") && h.phpcgi != "" {
+	switch {
+	case strings.HasSuffix(filename, ".php") && h.phpcgi != "":
 		/*
-			/etc/php/8.1/cgi/conf.d/99-enable-headers.ini
-
+			sudo apt install -y php-cgi
+			echo '# for php-cgi
 				cgi.rfc2616_headers = 1
 				cgi.force_redirect = 0
 				force_cgi_redirect = 0
+			' | sudo tee /etc/php/?.?/cgi/conf.d/99-enable-headers.ini
 		*/
 		(&cgi.Handler{
 			Path: h.phpcgi,
 			Dir:  h.Root,
 			Root: h.Root,
-			Args: []string{fullname},
-			Env:  []string{"SCRIPT_FILENAME=" + fullname},
+			Args: []string{filename},
+			Env:  []string{"SCRIPT_FILENAME=" + filename},
 		}).ServeHTTP(rw, req)
-		return
-	}
-
-	if strings.HasSuffix(fullname, ".cgi") {
+	case strings.HasSuffix(filename, ".cgi"):
 		(&cgi.Handler{
-			Path: fullname,
+			Path: filename,
 			Root: h.Root,
-			Env:  []string{"SCRIPT_FILENAME=" + fullname},
+			Env:  []string{"SCRIPT_FILENAME=" + filename},
 		}).ServeHTTP(rw, req)
-		return
-	}
-
-	fi, err := os.Stat(fullname)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if fi != nil && fi.IsDir() {
-		index := filepath.Join(fullname, "index.html")
-		fi, err = os.Stat(index)
-		if err == nil {
-			fullname = index
+	default:
+		fi, err := os.Stat(filename)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		if fi != nil && fi.IsDir() {
+			index := filepath.Join(filename, "index.html")
+			if fi, err = os.Stat(index); err == nil {
+				filename = index
+			}
+		}
+		http.ServeFile(rw, req, filename)
 	}
-	http.ServeFile(rw, req, fullname)
 }
