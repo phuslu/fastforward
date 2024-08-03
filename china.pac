@@ -78,7 +78,7 @@ function FindProxyForURL(_, host) {
 	var tld = host
 	do {
 		if ((v = prelude[tld]) !== undefined)
-			return v ? proxy : direct
+			return v ? (typeof v === 'string' ? v : proxy) : direct
 		i = tld.indexOf('.') + 1
 		tld = tld.slice(i)
 	} while (i >= 1)
