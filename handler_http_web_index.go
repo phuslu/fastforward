@@ -66,6 +66,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 				rw.Header().Set("content-type", s)
 			}
 		}
+
 		tmpl := h.body
 		var fi fs.FileInfo
 		if h.File != "" {
@@ -96,12 +97,16 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 			tmpl, err = template.New(h.File).Funcs(h.Functions).Parse(string(data))
 			if err != nil {
+				log.Error().Context(ri.LogContext).Err(err).Str("index_file", h.File).Msg("parse index file error")
 				http.Error(rw, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
 
-		err := tmpl.Execute(rw, struct {
+		b := bytebufferpool.Get()
+		defer bytebufferpool.Put(b)
+
+		err := tmpl.Execute(b, struct {
 			ServerVersion string
 			ServerAddr    string
 			Request       *http.Request
@@ -109,9 +114,12 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			FileInfo      fs.FileInfo
 		}{version, ri.ServerAddr, req, &ri.UserAgent, fi})
 		if err != nil {
-			log.Error().Context(ri.LogContext).Err(err).Msg("execute index file error")
+			log.Error().Context(ri.LogContext).Err(err).Str("index_file", h.File).Msg("execute index file error")
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
+		rw.Write(b.Bytes())
 		return
 	}
 
