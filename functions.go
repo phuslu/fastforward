@@ -154,7 +154,7 @@ type FetchResponse struct {
 	CreatedAt time.Time
 }
 
-func (f *Functions) fetch(uri string, timeout, cacheSeconds int) (response FetchResponse) {
+func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response FetchResponse) {
 	loader := func(ctx context.Context, s string) (*FetchResponse, time.Duration, error) {
 		ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 		defer cancel()
