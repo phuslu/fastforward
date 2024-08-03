@@ -72,7 +72,7 @@ var iplist = [
 	{{- if .Length }}{{ .StartInt }},{{ sub .Length 1 }},{{ end -}}
 	{{- end }}
 	{{- end -}}
-0]
+]
 
 function FindProxyForURL(_, host) {
 	var i
@@ -109,8 +109,6 @@ function FindProxyForURL(_, host) {
 
 	if (intranet || ip == 0)
 		return direct
-
-	iplist.pop()
 
 	var n = iplist.length
 	i = 0
