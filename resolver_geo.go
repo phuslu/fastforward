@@ -54,13 +54,13 @@ func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string
 	return record.Country.ISOCode, region, record.City.Names.EN, err
 }
 
-func (r *GeoResolver) LookupISP(ctx context.Context, ip net.IP) (string, error) {
+func (r *GeoResolver) LookupISP(ctx context.Context, ip net.IP) (string, uint, error) {
 	if r.ISPReader == nil {
-		return "", errors.New("no maxmind isp database found")
+		return "", 0, errors.New("no maxmind isp database found")
 	}
 
 	if ip == nil {
-		return "", errors.New("invalid ip address")
+		return "", 0, errors.New("invalid ip address")
 	}
 
 	var record struct {
@@ -74,7 +74,7 @@ func (r *GeoResolver) LookupISP(ctx context.Context, ip net.IP) (string, error) 
 
 	err := r.ISPReader.Lookup(ip, &record)
 
-	return record.ISP, err
+	return record.ISP, record.AutonomousSystemNumber, err
 }
 
 func (r *GeoResolver) LookupDomain(ctx context.Context, ip net.IP) (string, error) {

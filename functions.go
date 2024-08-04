@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -119,17 +120,25 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 
 		log.Debug().IPAddr("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
 
-		var domain string
-		if f.GeoResolver.DomainReader != nil {
-			domain, _ = f.GeoResolver.LookupDomain(context.Background(), ip)
-			log.Debug().IPAddr("ip", ip).Str("domain", domain).Msg("get domain by ip")
-		}
-
 		result := &GeoipInfo{
 			Country: country,
 			Region:  region,
 			City:    city,
-			Domain:  domain,
+		}
+
+		if f.GeoResolver.ISPReader != nil {
+			if isp, asn, err := f.GeoResolver.LookupISP(context.Background(), ip); err == nil {
+				result.ISP = isp
+				result.ASN = fmt.Sprintf("AS%d", asn)
+				log.Debug().IPAddr("ip", ip).Str("isp", isp).Uint("asn", asn).Msg("get isp by ip")
+			}
+		}
+
+		if f.GeoResolver.DomainReader != nil {
+			if domain, err := f.GeoResolver.LookupDomain(context.Background(), ip); err == nil {
+				result.Domain = domain
+				log.Debug().IPAddr("ip", ip).Str("domain", domain).Msg("get domain by ip")
+			}
 		}
 
 		return result, 12 * time.Hour, nil
