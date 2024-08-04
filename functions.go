@@ -22,12 +22,16 @@ import (
 )
 
 type Functions struct {
-	GeoResolver  *GeoResolver
+	GeoResolver *GeoResolver
+	GeoCache    *lru.TTLCache[string, *GeoipInfo]
+
 	GeoSite      *geosite.DomainListCommunity
-	FetchClient  *http.Client
-	FetchCache   *lru.TTLCache[string, *FetchResponse]
 	GeoSiteCache *lru.TTLCache[string, *string]
-	RegexpCache  *xsync.MapOf[string, *regexp.Regexp]
+
+	FetchClient *http.Client
+	FetchCache  *lru.TTLCache[string, *FetchResponse]
+
+	RegexpCache *xsync.MapOf[string, *regexp.Regexp]
 
 	FuncMap template.FuncMap
 }
@@ -87,47 +91,60 @@ type GeoipInfo struct {
 	Country string
 	Region  string
 	City    string
+	ISP     string
+	ASN     string
 	Domain  string
 }
 
 func (f *Functions) geoip(ipStr string) GeoipInfo {
+	loader := func(ctx context.Context, ipStr string) (*GeoipInfo, time.Duration, error) {
+		ip := net.ParseIP(ipStr)
+
+		if ip == nil {
+			ips, _ := f.GeoResolver.Resolver.LookupNetIP(context.Background(), "ip", ipStr)
+			if len(ips) == 0 {
+				return &GeoipInfo{Country: "ZZ"}, time.Minute, nil
+			}
+			ip = net.IP(ips[0].AsSlice())
+		}
+
+		var country, region, city string
+		if f.GeoResolver.CityReader != nil {
+			country, region, city, _ = f.GeoResolver.LookupCity(context.Background(), ip)
+		}
+
+		if country == "CN" && IsBogusChinaIP(ip) {
+			return &GeoipInfo{Country: "ZZ"}, time.Minute, nil
+		}
+
+		log.Debug().IPAddr("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
+
+		var domain string
+		if f.GeoResolver.DomainReader != nil {
+			domain, _ = f.GeoResolver.LookupDomain(context.Background(), ip)
+			log.Debug().IPAddr("ip", ip).Str("domain", domain).Msg("get domain by ip")
+		}
+
+		result := &GeoipInfo{
+			Country: country,
+			Region:  region,
+			City:    city,
+			Domain:  domain,
+		}
+
+		return result, 12 * time.Hour, nil
+	}
+
 	if s, _, err := net.SplitHostPort(ipStr); err == nil {
 		ipStr = s
 	}
 
-	ip := net.ParseIP(ipStr)
-
-	if ip == nil {
-		ips, _ := f.GeoResolver.Resolver.LookupNetIP(context.Background(), "ip", ipStr)
-		if len(ips) == 0 {
-			return GeoipInfo{Country: "ZZ"}
-		}
-		ip = net.IP(ips[0].AsSlice())
+	info, _, _ := f.GeoCache.GetOrLoad(context.Background(), ipStr, loader)
+	if info == nil {
+		return GeoipInfo{}
 	}
 
-	var country, region, city string
-	if f.GeoResolver.CityReader != nil {
-		country, region, city, _ = f.GeoResolver.LookupCity(context.Background(), ip)
-	}
-
-	if country == "CN" && IsBogusChinaIP(ip) {
-		return GeoipInfo{Country: "ZZ"}
-	}
-
-	log.Debug().IPAddr("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
-
-	var domain string
-	if f.GeoResolver.DomainReader != nil {
-		domain, _ = f.GeoResolver.LookupDomain(context.Background(), ip)
-		log.Debug().IPAddr("ip", ip).Str("domain", domain).Msg("get domain by ip")
-	}
-
-	return GeoipInfo{
-		Country: country,
-		Region:  region,
-		City:    city,
-		Domain:  domain,
-	}
+	return *info
 }
 
 func (f *Functions) country(ip string) string {
@@ -170,7 +187,7 @@ type FetchResponse struct {
 }
 
 func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response FetchResponse) {
-	loader := func(ctx context.Context, s string) (*FetchResponse, time.Duration, error) {
+	loader := func(ctx context.Context, uri string) (*FetchResponse, time.Duration, error) {
 		ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 		defer cancel()
 
