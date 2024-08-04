@@ -62,7 +62,6 @@ func (f *Functions) Load() error {
 	f.FuncMap["wildcardMatch"] = f.wildcardMatch
 
 	// http related
-	f.FuncMap["city"] = f.city
 	f.FuncMap["country"] = f.country
 	f.FuncMap["domain"] = f.domain
 	f.FuncMap["fetch"] = f.fetch
@@ -72,7 +71,6 @@ func (f *Functions) Load() error {
 	f.FuncMap["host"] = f.host
 	f.FuncMap["ipRange"] = f.ipRange
 	f.FuncMap["readfile"] = f.readfile
-	f.FuncMap["region"] = f.region
 
 	return nil
 }
@@ -123,14 +121,6 @@ func (f *Functions) geoip(ip string) GeoipInfo {
 
 func (f *Functions) country(ip string) string {
 	return f.geoip(ip).Country
-}
-
-func (f *Functions) region(ip string) string {
-	return f.geoip(ip).Region
-}
-
-func (f *Functions) city(ip string) string {
-	return f.geoip(ip).City
 }
 
 func (f *Functions) domain(domain string) string {
