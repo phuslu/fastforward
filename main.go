@@ -214,6 +214,13 @@ func main() {
 		}
 		break
 	}
+	for _, name := range []string{"GeoIP2-ISP.mmdb", "GeoLite2-ISP.mmdb"} {
+		regionResolver.ISPReader, err = maxminddb.Open(name)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Fatal().Err(err).Str("geoip2_isp_database", name).Msg("load geoip2 isp database error")
+		}
+		break
+	}
 	for _, name := range []string{"GeoIP2-Domain.mmdb", "GeoLite2-Domain.mmdb"} {
 		regionResolver.DomainReader, err = maxminddb.Open(name)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {

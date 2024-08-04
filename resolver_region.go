@@ -11,6 +11,7 @@ import (
 type RegionResolver struct {
 	Resolver     *Resolver
 	CityReader   *maxminddb.Reader
+	ISPReader    *maxminddb.Reader
 	DomainReader *maxminddb.Reader
 }
 
@@ -51,6 +52,29 @@ func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, str
 	}
 
 	return record.Country.ISOCode, region, record.City.Names.EN, err
+}
+
+func (r *RegionResolver) LookupISP(ctx context.Context, ip net.IP) (string, error) {
+	if r.ISPReader == nil {
+		return "", errors.New("no maxmind isp database found")
+	}
+
+	if ip == nil {
+		return "", errors.New("invalid ip address")
+	}
+
+	var record struct {
+		AutonomousSystemOrganization string `maxminddb:"autonomous_system_organization"`
+		ISP                          string `maxminddb:"isp"`
+		MobileCountryCode            string `maxminddb:"mobile_country_code"`
+		MobileNetworkCode            string `maxminddb:"mobile_network_code"`
+		Organization                 string `maxminddb:"organization"`
+		AutonomousSystemNumber       uint   `maxminddb:"autonomous_system_number"`
+	}
+
+	err := r.ISPReader.Lookup(ip, &record)
+
+	return record.ISP, err
 }
 
 func (r *RegionResolver) LookupDomain(ctx context.Context, ip net.IP) (string, error) {
