@@ -35,7 +35,13 @@ https:
           headers: |
             content-type: application/json
           body: |
-            {"ip":"{{host .Request.RemoteAddr}}","country":"{{country .Request.RemoteAddr}}"}
+            {{with (default (host .Request.RemoteAddr) .Request.URL.RawQuery)}}
+            {
+              "ip":"{{.}}",
+              "geosite": "{{geosite .}}",
+              "geoip": {{toJson (geoip .)}}
+            }
+            {{end}}
   - listen: [':443']
     server_name: ['demo.example.org']
     server_config:
@@ -62,7 +68,7 @@ https:
           proxy_pass
         {{end}}
       tcp_congestion: |
-        {{if eq "CN" (country .Request.RemoteAddr)}}brutal 5242880 16{{end}}
+        {{if eq "CN" (geoip .Request.RemoteAddr).Country}}brutal 5242880 16{{end}}
       dialer: |
         {{if hasSuffix ".onion" .Request.Host}}torsocks{{end}}
       auth_table: authuser.csv
@@ -113,9 +119,9 @@ http:
       dialer: |
         {{if hasPrefix "scholar.google.com" .Request.Host}}
           proxy1
-        {{else if eq (geosite .Request.Host) "openai"}}
+        {{else if eq "openai" (geosite .Request.Host)}}
           proxy1
-        {{else if ne (country .Request.Host) "CN"}}
+        {{else if ne "CN" (geoip .Request.Host).Country}}
           proxy2
         {{end}}
     web:
@@ -138,7 +144,7 @@ socks:
     server_name: ['127.0.0.1']
     forward:
       policy: |
-        {{if eq (city .Request.RemoteAddr) "Nanjing"}}
+        {{if eq "Nanjing" (geoip .Request.RemoteAddr).City}}
           bypass_auth
         {{else if not .Request.Host}}
           bypass_auth
