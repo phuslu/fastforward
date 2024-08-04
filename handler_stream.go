@@ -122,7 +122,7 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 
 	if h.Config.Log {
 		var country, region, city string
-		if h.RegionResolver.MaxmindReader != nil {
+		if h.RegionResolver.CityReader != nil {
 			country, region, city, _ = h.RegionResolver.LookupCity(ctx, net.ParseIP(req.RemoteIP))
 		}
 		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("stream_dialer_name", h.Config.Dialer).Msg("forward port request end")

@@ -9,13 +9,13 @@ import (
 )
 
 type RegionResolver struct {
-	Resolver      *Resolver
-	MaxmindReader *maxminddb.Reader
+	Resolver   *Resolver
+	CityReader *maxminddb.Reader
 }
 
 func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {
-	if r.MaxmindReader == nil {
-		return "", "", "", errors.New("no maxmind database found")
+	if r.CityReader == nil {
+		return "", "", "", errors.New("no maxmind city database found")
 	}
 
 	if ip == nil {
@@ -42,7 +42,7 @@ func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, str
 		} `maxminddb:"subdivisions"`
 	}
 
-	err := r.MaxmindReader.Lookup(ip, &record)
+	err := r.CityReader.Lookup(ip, &record)
 
 	var region string
 	if len(record.Subdivisions) != 0 {

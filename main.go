@@ -209,7 +209,7 @@ func main() {
 	}
 
 	if names, _ := filepath.Glob("*.mmdb"); len(names) != 0 {
-		regionResolver.MaxmindReader, err = maxminddb.Open(names[0])
+		regionResolver.CityReader, err = maxminddb.Open(names[0])
 		if err != nil {
 			log.Fatal().Err(err).Str("geoip2_database", names[0]).Msg("load geoip2_database error")
 		}

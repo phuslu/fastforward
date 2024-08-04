@@ -104,7 +104,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	ri.UserAgent, _, _ = h.UserAgentMap.Get(req.Header.Get("User-Agent"))
-	if h.RegionResolver.MaxmindReader != nil {
+	if h.RegionResolver.CityReader != nil {
 		ri.GeoipInfo.Country, ri.GeoipInfo.Region, ri.GeoipInfo.City, _ = h.RegionResolver.LookupCity(context.Background(), net.ParseIP(ri.RemoteIP))
 	}
 
