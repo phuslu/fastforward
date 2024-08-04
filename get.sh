@@ -63,6 +63,7 @@ https:
     web:
       - location: /$pacfile
         index:
+          headers: "content-type: text/plain;charset=utf-8"
           file: $(pwd)/$pacfile
       - location: /
         proxy:
@@ -81,7 +82,6 @@ KillMode=process
 WorkingDirectory=$(pwd)
 ExecStart=$(pwd)/liner.sh start
 ExecStop=$(pwd)/liner.sh stop
-ExecReload=$(pwd)/liner.sh reload
 
 [Install]
 WantedBy=multi-user.target
