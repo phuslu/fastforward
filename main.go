@@ -204,25 +204,25 @@ func main() {
 		}
 	}
 
-	regionResolver := &RegionResolver{
+	geoResolver := &GeoResolver{
 		Resolver: resolver,
 	}
 	for _, name := range []string{"GeoIP2-City.mmdb", "GeoLite2-City.mmdb"} {
-		regionResolver.CityReader, err = maxminddb.Open(name)
+		geoResolver.CityReader, err = maxminddb.Open(name)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			log.Fatal().Err(err).Str("geoip2_city_database", name).Msg("load geoip2 city database error")
 		}
 		break
 	}
 	for _, name := range []string{"GeoIP2-ISP.mmdb", "GeoLite2-ISP.mmdb"} {
-		regionResolver.ISPReader, err = maxminddb.Open(name)
+		geoResolver.ISPReader, err = maxminddb.Open(name)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			log.Fatal().Err(err).Str("geoip2_isp_database", name).Msg("load geoip2 isp database error")
 		}
 		break
 	}
 	for _, name := range []string{"GeoIP2-Domain.mmdb", "GeoLite2-Domain.mmdb"} {
-		regionResolver.DomainReader, err = maxminddb.Open(name)
+		geoResolver.DomainReader, err = maxminddb.Open(name)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			log.Fatal().Err(err).Str("geoip2_domain_database", name).Msg("load geoip2 domain database error")
 		}
@@ -371,12 +371,12 @@ func main() {
 
 	// template functions
 	functions := &Functions{
-		RegionResolver: regionResolver,
-		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
-		GeoSiteCache:   lru.NewTTLCache[string, *string](8192),
-		FetchClient:    &http.Client{Transport: transport},
-		FetchCache:     lru.NewTTLCache[string, *FetchResponse](8192),
-		RegexpCache:    xsync.NewMapOf[string, *regexp.Regexp](),
+		GeoResolver:  geoResolver,
+		GeoSite:      &geosite.DomainListCommunity{Transport: transport},
+		GeoSiteCache: lru.NewTTLCache[string, *string](8192),
+		FetchClient:  &http.Client{Transport: transport},
+		FetchCache:   lru.NewTTLCache[string, *FetchResponse](8192),
+		RegexpCache:  xsync.NewMapOf[string, *regexp.Regexp](),
 	}
 	if err := functions.Load(); err != nil {
 		log.Fatal().Err(err).Msgf("%T.Load() fatal", functions)
@@ -414,7 +414,7 @@ func main() {
 			ServerNames:    server.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			UserAgentMap:   useragentMap,
-			RegionResolver: regionResolver,
+			GeoResolver:    geoResolver,
 			Config:         server,
 		}
 
@@ -574,7 +574,7 @@ func main() {
 			ServerNames:    httpConfig.ServerName,
 			ClientHelloMap: tlsConfigurator.ClientHelloMap,
 			UserAgentMap:   useragentMap,
-			RegionResolver: regionResolver,
+			GeoResolver:    geoResolver,
 			Config:         httpConfig,
 		}
 
@@ -629,12 +629,12 @@ func main() {
 			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and serve socks")
 
 			h := &SocksHandler{
-				Config:         socksConfig,
-				ForwardLogger:  forwardLogger,
-				RegionResolver: regionResolver,
-				LocalDialer:    dialer,
-				Upstreams:      dialers,
-				Functions:      functions.FuncMap,
+				Config:        socksConfig,
+				ForwardLogger: forwardLogger,
+				GeoResolver:   geoResolver,
+				LocalDialer:   dialer,
+				Upstreams:     dialers,
+				Functions:     functions.FuncMap,
 			}
 
 			if err = h.Load(); err != nil {
@@ -666,11 +666,11 @@ func main() {
 			log.Info().Str("version", version).Str("address", ln.Addr().String()).Msg("liner listen and forward port")
 
 			h := &StreamHandler{
-				Config:         streamConfig,
-				ForwardLogger:  forwardLogger,
-				RegionResolver: regionResolver,
-				LocalDialer:    dialer,
-				Dialers:        dialers,
+				Config:        streamConfig,
+				ForwardLogger: forwardLogger,
+				GeoResolver:   geoResolver,
+				LocalDialer:   dialer,
+				Dialers:       dialers,
 			}
 
 			if err = h.Load(); err != nil {
@@ -694,10 +694,10 @@ func main() {
 	for _, sshtun := range config.SSHTun {
 
 		h := &SSHTunHandler{
-			Config:         sshtun,
-			ForwardLogger:  forwardLogger,
-			RegionResolver: regionResolver,
-			LocalDialer:    dialer,
+			Config:        sshtun,
+			ForwardLogger: forwardLogger,
+			GeoResolver:   geoResolver,
+			LocalDialer:   dialer,
 		}
 
 		go h.Serve(context.Background())

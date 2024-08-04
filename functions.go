@@ -22,12 +22,12 @@ import (
 )
 
 type Functions struct {
-	RegionResolver *RegionResolver
-	GeoSite        *geosite.DomainListCommunity
-	FetchClient    *http.Client
-	FetchCache     *lru.TTLCache[string, *FetchResponse]
-	GeoSiteCache   *lru.TTLCache[string, *string]
-	RegexpCache    *xsync.MapOf[string, *regexp.Regexp]
+	GeoResolver  *GeoResolver
+	GeoSite      *geosite.DomainListCommunity
+	FetchClient  *http.Client
+	FetchCache   *lru.TTLCache[string, *FetchResponse]
+	GeoSiteCache *lru.TTLCache[string, *string]
+	RegexpCache  *xsync.MapOf[string, *regexp.Regexp]
 
 	FuncMap template.FuncMap
 }
@@ -98,7 +98,7 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 	ip := net.ParseIP(ipStr)
 
 	if ip == nil {
-		ips, _ := f.RegionResolver.Resolver.LookupNetIP(context.Background(), "ip", ipStr)
+		ips, _ := f.GeoResolver.Resolver.LookupNetIP(context.Background(), "ip", ipStr)
 		if len(ips) == 0 {
 			return GeoipInfo{Country: "ZZ"}
 		}
@@ -106,8 +106,8 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 	}
 
 	var country, region, city string
-	if f.RegionResolver.CityReader != nil {
-		country, region, city, _ = f.RegionResolver.LookupCity(context.Background(), ip)
+	if f.GeoResolver.CityReader != nil {
+		country, region, city, _ = f.GeoResolver.LookupCity(context.Background(), ip)
 	}
 
 	if country == "CN" && IsBogusChinaIP(ip) {
@@ -117,8 +117,8 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 	log.Debug().IPAddr("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
 
 	var domain string
-	if f.RegionResolver.DomainReader != nil {
-		domain, _ = f.RegionResolver.LookupDomain(context.Background(), ip)
+	if f.GeoResolver.DomainReader != nil {
+		domain, _ = f.GeoResolver.LookupDomain(context.Background(), ip)
 		log.Debug().IPAddr("ip", ip).Str("domain", domain).Msg("get domain by ip")
 	}
 
@@ -139,7 +139,7 @@ func (f *Functions) dnsResolve(host string) string {
 		host = s
 	}
 
-	ips, _ := f.RegionResolver.Resolver.LookupNetIP(context.Background(), "ip", host)
+	ips, _ := f.GeoResolver.Resolver.LookupNetIP(context.Background(), "ip", host)
 	if len(ips) != 0 {
 		return ips[0].String()
 	}

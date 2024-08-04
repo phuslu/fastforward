@@ -8,14 +8,14 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-type RegionResolver struct {
+type GeoResolver struct {
 	Resolver     *Resolver
 	CityReader   *maxminddb.Reader
 	ISPReader    *maxminddb.Reader
 	DomainReader *maxminddb.Reader
 }
 
-func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {
+func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {
 	if r.CityReader == nil {
 		return "", "", "", errors.New("no maxmind city database found")
 	}
@@ -54,7 +54,7 @@ func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, str
 	return record.Country.ISOCode, region, record.City.Names.EN, err
 }
 
-func (r *RegionResolver) LookupISP(ctx context.Context, ip net.IP) (string, error) {
+func (r *GeoResolver) LookupISP(ctx context.Context, ip net.IP) (string, error) {
 	if r.ISPReader == nil {
 		return "", errors.New("no maxmind isp database found")
 	}
@@ -77,7 +77,7 @@ func (r *RegionResolver) LookupISP(ctx context.Context, ip net.IP) (string, erro
 	return record.ISP, err
 }
 
-func (r *RegionResolver) LookupDomain(ctx context.Context, ip net.IP) (string, error) {
+func (r *GeoResolver) LookupDomain(ctx context.Context, ip net.IP) (string, error) {
 	if r.DomainReader == nil {
 		return "", errors.New("no maxmind domain database found")
 	}

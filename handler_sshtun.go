@@ -14,10 +14,10 @@ import (
 )
 
 type SSHTunHandler struct {
-	Config         SSHTunConfig
-	ForwardLogger  log.Logger
-	RegionResolver *RegionResolver
-	LocalDialer    Dialer
+	Config        SSHTunConfig
+	ForwardLogger log.Logger
+	GeoResolver   *GeoResolver
+	LocalDialer   Dialer
 }
 
 func (h *SSHTunHandler) Load() error {
