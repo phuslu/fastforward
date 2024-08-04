@@ -9,8 +9,9 @@ import (
 )
 
 type RegionResolver struct {
-	Resolver   *Resolver
-	CityReader *maxminddb.Reader
+	Resolver     *Resolver
+	CityReader   *maxminddb.Reader
+	DomainReader *maxminddb.Reader
 }
 
 func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {
@@ -50,6 +51,24 @@ func (r *RegionResolver) LookupCity(ctx context.Context, ip net.IP) (string, str
 	}
 
 	return record.Country.ISOCode, region, record.City.Names.EN, err
+}
+
+func (r *RegionResolver) LookupDomain(ctx context.Context, ip net.IP) (string, error) {
+	if r.DomainReader == nil {
+		return "", errors.New("no maxmind domain database found")
+	}
+
+	if ip == nil {
+		return "", errors.New("invalid ip address")
+	}
+
+	var record struct {
+		Domain string `maxminddb:"domain"`
+	}
+
+	err := r.DomainReader.Lookup(ip, &record)
+
+	return record.Domain, err
 }
 
 func IsBogusChinaIP(ip net.IP) (ok bool) {

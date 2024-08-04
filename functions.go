@@ -86,36 +86,46 @@ type GeoipInfo struct {
 	Country string
 	Region  string
 	City    string
+	Domain  string
 }
 
-func (f *Functions) geoip(ip string) GeoipInfo {
-	if s, _, err := net.SplitHostPort(ip); err == nil {
-		ip = s
+func (f *Functions) geoip(ipStr string) GeoipInfo {
+	if s, _, err := net.SplitHostPort(ipStr); err == nil {
+		ipStr = s
 	}
 
-	if net.ParseIP(ip) == nil {
-		ips, _ := f.RegionResolver.Resolver.LookupNetIP(context.Background(), "ip", ip)
+	ip := net.ParseIP(ipStr)
+
+	if ip == nil {
+		ips, _ := f.RegionResolver.Resolver.LookupNetIP(context.Background(), "ip", ipStr)
 		if len(ips) == 0 {
 			return GeoipInfo{Country: "ZZ"}
 		}
-		ip = ips[0].String()
+		ip = net.IP(ips[0].AsSlice())
 	}
 
 	var country, region, city string
 	if f.RegionResolver.CityReader != nil {
-		country, region, city, _ = f.RegionResolver.LookupCity(context.Background(), net.ParseIP(ip))
+		country, region, city, _ = f.RegionResolver.LookupCity(context.Background(), ip)
 	}
 
-	if country == "CN" && IsBogusChinaIP(net.ParseIP(ip)) {
+	if country == "CN" && IsBogusChinaIP(ip) {
 		return GeoipInfo{Country: "ZZ"}
 	}
 
-	log.Debug().Str("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
+	log.Debug().IPAddr("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
+
+	var domain string
+	if f.RegionResolver.DomainReader != nil {
+		domain, _ = f.RegionResolver.LookupDomain(context.Background(), ip)
+		log.Debug().IPAddr("ip", ip).Str("domain", domain).Msg("get domain by ip")
+	}
 
 	return GeoipInfo{
 		Country: country,
 		Region:  region,
 		City:    city,
+		Domain:  domain,
 	}
 }
 

@@ -207,12 +207,19 @@ func main() {
 	regionResolver := &RegionResolver{
 		Resolver: resolver,
 	}
-
-	if names, _ := filepath.Glob("*.mmdb"); len(names) != 0 {
-		regionResolver.CityReader, err = maxminddb.Open(names[0])
-		if err != nil {
-			log.Fatal().Err(err).Str("geoip2_database", names[0]).Msg("load geoip2_database error")
+	for _, name := range []string{"GeoIP2-City.mmdb", "GeoLite2-City.mmdb"} {
+		regionResolver.CityReader, err = maxminddb.Open(name)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Fatal().Err(err).Str("geoip2_city_database", name).Msg("load geoip2 city database error")
 		}
+		break
+	}
+	for _, name := range []string{"GeoIP2-Domain.mmdb", "GeoLite2-Domain.mmdb"} {
+		regionResolver.DomainReader, err = maxminddb.Open(name)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Fatal().Err(err).Str("geoip2_domain_database", name).Msg("load geoip2 domain database error")
+		}
+		break
 	}
 
 	// global dialer
