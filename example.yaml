@@ -37,7 +37,7 @@ https:
           body: |
             {{with (default (host .Request.RemoteAddr) .Request.URL.RawQuery)}}
             {
-              "ip":"{{.}}",
+              "ip":"{{dnsResolve .}}",
               "geosite": "{{geosite .}}",
               "geoip": {{toJson (geoip .)}}
             }
