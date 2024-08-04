@@ -63,6 +63,7 @@ func (f *Functions) Load() error {
 
 	// http related
 	f.FuncMap["country"] = f.country
+	f.FuncMap["dnsResolve"] = f.dnsResolve
 	f.FuncMap["domain"] = f.domain
 	f.FuncMap["fetch"] = f.fetch
 	f.FuncMap["geoip"] = f.geoip
@@ -131,6 +132,19 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 
 func (f *Functions) country(ip string) string {
 	return f.geoip(ip).Country
+}
+
+func (f *Functions) dnsResolve(host string) string {
+	if s, _, err := net.SplitHostPort(host); err == nil {
+		host = s
+	}
+
+	ips, _ := f.RegionResolver.Resolver.LookupNetIP(context.Background(), "ip", host)
+	if len(ips) != 0 {
+		return ips[0].String()
+	}
+
+	return ""
 }
 
 func (f *Functions) domain(domain string) string {
