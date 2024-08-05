@@ -107,6 +107,35 @@ func AppendLowerBytes(dst []byte, src []byte) []byte {
 	return dst
 }
 
+// AppendSplitLines splits the input string by lines and appends them to the dst slice.
+func AppendSplitLines(dst []string, input string) []string {
+	var i int
+	for {
+		i = strings.IndexByte(input, '\n')
+		if i >= 0 {
+			_ = input[i]
+			if input[i-1] != '\r' {
+				dst = append(dst, input[:i])
+			} else {
+				dst = append(dst, input[:i-1])
+			}
+			input = input[i+1:]
+		} else {
+			break
+		}
+	}
+
+	if len(input) > 0 {
+		if i = len(input) - 1; input[i] == '\r' {
+			dst = append(dst, input[:i])
+		} else {
+			dst = append(dst, input)
+		}
+	}
+
+	return dst
+}
+
 func AppendTemplate(dst []byte, template string, startTag, endTag byte, m map[string]interface{}, stripSpace bool) []byte {
 	j := 0
 	for i := 0; i < len(template); i++ {

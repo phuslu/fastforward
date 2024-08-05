@@ -227,7 +227,8 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 		}
 
 		if strings.HasPrefix(result.Headers.Get("content-type"), "text/") {
-			result.Lines = strings.Split(result.Body, "\n")
+			// result.Lines = strings.Split(result.Body, "\n")
+			result.Lines = AppendSplitLines(make([]string, 0, strings.Count(result.Body, "\n")), result.Body)
 		}
 
 		log.Info().Str("fetch_url", uri).Int("fetch_response_status", result.Status).Any("fetch_response_headers", result.Headers).Int("fetch_response_length", len(result.Body)).Msg("fetch ok")
