@@ -90,14 +90,11 @@ func main() {
 		// main logger
 		log.DefaultLogger = log.Logger{
 			Level: log.ParseLevel(cmp.Or(config.Global.LogLevel, "info")),
-			Writer: &log.AsyncWriter{
-				ChannelSize: 8192,
-				Writer: &log.FileWriter{
-					Filename:   executable + ".log",
-					MaxBackups: 1,
-					MaxSize:    cmp.Or(config.Global.LogMaxsize, 10*1024*1024),
-					LocalTime:  config.Global.LogLocaltime,
-				},
+			Writer: &log.FileWriter{
+				Filename:   executable + ".log",
+				MaxBackups: 1,
+				MaxSize:    cmp.Or(config.Global.LogMaxsize, 10*1024*1024),
+				LocalTime:  config.Global.LogLocaltime,
 			},
 		}
 		// forward logger
@@ -719,7 +716,7 @@ func main() {
 	}
 	runner := cron.New(cronOptions...)
 	if !log.IsTerminal(os.Stderr.Fd()) {
-		runner.AddFunc("0 0 0 * * *", func() { log.DefaultLogger.Writer.(*log.AsyncWriter).Writer.(*log.FileWriter).Rotate() })
+		runner.AddFunc("0 0 0 * * *", func() { log.DefaultLogger.Writer.(*log.FileWriter).Rotate() })
 		runner.AddFunc("0 0 0 * * *", func() { forwardLogger.Writer.(*log.AsyncWriter).Writer.(*log.FileWriter).Rotate() })
 	}
 	for _, job := range config.Cron {
