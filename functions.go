@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -76,6 +77,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["greased"] = f.greased
 	f.FuncMap["host"] = f.host
 	f.FuncMap["ipRange"] = f.ipRange
+	f.FuncMap["isInNet"] = f.isInNet
 	f.FuncMap["readfile"] = f.readfile
 
 	return nil
@@ -248,6 +250,32 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 func (f *Functions) ipRange(cidr string) (result IPRange) {
 	result, _ = GetIPRange(strings.TrimSpace(cidr))
 	return
+}
+
+func (f *Functions) isInNet(host, cidr string) bool {
+	if s, _, err := net.SplitHostPort(host); err == nil {
+		host = s
+	}
+
+	prefix, err := netip.ParsePrefix(cidr)
+	if err != nil {
+		log.Error().Err(err).Str("host", host).Str("cidr", cidr).Msg("isInNet ParsePrefix error")
+		return false
+	}
+
+	ip, err := netip.ParseAddr(host)
+	if err != nil {
+		ips, err := f.GeoResolver.Resolver.LookupNetIP(context.Background(), "ip", host)
+		if err != nil {
+			log.Error().Err(err).Str("host", host).Str("cidr", cidr).Msg("isInNet LookupNetIP error")
+		}
+		if len(ips) == 0 {
+			return false
+		}
+		ip = ips[0]
+	}
+
+	return prefix.Contains(ip)
 }
 
 func (f *Functions) geosite(domain string) string {
