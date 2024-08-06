@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/phuslu/log"
 	"github.com/puzpuzpuz/xsync/v3"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/acme/autocert"
@@ -292,9 +293,12 @@ func (m *TLSInspector) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Conf
 	}
 
 	if !disableOCSP {
-		cert.OCSPStaple, err = GetOCSPStaple(hello.Context(), http.DefaultTransport, cacert)
+		ctx, cancel := context.WithTimeout(hello.Context(), 5*time.Second)
+		defer cancel()
+		cert.OCSPStaple, err = GetOCSPStaple(ctx, http.DefaultTransport, cacert)
 		if err != nil {
-			// log error
+			// just log error
+			log.Error().Err(err).Str("server_name", serverName).Any("tls_config_cache_key", cacheKey).Msg("get ocsp response error")
 		}
 	}
 
