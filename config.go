@@ -240,6 +240,9 @@ func NewConfig(filename string) (*Config, error) {
 		config.Socks[i].Forward.Policy = read(config.Socks[i].Forward.Policy)
 		config.Socks[i].Forward.Dialer = read(config.Socks[i].Forward.Dialer)
 	}
+	for i := range config.SSHTun {
+		config.SSHTun[i].SSH.Key = read(config.SSHTun[i].SSH.Key)
+	}
 
 	if filename == "development.yaml" {
 		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))

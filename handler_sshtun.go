@@ -33,6 +33,14 @@ func (h *SSHTunHandler) Serve(ctx context.Context) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         60 * time.Second,
 	}
+	if h.Config.SSH.Key != "" {
+		signer, err := ssh.ParsePrivateKey([]byte(h.Config.SSH.Key))
+		if err != nil {
+			log.Error().Err(err).Msgf("invalid ssh key %s", h.Config.SSH.Key)
+			return
+		}
+		config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
+	}
 
 connect:
 
