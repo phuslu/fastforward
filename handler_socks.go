@@ -36,11 +36,11 @@ type SocksHandler struct {
 	ForwardLogger log.Logger
 	GeoResolver   *GeoResolver
 	LocalDialer   *LocalDialer
-	Upstreams     map[string]Dialer
+	Dialers       map[string]Dialer
 	Functions     template.FuncMap
 
-	PolicyTemplate   *template.Template
-	UpstreamTemplate *template.Template
+	PolicyTemplate *template.Template
+	DialerTemplate *template.Template
 }
 
 func (h *SocksHandler) Load() error {
@@ -53,7 +53,7 @@ func (h *SocksHandler) Load() error {
 	}
 
 	if s := h.Config.Forward.Dialer; s != "" {
-		if h.UpstreamTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+		if h.DialerTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
@@ -168,9 +168,9 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 
 	var dialerName = ""
 	dail := h.LocalDialer.DialContext
-	if h.UpstreamTemplate != nil {
+	if h.DialerTemplate != nil {
 		sb.Reset()
-		err := h.UpstreamTemplate.Execute(&sb, struct {
+		err := h.DialerTemplate.Execute(&sb, struct {
 			Request    SocksRequest
 			ServerAddr string
 		}{req, req.ServerAddr})
@@ -181,7 +181,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		}
 
 		if dialerName = strings.TrimSpace(sb.String()); dialerName != "" {
-			u, ok := h.Upstreams[dialerName]
+			u, ok := h.Dialers[dialerName]
 			if !ok {
 				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("dialer_name", dialerName).Msg("dialer not exists")
 				return

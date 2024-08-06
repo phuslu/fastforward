@@ -637,7 +637,7 @@ func main() {
 				ForwardLogger: forwardLogger,
 				GeoResolver:   geoResolver,
 				LocalDialer:   dialer,
-				Upstreams:     dialers,
+				Dialers:       dialers,
 				Functions:     functions.FuncMap,
 			}
 

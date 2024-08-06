@@ -203,6 +203,44 @@ func NewConfig(filename string) (*Config, error) {
 		config.Stream = append(config.Stream, c.Stream...)
 	}
 
+	read := func(s string) string {
+		if !strings.HasPrefix(s, "@") {
+			return s
+		}
+		data, err := os.ReadFile(s[1:])
+		if err != nil {
+			panic(err)
+		}
+		return string(data)
+	}
+
+	for i := range config.Http {
+		config.Http[i].Forward.Policy = read(config.Http[i].Forward.Policy)
+		config.Http[i].Forward.Dialer = read(config.Http[i].Forward.Dialer)
+		config.Http[i].Forward.TcpCongestion = read(config.Http[i].Forward.TcpCongestion)
+		for j := range config.Http[i].Web {
+			config.Http[i].Web[j].Index.Headers = read(config.Http[i].Web[j].Index.Headers)
+			config.Http[i].Web[j].Index.Body = read(config.Http[i].Web[j].Index.Body)
+			config.Http[i].Web[j].Proxy.Pass = read(config.Http[i].Web[j].Proxy.Pass)
+			config.Http[i].Web[j].Proxy.SetHeaders = read(config.Http[i].Web[j].Proxy.SetHeaders)
+		}
+	}
+	for i := range config.Https {
+		config.Https[i].Forward.Policy = read(config.Https[i].Forward.Policy)
+		config.Https[i].Forward.Dialer = read(config.Https[i].Forward.Dialer)
+		config.Https[i].Forward.TcpCongestion = read(config.Https[i].Forward.TcpCongestion)
+		for j := range config.Https[i].Web {
+			config.Https[i].Web[j].Index.Headers = read(config.Https[i].Web[j].Index.Headers)
+			config.Https[i].Web[j].Index.Body = read(config.Https[i].Web[j].Index.Body)
+			config.Https[i].Web[j].Proxy.Pass = read(config.Https[i].Web[j].Proxy.Pass)
+			config.Https[i].Web[j].Proxy.SetHeaders = read(config.Https[i].Web[j].Proxy.SetHeaders)
+		}
+	}
+	for i := range config.Socks {
+		config.Socks[i].Forward.Policy = read(config.Socks[i].Forward.Policy)
+		config.Socks[i].Forward.Dialer = read(config.Socks[i].Forward.Dialer)
+	}
+
 	if filename == "development.yaml" {
 		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
 	}
