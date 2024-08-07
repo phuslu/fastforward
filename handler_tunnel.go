@@ -13,18 +13,18 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type SSHTunHandler struct {
-	Config        SSHTunConfig
+type TunnelHandler struct {
+	Config        TunnelConfig
 	ForwardLogger log.Logger
 	GeoResolver   *GeoResolver
 	LocalDialer   Dialer
 }
 
-func (h *SSHTunHandler) Load() error {
+func (h *TunnelHandler) Load() error {
 	return nil
 }
 
-func (h *SSHTunHandler) Serve(ctx context.Context) {
+func (h *TunnelHandler) Serve(ctx context.Context) {
 	config := &ssh.ClientConfig{
 		User: h.Config.SSH.User,
 		Auth: []ssh.AuthMethod{
@@ -80,7 +80,7 @@ connect:
 	return
 }
 
-func (h *SSHTunHandler) handle(ctx context.Context, rconn net.Conn, laddr string) {
+func (h *TunnelHandler) handle(ctx context.Context, rconn net.Conn, laddr string) {
 	defer rconn.Close()
 
 	rhost, _, _ := net.SplitHostPort(rconn.RemoteAddr().String())

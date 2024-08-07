@@ -93,7 +93,7 @@ type StreamConfig struct {
 	Log         bool     `json:"log" yaml:"log"`
 }
 
-type SSHTunConfig struct {
+type TunnelConfig struct {
 	DialTimeout int    `json:"dial_timeout" yaml:"dial_timeout"`
 	LocalAddr   string `json:"local_addr" yaml:"local_addr"`
 	RemoteAddr  string `json:"remote_addr" yaml:"remote_addr"`
@@ -129,7 +129,7 @@ type Config struct {
 	Https  []HTTPConfig      `json:"https" yaml:"https"`
 	Http   []HTTPConfig      `json:"http" yaml:"http"`
 	Socks  []SocksConfig     `json:"socks" yaml:"socks"`
-	SSHTun []SSHTunConfig    `json:"sshtun" yaml:"sshtun"`
+	Tunnel []TunnelConfig    `json:"tunnel" yaml:"tunnel"`
 	Stream []StreamConfig    `json:"stream" yaml:"stream"`
 }
 
@@ -199,7 +199,7 @@ func NewConfig(filename string) (*Config, error) {
 		config.Https = append(config.Https, c.Https...)
 		config.Http = append(config.Http, c.Http...)
 		config.Socks = append(config.Socks, c.Socks...)
-		config.SSHTun = append(config.SSHTun, c.SSHTun...)
+		config.Tunnel = append(config.Tunnel, c.Tunnel...)
 		config.Stream = append(config.Stream, c.Stream...)
 	}
 
@@ -240,8 +240,8 @@ func NewConfig(filename string) (*Config, error) {
 		config.Socks[i].Forward.Policy = read(config.Socks[i].Forward.Policy)
 		config.Socks[i].Forward.Dialer = read(config.Socks[i].Forward.Dialer)
 	}
-	for i := range config.SSHTun {
-		config.SSHTun[i].SSH.Key = read(config.SSHTun[i].SSH.Key)
+	for i := range config.Tunnel {
+		config.Tunnel[i].SSH.Key = read(config.Tunnel[i].SSH.Key)
 	}
 
 	if filename == "development.yaml" {

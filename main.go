@@ -694,11 +694,10 @@ func main() {
 		}
 	}
 
-	// sshtun handler
-	for _, sshtun := range config.SSHTun {
-
-		h := &SSHTunHandler{
-			Config:        sshtun,
+	// tunnel handler
+	for _, tunnel := range config.Tunnel {
+		h := &TunnelHandler{
+			Config:        tunnel,
 			ForwardLogger: forwardLogger,
 			GeoResolver:   geoResolver,
 			LocalDialer:   dialer,
