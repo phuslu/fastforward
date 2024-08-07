@@ -130,7 +130,6 @@ http:
           root: 'C:/Users/phuslu/Desktop'
 socks:
   - listen: [':1081']
-    server_name: ['127.0.0.1']
     forward:
       policy: |
         {{if not (regexMatch `^(149\.154\.|91\.108\.)` .Request.Host)}}
@@ -141,7 +140,6 @@ socks:
         - facebook.com
         - nytimes.com
   - listen: [':1082']
-    server_name: ['127.0.0.1']
     forward:
       policy: |
         {{if eq "Nanjing" (geoip .Request.RemoteAddr).City}}
@@ -162,3 +160,8 @@ stream:
   - listen: [':443']
     proxy_pass: github.com:443
     dialer: proxy1
+tunnel:
+  - dial_timeout: 5
+    local_addr: 10.0.0.2:2222
+    remote_addr: 192.168.50.1:2222
+    ssh: {'host': 'phuslu.ddns.net', 'port': 22, 'user': 'admin', 'key': '@/root/.ssh/id_rsa'}
