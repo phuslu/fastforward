@@ -42,39 +42,45 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 		config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
 	}
 
-connect:
-
-	// Connect to the SSH server
-	hostport := fmt.Sprintf("%s:%d", h.Config.SSH.Host, cmp.Or(h.Config.SSH.Port, 22))
-	lconn, err := ssh.Dial("tcp", hostport, config)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to dial %s", hostport)
-		return
-	}
-	defer lconn.Close()
-
-	// Set up the remote listener
-	ln, err := lconn.Listen("tcp", h.Config.RemoteAddr)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to listen %s", h.Config.RemoteAddr)
-		return
-	}
-	defer ln.Close()
-
-	log.Info().Msgf("Listening on remote %s", h.Config.RemoteAddr)
-
-	// Accept connections from the remote side
-	for {
-		rconn, err := ln.Accept()
+	loop := func() bool {
+		// Connect to the SSH server
+		hostport := fmt.Sprintf("%s:%d", h.Config.SSH.Host, cmp.Or(h.Config.SSH.Port, 22))
+		lconn, err := ssh.Dial("tcp", hostport, config)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to accept remote connection")
-			time.Sleep(10 * time.Millisecond)
-			ln.Close()
-			lconn.Close()
-			goto connect
+			log.Error().Err(err).Msgf("Failed to dial %s", hostport)
+			time.Sleep(5 * time.Second)
+			return true
 		}
+		defer lconn.Close()
 
-		go h.handle(ctx, rconn, h.Config.LocalAddr)
+		// Set up the remote listener
+		ln, err := lconn.Listen("tcp", h.Config.RemoteAddr)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to listen %s", h.Config.RemoteAddr)
+			time.Sleep(2 * time.Second)
+			return true
+		}
+		defer ln.Close()
+
+		log.Info().Msgf("Listening on remote %s", h.Config.RemoteAddr)
+
+		// Accept connections from the remote side
+		for {
+			rconn, err := ln.Accept()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to accept remote connection")
+				time.Sleep(10 * time.Millisecond)
+				ln.Close()
+				lconn.Close()
+				return true
+			}
+
+			go h.handle(ctx, rconn, h.Config.LocalAddr)
+		}
+	}
+
+	for loop() {
+		log.Info().Msg("tunnel loop...")
 	}
 
 	return
