@@ -89,7 +89,8 @@ func main() {
 	} else {
 		// main logger
 		log.DefaultLogger = log.Logger{
-			Level: log.ParseLevel(cmp.Or(config.Global.LogLevel, "info")),
+			Level:  log.ParseLevel(cmp.Or(config.Global.LogLevel, "info")),
+			Caller: 1,
 			Writer: &log.FileWriter{
 				Filename:   executable + ".log",
 				MaxBackups: 1,
