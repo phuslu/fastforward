@@ -30,8 +30,9 @@ type Functions struct {
 	GeoSite      *geosite.DomainListCommunity
 	GeoSiteCache *lru.TTLCache[string, *string]
 
-	FetchClient *http.Client
-	FetchCache  *lru.TTLCache[string, *FetchResponse]
+	FetchUserAgent string
+	FetchClient    *http.Client
+	FetchCache     *lru.TTLCache[string, *FetchResponse]
 
 	RegexpCache *xsync.MapOf[string, *regexp.Regexp]
 
@@ -207,6 +208,7 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
 			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
 		}
+		req.Header.Set("User-Agent", f.FetchUserAgent)
 
 		resp, err := f.FetchClient.Do(req)
 		if err != nil {

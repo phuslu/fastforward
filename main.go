@@ -41,6 +41,7 @@ var (
 	timeNow = time.Now
 
 	DefaultUserAgent = "Liner/" + version
+	ChromeUserAgent  = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 )
 
 func main() {
@@ -375,13 +376,14 @@ func main() {
 
 	// template functions
 	functions := &Functions{
-		GeoResolver:  geoResolver,
-		GeoCache:     lru.NewTTLCache[string, *GeoipInfo](8192),
-		GeoSite:      &geosite.DomainListCommunity{Transport: transport},
-		GeoSiteCache: lru.NewTTLCache[string, *string](8192),
-		FetchClient:  &http.Client{Transport: transport},
-		FetchCache:   lru.NewTTLCache[string, *FetchResponse](8192),
-		RegexpCache:  xsync.NewMapOf[string, *regexp.Regexp](),
+		GeoResolver:    geoResolver,
+		GeoCache:       lru.NewTTLCache[string, *GeoipInfo](8192),
+		GeoSite:        &geosite.DomainListCommunity{Transport: transport},
+		GeoSiteCache:   lru.NewTTLCache[string, *string](8192),
+		FetchUserAgent: ChromeUserAgent,
+		FetchClient:    &http.Client{Transport: transport},
+		FetchCache:     lru.NewTTLCache[string, *FetchResponse](8192),
+		RegexpCache:    xsync.NewMapOf[string, *regexp.Regexp](),
 	}
 	if err := functions.Load(); err != nil {
 		log.Fatal().Err(err).Msgf("%T.Load() fatal", functions)
