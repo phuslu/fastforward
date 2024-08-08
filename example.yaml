@@ -33,7 +33,7 @@ https:
       - location: /
         index:
           headers: |
-            content-type: application/json
+            content-type: application/json;charset=utf-8
           body: |
             {{with (default (host .Request.RemoteAddr) .Request.URL.RawQuery)}}
             {
@@ -42,6 +42,12 @@ https:
               "geoip": {{toJson (geoip .)}}
             }
             {{end}}
+      - location: /jsonp
+        index:
+          headers: |
+            content-type: application/json;charset=utf-8
+          body: |
+            {{ .Request.URL.Query.Get "callback" -}}({{ (fetch 10 0 (.Request.URL.Query.Get "url")).Body }})
   - listen: [':443']
     server_name: ['demo.example.org']
     server_config:
