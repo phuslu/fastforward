@@ -105,6 +105,7 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 		b := bytebufferpool.Get()
 		defer bytebufferpool.Put(b)
+		b.Reset()
 
 		err := tmpl.Execute(b, struct {
 			ServerVersion string
@@ -253,6 +254,8 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
+	b.Reset()
+
 	err = h.body.Execute(b, struct {
 		WebRoot    string
 		Request    *http.Request

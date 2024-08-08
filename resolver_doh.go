@@ -99,6 +99,7 @@ func (c *dohConn) Write(b []byte) (n int, err error) {
 	}
 
 	c.buffer = bytebufferpool.Get()
+	c.buffer.Reset()
 	binary.Write(c.buffer, binary.BigEndian, uint16(resp.ContentLength))
 	_, err = io.Copy(c.buffer, resp.Body)
 	if err != nil {
