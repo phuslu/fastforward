@@ -14,6 +14,7 @@ import (
 
 	"github.com/jszwec/csvutil"
 	"github.com/phuslu/log"
+	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -141,11 +142,12 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		}
 	}
 
-	var sb strings.Builder
+	bb := bytebufferpool.Get()
+	defer bytebufferpool.Put(bb)
 
 	if h.PolicyTemplate != nil {
-		sb.Reset()
-		err := h.PolicyTemplate.Execute(&sb, struct {
+		bb.Reset()
+		err := h.PolicyTemplate.Execute(bb, struct {
 			Request    SocksRequest
 			ServerAddr string
 		}{req, req.ServerAddr})
@@ -154,7 +156,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 			return
 		}
 
-		output := strings.TrimSpace(sb.String())
+		output := strings.TrimSpace(bb.String())
 		log.Debug().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Interface("request", req).Str("forward_policy_output", output).Msg("execute forward_policy ok")
 
 		switch output {
@@ -169,8 +171,8 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	var dialerName = ""
 	dail := h.LocalDialer.DialContext
 	if h.DialerTemplate != nil {
-		sb.Reset()
-		err := h.DialerTemplate.Execute(&sb, struct {
+		bb.Reset()
+		err := h.DialerTemplate.Execute(bb, struct {
 			Request    SocksRequest
 			ServerAddr string
 		}{req, req.ServerAddr})
@@ -180,7 +182,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 			return
 		}
 
-		if dialerName = strings.TrimSpace(sb.String()); dialerName != "" {
+		if dialerName = strings.TrimSpace(bb.String()); dialerName != "" {
 			u, ok := h.Dialers[dialerName]
 			if !ok {
 				log.Error().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("dialer_name", dialerName).Msg("dialer not exists")
