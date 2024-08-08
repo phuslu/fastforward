@@ -376,6 +376,7 @@ func main() {
 
 	// template functions
 	functions := &Functions{
+		Context:        context.Background(),
 		GeoResolver:    geoResolver,
 		GeoCache:       lru.NewTTLCache[string, *GeoipInfo](8192),
 		GeoSite:        &geosite.DomainListCommunity{Transport: transport},

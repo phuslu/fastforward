@@ -24,6 +24,8 @@ import (
 )
 
 type Functions struct {
+	Context context.Context
+
 	GeoResolver *GeoResolver
 	GeoCache    *lru.TTLCache[string, *GeoipInfo]
 
@@ -82,6 +84,12 @@ func (f *Functions) Load() error {
 	f.FuncMap["readfile"] = f.readfile
 
 	return nil
+}
+
+func (f *Functions) WithContext(ctx context.Context) *Functions {
+	fn := *f
+	fn.Context = ctx
+	return &fn
 }
 
 func (f *Functions) host(hostport string) string {
