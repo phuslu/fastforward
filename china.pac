@@ -110,7 +110,7 @@ function FindProxyForURL(_, host) {
 		return proxy
 
 	if (((blacklisted && intranet) || ip === 0x7f000001))
-		if (tld !== host && tld !== 'local' && tld !== 'localhost' && tld !== 'test')
+		if (tld !== host && tld !== 'internal' && tld !== 'local' && tld !== 'localhost' && tld !== 'test')
 			return proxy
 
 	if (intranet || ip == 0)
