@@ -655,6 +655,7 @@ func main() {
 					if err != nil {
 						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept socks connection error")
 						time.Sleep(10 * time.Millisecond)
+						continue
 					}
 					go h.ServeConn(context.Background(), conn)
 				}
@@ -691,6 +692,7 @@ func main() {
 					if err != nil {
 						log.Error().Err(err).Str("version", version).Str("address", ln.Addr().String()).Msg("liner accept stream connection error")
 						time.Sleep(10 * time.Millisecond)
+						continue
 					}
 					go h.ServeConn(conn)
 				}
