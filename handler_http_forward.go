@@ -20,6 +20,7 @@ import (
 	"github.com/jszwec/csvutil"
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
+	"github.com/valyala/bytebufferpool"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/publicsuffix"
 )
@@ -42,19 +43,22 @@ type HTTPForwardHandler struct {
 func (h *HTTPForwardHandler) Load() error {
 	var err error
 
-	if s := h.Config.Forward.Policy; s != "" {
+	h.Config.Forward.Policy = strings.TrimSpace(h.Config.Forward.Policy)
+	if s := h.Config.Forward.Policy; strings.Contains(s, "{{") {
 		if h.policy, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if s := h.Config.Forward.TcpCongestion; s != "" {
+	h.Config.Forward.TcpCongestion = strings.TrimSpace(h.Config.Forward.TcpCongestion)
+	if s := h.Config.Forward.TcpCongestion; strings.Contains(s, "{{") {
 		if h.tcpcongestion, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if s := h.Config.Forward.Dialer; s != "" {
+	h.Config.Forward.Dialer = strings.TrimSpace(h.Config.Forward.Dialer)
+	if s := h.Config.Forward.Dialer; strings.Contains(s, "{{") {
 		if h.dialer, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
@@ -123,12 +127,14 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		return
 	}
 
-	var bypassAuth bool
+	bb := bytebufferpool.Get()
+	defer bytebufferpool.Put(bb)
 
-	var sb strings.Builder
+	var policyName = h.Config.Forward.Policy
+	bypassAuth := false
 	if h.policy != nil {
-		sb.Reset()
-		err = h.policy.Execute(&sb, struct {
+		bb.Reset()
+		err = h.policy.Execute(bb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 			UserAgent       *useragent.UserAgent
@@ -140,10 +146,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			return
 		}
 
-		output := strings.TrimSpace(sb.String())
-		log.Debug().Context(ri.LogContext).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_output", output).Msg("execute forward_policy ok")
+		policyName = strings.TrimSpace(bb.String())
+		log.Debug().Context(ri.LogContext).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_name", policyName).Msg("execute forward_policy ok")
 
-		switch output {
+		switch policyName {
 		case "", "proxy_pass":
 			http.NotFound(rw, req)
 			return
@@ -160,7 +166,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		case "require_auth", "require_proxy_auth", "require_www_auth":
 			var authCode int
 			var authHeader, authText string
-			switch output {
+			switch policyName {
 			case "require_www_auth":
 				authCode = http.StatusUnauthorized
 				authHeader = "www-authenticate"
@@ -209,21 +215,26 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	if h.tcpcongestion != nil && ri.ClientTCPConn != nil && req.ProtoMajor <= 2 {
-		sb.Reset()
-		err := h.tcpcongestion.Execute(&sb, struct {
-			Request         *http.Request
-			ClientHelloInfo *tls.ClientHelloInfo
-			UserAgent       *useragent.UserAgent
-			ServerAddr      string
-			User            ForwardAuthInfo
-		}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ai})
-		if err != nil {
-			log.Error().Err(err).Context(ri.LogContext).Str("forward_tcp_congestion", h.Config.Forward.TcpCongestion).Msg("execute forward_tcp_congestion error")
-			http.Error(rw, err.Error(), http.StatusBadGateway)
-			return
+	// eval tcp_congestion template
+	if ri.ClientTCPConn != nil && h.Config.Forward.TcpCongestion != "" {
+		var tcpCongestion = h.Config.Forward.TcpCongestion
+		if h.tcpcongestion != nil {
+			bb.Reset()
+			err := h.tcpcongestion.Execute(bb, struct {
+				Request         *http.Request
+				ClientHelloInfo *tls.ClientHelloInfo
+				UserAgent       *useragent.UserAgent
+				ServerAddr      string
+				User            ForwardAuthInfo
+			}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ai})
+			if err != nil {
+				log.Error().Err(err).Context(ri.LogContext).Str("forward_tcp_congestion", h.Config.Forward.TcpCongestion).Msg("execute forward_tcp_congestion error")
+				http.Error(rw, err.Error(), http.StatusBadGateway)
+				return
+			}
+			tcpCongestion = bb.String()
 		}
-		if options := strings.Fields(sb.String()); len(options) >= 1 {
+		if options := strings.Fields(tcpCongestion); len(options) >= 1 {
 			switch name := options[0]; name {
 			case "brutal":
 				if len(options) < 2 {
@@ -255,10 +266,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	var dialerName = ""
+	var dialerName = h.Config.Forward.Dialer
 	if h.dialer != nil {
-		sb.Reset()
-		err := h.dialer.Execute(&sb, struct {
+		bb.Reset()
+		err := h.dialer.Execute(bb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 			UserAgent       *useragent.UserAgent
@@ -270,10 +281,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			http.NotFound(rw, req)
 			return
 		}
-		dialerName = strings.TrimSpace(sb.String())
+		dialerName = strings.TrimSpace(bb.String())
 	}
 
-	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("dialer_name", dialerName).Str("http_domain", domain).Msg("forward request")
+	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("forward_policy_name", policyName).Str("forward_dialer_name", dialerName).Str("http_domain", domain).Msg("forward request")
 
 	var transmitBytes int64
 	switch req.Method {
