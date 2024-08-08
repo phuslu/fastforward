@@ -47,13 +47,15 @@ type SocksHandler struct {
 func (h *SocksHandler) Load() error {
 	var err error
 
-	if s := h.Config.Forward.Policy; s != "" {
+	h.Config.Forward.Policy = strings.TrimSpace(h.Config.Forward.Policy)
+	if s := h.Config.Forward.Policy; strings.Contains(s, "{{") {
 		if h.PolicyTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
-	if s := h.Config.Forward.Dialer; s != "" {
+	h.Config.Forward.Dialer = strings.TrimSpace(h.Config.Forward.Dialer)
+	if s := h.Config.Forward.Dialer; strings.Contains(s, "{{") {
 		if h.DialerTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
@@ -145,6 +147,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	bb := bytebufferpool.Get()
 	defer bytebufferpool.Put(bb)
 
+	var policyName = h.Config.Forward.Policy
 	if h.PolicyTemplate != nil {
 		bb.Reset()
 		err := h.PolicyTemplate.Execute(bb, struct {
@@ -155,11 +158,10 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_policy", h.Config.Forward.Policy).Msg("execute forward_policy error")
 			return
 		}
+		policyName = strings.TrimSpace(bb.String())
+		log.Debug().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Interface("request", req).Str("forward_policy_name", policyName).Msg("execute forward_policy ok")
 
-		output := strings.TrimSpace(bb.String())
-		log.Debug().Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Interface("request", req).Str("forward_policy_output", output).Msg("execute forward_policy ok")
-
-		switch output {
+		switch policyName {
 		case "reject", "deny":
 			WriteSocks5Status(conn, Socks5StatusConnectionNotAllowedByRuleset)
 			return
@@ -168,7 +170,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 
 	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("socks_host", req.Host).Msg("forward socks request")
 
-	var dialerName = ""
+	var dialerName = h.Config.Forward.Dialer
 	dail := h.LocalDialer.DialContext
 	if h.DialerTemplate != nil {
 		bb.Reset()
@@ -198,7 +200,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		network = "udp"
 	}
 
-	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_dialer_name", dialerName).Msg("forward socks request")
+	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_policy_name", policyName).Str("forward_dialer_name", dialerName).Msg("forward socks request")
 
 	ctx = context.WithValue(context.Background(), DialerHTTPHeaderContextKey, http.Header{
 		"X-Forwarded-For":  []string{req.RemoteIP},
@@ -206,7 +208,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	})
 	rconn, err := dail(ctx, network, net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
 	if err != nil {
-		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_dialer_name", dialerName).Msg("connect remote host failed")
+		log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_policy_name", policyName).Str("forward_dialer_name", dialerName).Msg("connect remote host failed")
 		WriteSocks5Status(conn, Socks5StatusNetworkUnreachable)
 		if rconn != nil {
 			rconn.Close()
