@@ -340,7 +340,7 @@ func main() {
 				Password:              first(u.User.Password()),
 				PrivateKey:            string(first(os.ReadFile(u.Query().Get("key")))),
 				Host:                  u.Hostname(),
-				Port:                  u.Port(),
+				Port:                  cmp.Or(u.Port(), "22"),
 				StrictHostKeyChecking: cmp.Or(u.Query().Get("StrictHostKeyChecking") == "yes", u.Query().Get("strict_host_key_checking") == "yes"),
 				UserKnownHostsFile:    cmp.Or(u.Query().Get("UserKnownHostsFile"), u.Query().Get("user_known_hosts_file")),
 				MaxClients:            cmp.Or(first(strconv.Atoi(u.Query().Get("max_clients"))), 8),
