@@ -47,7 +47,7 @@ https:
           headers: |
             content-type: application/json;charset=utf-8
           body: |
-            {{ .Request.URL.Query.Get "callback" -}}({{ (fetch .Request.UserAgent 10 0 (.Request.URL.Query.Get "url")).Body }})
+            {{ .Request.URL.Query.Get "callback" -}}({{ (fetch .Request.UserAgent 10 (default 0 (int (.Request.URL.Query.Get "ttl"))) (.Request.URL.Query.Get "url")).Body }})
   - listen: [':443']
     server_name: ['demo.example.org']
     server_config:
