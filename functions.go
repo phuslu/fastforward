@@ -198,7 +198,7 @@ type FetchResponse struct {
 	CreatedAt time.Time
 }
 
-func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response FetchResponse) {
+func (f *Functions) fetch(ua string, timeout, ttl int, uri string) (response FetchResponse) {
 	loader := func(ctx context.Context, uri string) (*FetchResponse, time.Duration, error) {
 		ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 		defer cancel()
@@ -206,21 +206,25 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
 		if err != nil {
 			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
-			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
+			return &FetchResponse{Error: err}, time.Duration(min(ttl, 60)) * time.Second, nil
 		}
-		req.Header.Set("User-Agent", f.FetchUserAgent)
+		if ua != "" {
+			req.Header.Set("User-Agent", ua)
+		} else {
+			req.Header.Set("User-Agent", f.FetchUserAgent)
+		}
 
 		resp, err := f.FetchClient.Do(req)
 		if err != nil {
 			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
-			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
+			return &FetchResponse{Error: err}, time.Duration(min(ttl, 60)) * time.Second, nil
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error().Str("fetch_url", uri).AnErr("fetch_error", err).Msg("fetch error")
-			return &FetchResponse{Error: err}, time.Duration(min(cacheSeconds, 60)) * time.Second, nil
+			return &FetchResponse{Error: err}, time.Duration(min(ttl, 60)) * time.Second, nil
 		}
 
 		result := &FetchResponse{
@@ -237,7 +241,7 @@ func (f *Functions) fetch(timeout, cacheSeconds int, uri string) (response Fetch
 
 		log.Info().Str("fetch_url", uri).Int("fetch_response_status", result.Status).Any("fetch_response_headers", result.Headers).Int("fetch_response_length", len(result.Body)).Msg("fetch ok")
 
-		return result, time.Duration(cacheSeconds), nil
+		return result, time.Duration(ttl), nil
 	}
 
 	resp, _, _ := f.FetchCache.GetOrLoad(context.Background(), uri, loader)
