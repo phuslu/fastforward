@@ -52,6 +52,13 @@ func s2b(s string) (b []byte) {
 	return b
 }
 
+func btoi[B ~bool](x B) int {
+	if x {
+		return 1
+	}
+	return 0
+}
+
 func first[T, U any](t T, _ ...U) T {
 	return t
 }
