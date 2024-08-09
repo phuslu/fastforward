@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net"
 	"net/netip"
-	"slices"
 	"strconv"
 	"time"
 )
@@ -31,7 +30,6 @@ type LocalDialer struct {
 	Resolver *Resolver
 
 	Interface       string
-	PreferIPv6      bool
 	ForbidLocalAddr bool
 	Concurrency     int
 
@@ -70,36 +68,8 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 	if err != nil {
 		return nil, err
 	}
-
-	switch len(ips) {
-	case 0:
+	if len(ips) == 0 {
 		return nil, net.InvalidAddrError("invaid dns record: " + address)
-	case 1:
-		break
-	default:
-		slices.SortFunc(ips, func(a, b netip.Addr) int {
-			switch {
-			case a.Is6() && b.Is4():
-				if d.PreferIPv6 {
-					return -1
-				} else {
-					return 1
-				}
-			case a.Is4() && b.Is6():
-				if d.PreferIPv6 {
-					return 1
-				} else {
-					return -1
-				}
-			default:
-				return 0
-			}
-		})
-		if d.PreferIPv6 {
-			if i := slices.IndexFunc(ips, func(a netip.Addr) bool { return a.Is4() }); i > 0 {
-				ips = ips[:i]
-			}
-		}
 	}
 
 	port, _ := strconv.Atoi(portStr)

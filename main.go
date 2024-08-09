@@ -121,8 +121,9 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: true,
 		},
+		PreferIPv6:    config.Global.PreferIPv6,
 		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
-		CacheDuration: time.Minute,
+		CacheDuration: 5 * time.Minute,
 	}
 
 	if config.Global.DnsCacheDuration != "" {
@@ -261,7 +262,6 @@ func main() {
 				Resolver:        resolver,
 				Interface:       u.Host,
 				Concurrency:     2,
-				PreferIPv6:      u.Query().Get("prefer_ipv6") == "1",
 				ForbidLocalAddr: config.Global.ForbidLocalAddr,
 				DialTimeout:     time.Duration(cmp.Or(first(strconv.Atoi(u.Query().Get("dial_timeout"))), config.Global.DialTimeout, 30)) * time.Second,
 				TCPKeepAlive:    30 * time.Second,
