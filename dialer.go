@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cmp"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -83,8 +82,14 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		return nil, net.InvalidAddrError("invaid dns record: " + address)
 	}
 
-	if ctx.Value(DialerPreferIPv6ContextKey) != nil {
-		slices.SortStableFunc(ips, func(a, b netip.Addr) int { return cmp.Compare(btoi(b.Is6()), btoi(a.Is6())) })
+	var ipv6only []netip.Addr
+	if i := slices.IndexFunc(ips, func(a netip.Addr) bool { return a.Is6() }); i > 0 {
+		if ctx.Value(DialerPreferIPv6ContextKey) != nil {
+			ips = ips[i:]
+			ipv6only = ips[:len(ips)-i]
+		} else {
+			ips = ips[:len(ips)-i]
+		}
 	}
 
 	port, _ := strconv.Atoi(portStr)
@@ -100,24 +105,22 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		ctx = subCtx
 	}
 
-	switch d.Concurrency {
-	case 0, 1:
-		return d.dialSerial(ctx, network, host, ips, uint16(port), tlsConfig)
-	default:
-		if len(ips) == 1 {
-			ips = append(ips, ips[0])
-		}
-		conn, err := d.dialParallel(ctx, network, host, ips, uint16(port), tlsConfig)
-		if err != nil && strings.Contains(err.Error(), "connect: network is unreachable") && len(ips) > d.Concurrency {
-			news := ips[len(ips)-d.Concurrency:]
-			log.Warn().Err(err).Str("network", network).Str("host", host).Interface("ips", ips).Interface("new_ips", news).Msg("retry dialing")
-			conn, err = d.dialParallel(ctx, network, host, news, uint16(port), tlsConfig)
-			if err == nil {
-				d.ResolveCache.Set(host, news, d.Resolver.CacheDuration)
-			}
-		}
-		return conn, err
+	concurrency := max(d.Concurrency, 1)
+	dial := d.dialParallel
+	if concurrency <= 1 || len(ipv6only) == 1 || len(ips) == 1 {
+		dial = d.dialSerial
 	}
+
+	conn, err := dial(ctx, network, host, ips, uint16(port), tlsConfig)
+	if err != nil && strings.Contains(err.Error(), "connect: network is unreachable") && len(ips) > concurrency {
+		news := ips[len(ips)-concurrency:]
+		log.Warn().Err(err).Str("network", network).Str("host", host).Interface("ips", ips).Interface("new_ips", news).Msg("retry dialing")
+		conn, err = dial(ctx, network, host, news, uint16(port), tlsConfig)
+		if err == nil {
+			d.ResolveCache.Set(host, news, d.Resolver.CacheDuration)
+		}
+	}
+	return conn, err
 }
 
 func (d *LocalDialer) dialSerial(ctx context.Context, network, hostname string, ips []netip.Addr, port uint16, tlsConfig *tls.Config) (conn net.Conn, err error) {
