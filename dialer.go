@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/phuslu/log"
 )
 
 type Dialer interface {
@@ -102,6 +104,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		}
 		conn, err := d.dialParallel(ctx, network, host, ips, uint16(port), tlsConfig)
 		if err != nil && strings.Contains(err.Error(), "connect: network is unreachable") && len(ips) > d.Concurrency {
+			log.Warn().Err(err).Str("network", network).Str("host", host).Interface("old_ips", ips).Interface("new_ips", ips[len(ips)-d.Concurrency:]).Msg("retry dialing")
 			conn, err = d.dialParallel(ctx, network, host, ips[len(ips)-d.Concurrency:], uint16(port), tlsConfig)
 		}
 		return conn, err

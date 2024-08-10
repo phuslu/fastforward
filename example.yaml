@@ -4,7 +4,6 @@ global:
   log_maxsize: 1073741824
   log_localtime: true
   max_idle_conns: 100
-  prefer_ipv6: false
   dial_timeout: 30
   dns_cache_duration: 15m
   dns_server: https://1.1.1.1/dns-query

@@ -315,6 +315,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 
 		ctx := req.Context()
+		if h.Config.Forward.PreferIpv6 {
+			ctx = context.WithValue(ctx, DialerPreferIPv6ContextKey, struct{}{})
+		}
 		if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {
 			if s := header.Get("x-forwarded-for"); s != "" {
 				header.Set("x-forwarded-for", s+","+ri.RemoteIP)
@@ -327,7 +330,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				header.Set("x-forwarded-user", ai.Username)
 			}
 		} else {
-			ctx = context.WithValue(req.Context(), DialerHTTPHeaderContextKey, http.Header{
+			ctx = context.WithValue(ctx, DialerHTTPHeaderContextKey, http.Header{
 				"x-forwarded-for":  []string{ri.RemoteIP},
 				"x-forwarded-user": []string{ai.Username},
 			})
