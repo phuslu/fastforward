@@ -1,21 +1,21 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/jszwec/csvutil"
 	"github.com/phuslu/log"
 	"github.com/valyala/bytebufferpool"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type SocksRequest struct {
@@ -40,8 +40,9 @@ type SocksHandler struct {
 	Dialers       map[string]Dialer
 	Functions     template.FuncMap
 
-	PolicyTemplate *template.Template
-	DialerTemplate *template.Template
+	policy    *template.Template
+	dialer    *template.Template
+	csvloader *FileLoader[[]ForwardAuthInfo]
 }
 
 func (h *SocksHandler) Load() error {
@@ -49,16 +50,39 @@ func (h *SocksHandler) Load() error {
 
 	h.Config.Forward.Policy = strings.TrimSpace(h.Config.Forward.Policy)
 	if s := h.Config.Forward.Policy; strings.Contains(s, "{{") {
-		if h.PolicyTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+		if h.policy, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
 	}
 
 	h.Config.Forward.Dialer = strings.TrimSpace(h.Config.Forward.Dialer)
 	if s := h.Config.Forward.Dialer; strings.Contains(s, "{{") {
-		if h.DialerTemplate, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
+		if h.dialer, err = template.New(s).Funcs(h.Functions).Parse(s); err != nil {
 			return err
 		}
+	}
+
+	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
+		h.csvloader = &FileLoader[[]ForwardAuthInfo]{
+			Filename: h.Config.Forward.AuthTable,
+			Unmarshal: func(data []byte, v any) error {
+				err := csvutil.Unmarshal(data, v)
+				if err != nil {
+					return err
+				}
+				slices.SortFunc(*v.(*[]ForwardAuthInfo), func(a, b ForwardAuthInfo) int {
+					return cmp.Compare(a.Username, b.Username)
+				})
+				return nil
+			},
+			PollDuration: 30 * time.Second,
+			ErrorLogger:  log.DefaultLogger.Std("", 0),
+		}
+		records := h.csvloader.Load()
+		if records == nil {
+			log.Fatal().Str("auth_table", h.Config.Forward.AuthTable).Msg("load auth_table failed")
+		}
+		log.Info().Str("auth_table", h.Config.Forward.AuthTable).Int("auth_table_size", len(*records)).Msg("load auth_table ok")
 	}
 
 	return nil
@@ -105,7 +129,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		req.Password = string(b[3+int(b[1]) : 3+int(b[1])+int(b[2+int(b[1])])])
 		// auth plugin
 		ai, err = h.GetAuthInfo(req)
-		if err != nil || ai.Username != req.Username {
+		if err != nil {
 			log.Warn().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Int("socks_version", int(req.Version)).Msg("auth error")
 			conn.Write([]byte{VersionSocks5, byte(Socks5StatusGeneralFailure)})
 			return
@@ -148,9 +172,9 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	defer bytebufferpool.Put(bb)
 
 	var policyName = h.Config.Forward.Policy
-	if h.PolicyTemplate != nil {
+	if h.policy != nil {
 		bb.Reset()
-		err := h.PolicyTemplate.Execute(bb, struct {
+		err := h.policy.Execute(bb, struct {
 			Request    SocksRequest
 			ServerAddr string
 		}{req, req.ServerAddr})
@@ -172,9 +196,9 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 
 	var dialerName = h.Config.Forward.Dialer
 	dail := h.LocalDialer.DialContext
-	if h.DialerTemplate != nil {
+	if h.dialer != nil {
 		bb.Reset()
-		err := h.DialerTemplate.Execute(bb, struct {
+		err := h.dialer.Execute(bb, struct {
 			Request    SocksRequest
 			ServerAddr string
 		}{req, req.ServerAddr})
@@ -233,43 +257,25 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	return
 }
 
-func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ForwardAuthInfo, error) {
-	username, password := req.Username, req.Password
+func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err error) {
+	ai.Username, ai.Password = req.Username, req.Password
 
-	var ai ForwardAuthInfo
-	if !strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
-		return ai, fmt.Errorf("unsupported auth_table: %s", h.Config.Forward.AuthTable)
+	records := h.csvloader.Load()
+	if records == nil {
+		return ai, fmt.Errorf("empty records in csvloader %s", h.csvloader.Filename)
 	}
 
-	data, err := os.ReadFile(h.Config.Forward.AuthTable)
-	if err != nil {
-		return ai, err
+	i, ok := slices.BinarySearchFunc(*records, ai, func(a, b ForwardAuthInfo) int { return cmp.Compare(a.Username, b.Username) })
+	if !ok {
+		return ai, fmt.Errorf("invalid username: %v", ai)
+	}
+	if ai.Password != (*records)[i].Password {
+		return ai, fmt.Errorf("invalid password: %v", ai)
 	}
 
-	var records []ForwardAuthInfo
+	ai = (*records)[i]
 
-	err = csvutil.Unmarshal(data, &records)
-	if err != nil {
-		return ai, err
-	}
-	if i := slices.IndexFunc(records, func(r ForwardAuthInfo) bool {
-		if r.Username != username {
-			return false
-		}
-		switch {
-		case strings.HasPrefix(r.Password, "$2a$"):
-			return bcrypt.CompareHashAndPassword([]byte(r.Password), []byte(password)) == nil
-		default:
-			return r.Password == password
-		}
-	}); i >= 0 {
-		ai = records[i]
-	}
-	if ai.Username == "" {
-		return ai, fmt.Errorf("wrong username='%s' or password='%s'", username, password)
-	}
-
-	return ai, nil
+	return
 }
 
 func WriteSocks5Status(conn net.Conn, status Socks5Status) (int, error) {
