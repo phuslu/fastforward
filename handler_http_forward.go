@@ -21,7 +21,6 @@ import (
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 	"github.com/valyala/bytebufferpool"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -80,8 +79,17 @@ func (h *HTTPForwardHandler) Load() error {
 
 	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
 		h.csvloader = &FileLoader[[]ForwardAuthInfo]{
-			Filename:     h.Config.Forward.AuthTable,
-			Unmarshal:    csvutil.Unmarshal,
+			Filename: h.Config.Forward.AuthTable,
+			Unmarshal: func(data []byte, v any) error {
+				err := csvutil.Unmarshal(data, v)
+				if err != nil {
+					return err
+				}
+				slices.SortFunc(*v.(*[]ForwardAuthInfo), func(a, b ForwardAuthInfo) int {
+					return cmp.Compare(a.Username, b.Username)
+				})
+				return nil
+			},
 			PollDuration: 15 * time.Second,
 			ErrorLogger:  log.DefaultLogger.Std("", 0),
 		}
@@ -520,19 +528,22 @@ type ForwardAuthInfo struct {
 	VIP        int    `csv:"vip"`
 }
 
-func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ForwardAuthInfo, error) {
+func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
 	authorization := req.Header.Get("proxy-authorization")
 	parts := strings.SplitN(authorization, " ", 2)
 	if len(parts) == 1 {
-		return ForwardAuthInfo{}, fmt.Errorf("invaild auth header: %s", authorization)
+		err = fmt.Errorf("invaild auth header: %s", authorization)
+		return
 	}
 	if parts[0] != "Basic" {
-		return ForwardAuthInfo{}, fmt.Errorf("unsupported auth header: %s", authorization)
+		err = fmt.Errorf("unsupported auth header: %s", authorization)
+		return
 	}
 
-	data, err := base64.StdEncoding.DecodeString(parts[1])
+	var data []byte
+	data, err = base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
-		return ForwardAuthInfo{}, err
+		return
 	}
 
 	parts = strings.SplitN(string(data), ":", 2)
@@ -540,32 +551,24 @@ func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (Fo
 		return ForwardAuthInfo{}, fmt.Errorf("invaild auth header: %s", authorization)
 	}
 
-	username, password := parts[0], parts[1]
-
-	var ai ForwardAuthInfo
+	ai.Username, ai.Password = parts[0], parts[1]
 
 	records := h.csvloader.Load()
 	if records == nil {
 		return ai, fmt.Errorf("empty records in csvloader %s", h.csvloader.Filename)
 	}
-	if i := slices.IndexFunc(*records, func(r ForwardAuthInfo) bool {
-		if r.Username != username {
-			return false
-		}
-		switch {
-		case strings.HasPrefix(r.Password, "$2a$"):
-			return bcrypt.CompareHashAndPassword([]byte(r.Password), []byte(password)) == nil
-		default:
-			return r.Password == password
-		}
-	}); i >= 0 {
-		ai = (*records)[i]
+
+	i, ok := slices.BinarySearchFunc(*records, ai, func(a, b ForwardAuthInfo) int { return cmp.Compare(a.Username, b.Username) })
+	if !ok {
+		return ai, fmt.Errorf("invalid username: %v", ai)
 	}
-	if ai.Username == "" {
-		return ai, fmt.Errorf("wrong username='%s' or password='%s'", username, password)
+	if ai.Password != (*records)[i].Password {
+		return ai, fmt.Errorf("invalid password: %v", ai)
 	}
 
-	return ai, nil
+	ai = (*records)[i]
+
+	return
 }
 
 func RejectRequest(rw http.ResponseWriter, req *http.Request) {
