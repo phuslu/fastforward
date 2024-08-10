@@ -9,6 +9,7 @@ import (
 	"net/netip"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -99,7 +100,11 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		if len(ips) == 1 {
 			ips = append(ips, ips[0])
 		}
-		return d.dialParallel(ctx, network, host, ips, uint16(port), tlsConfig)
+		conn, err := d.dialParallel(ctx, network, host, ips, uint16(port), tlsConfig)
+		if err != nil && strings.Contains(err.Error(), "connect: network is unreachable") && len(ips) > d.Concurrency {
+			conn, err = d.dialParallel(ctx, network, host, ips[len(ips)-d.Concurrency:], uint16(port), tlsConfig)
+		}
+		return conn, err
 	}
 }
 
