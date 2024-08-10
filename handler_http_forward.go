@@ -274,7 +274,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	var dialerName = h.Config.Forward.Dialer
+	var dialerValue = h.Config.Forward.Dialer
 	if h.dialer != nil {
 		bb.Reset()
 		err := h.dialer.Execute(bb, struct {
@@ -289,10 +289,24 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			http.NotFound(rw, req)
 			return
 		}
-		dialerName = strings.TrimSpace(bb.String())
+		dialerValue = strings.TrimSpace(bb.String())
 	}
 
-	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("forward_policy_name", policyName).Str("forward_dialer_name", dialerName).Str("http_domain", domain).Msg("forward request")
+	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Msg("forward request")
+
+	var dialerName = dialerValue
+	var preferIPv6 = h.Config.Forward.PreferIpv6
+	if strings.Contains(dialerValue, "=") {
+		u, err := url.ParseQuery(dialerValue)
+		if err != nil {
+			log.Error().Context(ri.LogContext).Err(err).Str("username", ai.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Msg("forward parse dialer json error")
+			return
+		}
+		dialerName = u.Get("dialer")
+		if s := u.Get("prefer_ipv6"); s != "" {
+			preferIPv6, _ = strconv.ParseBool(s)
+		}
+	}
 
 	var transmitBytes int64
 	switch req.Method {
@@ -315,7 +329,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 
 		ctx := req.Context()
-		if h.Config.Forward.PreferIpv6 {
+		if preferIPv6 {
 			ctx = context.WithValue(ctx, DialerPreferIPv6ContextKey, struct{}{})
 		}
 		if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {
