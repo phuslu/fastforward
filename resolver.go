@@ -14,8 +14,9 @@ import (
 
 type Resolver struct {
 	*net.Resolver
-	LRUCache      *lru.TTLCache[string, []netip.Addr]
 	CacheDuration time.Duration
+
+	LRUCache *lru.TTLCache[string, []netip.Addr]
 }
 
 func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/phuslu/log"
+	"github.com/phuslu/lru"
 )
 
 type Dialer interface {
@@ -33,7 +34,8 @@ var (
 var _ Dialer = (*LocalDialer)(nil)
 
 type LocalDialer struct {
-	Resolver *Resolver
+	Resolver     *Resolver
+	ResolveCache *lru.TTLCache[string, []netip.Addr]
 
 	Interface       string
 	ForbidLocalAddr bool
@@ -70,9 +72,12 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		return nil, err
 	}
 
-	ips, err := d.Resolver.LookupNetIP(ctx, "ip", host)
-	if err != nil {
-		return nil, err
+	ips, _ := d.ResolveCache.Get(host)
+	if len(ips) == 0 {
+		ips, err = d.Resolver.LookupNetIP(ctx, "ip", host)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if len(ips) == 0 {
 		return nil, net.InvalidAddrError("invaid dns record: " + address)
@@ -104,8 +109,12 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		}
 		conn, err := d.dialParallel(ctx, network, host, ips, uint16(port), tlsConfig)
 		if err != nil && strings.Contains(err.Error(), "connect: network is unreachable") && len(ips) > d.Concurrency {
-			log.Warn().Err(err).Str("network", network).Str("host", host).Interface("old_ips", ips).Interface("new_ips", ips[len(ips)-d.Concurrency:]).Msg("retry dialing")
-			conn, err = d.dialParallel(ctx, network, host, ips[len(ips)-d.Concurrency:], uint16(port), tlsConfig)
+			news := ips[len(ips)-d.Concurrency:]
+			log.Warn().Err(err).Str("network", network).Str("host", host).Interface("ips", ips).Interface("new_ips", news).Msg("retry dialing")
+			conn, err = d.dialParallel(ctx, network, host, news, uint16(port), tlsConfig)
+			if err == nil {
+				d.ResolveCache.Set(host, news, d.Resolver.CacheDuration)
+			}
 		}
 		return conn, err
 	}

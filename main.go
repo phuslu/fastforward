@@ -121,8 +121,8 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: true,
 		},
-		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 		CacheDuration: 5 * time.Minute,
+		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 	}
 
 	if config.Global.DnsCacheDuration != "" {
@@ -237,6 +237,7 @@ func main() {
 	// global dialer
 	dialer := &LocalDialer{
 		Resolver:        resolver,
+		ResolveCache:    lru.NewTTLCache[string, []netip.Addr](8192),
 		Concurrency:     2,
 		ForbidLocalAddr: config.Global.ForbidLocalAddr,
 		ReadBuffSize:    config.Global.DialReadBuffer,
@@ -259,6 +260,7 @@ func main() {
 		case "local":
 			dialers[name] = &LocalDialer{
 				Resolver:        resolver,
+				ResolveCache:    dialer.ResolveCache,
 				Interface:       u.Host,
 				Concurrency:     2,
 				ForbidLocalAddr: config.Global.ForbidLocalAddr,

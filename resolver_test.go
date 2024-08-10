@@ -16,8 +16,8 @@ func TestResolver(t *testing.T) {
 		Resolver: &net.Resolver{
 			PreferGo: true,
 		},
-		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 		CacheDuration: time.Minute,
+		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 	}
 
 	fmt.Println(r.LookupNetIP(context.Background(), "ip", "gmail.com"))
