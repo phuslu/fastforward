@@ -16,12 +16,10 @@ func TestResolver(t *testing.T) {
 		Resolver: &net.Resolver{
 			PreferGo: true,
 		},
-		PreferIPv6:    false,
 		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 		CacheDuration: time.Minute,
 	}
 
-	fmt.Println(r.LookupHost(context.Background(), "gmail.com"))
 	fmt.Println(r.LookupNetIP(context.Background(), "ip", "gmail.com"))
 }
 

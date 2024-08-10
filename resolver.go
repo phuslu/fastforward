@@ -14,7 +14,6 @@ import (
 
 type Resolver struct {
 	*net.Resolver
-	PreferIPv6    bool
 	LRUCache      *lru.TTLCache[string, []netip.Addr]
 	CacheDuration time.Duration
 }
@@ -35,11 +34,7 @@ func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]net
 		return nil, err
 	}
 
-	if r.PreferIPv6 {
-		slices.SortStableFunc(ips, func(a, b netip.Addr) int { return cmp.Compare(btoi(b.Is6()), btoi(a.Is6())) })
-	} else {
-		slices.SortStableFunc(ips, func(a, b netip.Addr) int { return cmp.Compare(btoi(b.Is4()), btoi(a.Is4())) })
-	}
+	slices.SortStableFunc(ips, func(a, b netip.Addr) int { return cmp.Compare(btoi(b.Is4()), btoi(a.Is4())) })
 
 	if r.LRUCache != nil && r.CacheDuration > 0 && len(ips) > 0 {
 		r.LRUCache.Set(host, ips, r.CacheDuration)

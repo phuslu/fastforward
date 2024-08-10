@@ -121,7 +121,6 @@ func main() {
 		Resolver: &net.Resolver{
 			PreferGo: true,
 		},
-		PreferIPv6:    config.Global.PreferIPv6,
 		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
 		CacheDuration: 5 * time.Minute,
 	}

@@ -113,7 +113,6 @@ type Config struct {
 		LogMaxsize       int64  `json:"log_maxsize" yaml:"log_maxsize"`
 		LogLocaltime     bool   `json:"log_localtime" yaml:"log_localtime"`
 		ForbidLocalAddr  bool   `json:"forbid_local_addr" yaml:"forbid_local_addr"`
-		PreferIPv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`
 		DialTimeout      int    `json:"dial_timeout" yaml:"dial_timeout"`
 		DialReadBuffer   int    `json:"dial_read_buffer" yaml:"dial_read_buffer"` // Danger, see https://issues.apache.org/jira/browse/KAFKA-16496
 		DialWriteBuffer  int    `json:"dial_write_buffer" yaml:"dial_write_buffer"`

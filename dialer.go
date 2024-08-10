@@ -1,11 +1,13 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"errors"
 	"net"
 	"net/netip"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -22,6 +24,7 @@ func (k *DialerContextKey) String() string { return "dialer context value " + k.
 
 var (
 	DialerHTTPHeaderContextKey = &DialerContextKey{"dailer-http-header"}
+	DialerPreferIPv6ContextKey = &DialerContextKey{"dailer-prefer-ipv6"}
 )
 
 var _ Dialer = (*LocalDialer)(nil)
@@ -70,6 +73,10 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 	}
 	if len(ips) == 0 {
 		return nil, net.InvalidAddrError("invaid dns record: " + address)
+	}
+
+	if ctx.Value(DialerPreferIPv6ContextKey) != nil {
+		slices.SortStableFunc(ips, func(a, b netip.Addr) int { return cmp.Compare(btoi(b.Is6()), btoi(a.Is6())) })
 	}
 
 	port, _ := strconv.Atoi(portStr)
