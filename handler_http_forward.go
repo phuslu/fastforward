@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -546,29 +545,8 @@ type ForwardAuthInfo struct {
 }
 
 func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
-	authorization := req.Header.Get("proxy-authorization")
-	parts := strings.SplitN(authorization, " ", 2)
-	if len(parts) == 1 {
-		err = fmt.Errorf("invaild auth header: %s", authorization)
-		return
-	}
-	if parts[0] != "Basic" {
-		err = fmt.Errorf("unsupported auth header: %s", authorization)
-		return
-	}
-
-	var data []byte
-	data, err = base64.StdEncoding.DecodeString(parts[1])
-	if err != nil {
-		return
-	}
-
-	parts = strings.SplitN(string(data), ":", 2)
-	if len(parts) == 1 {
-		return ForwardAuthInfo{}, fmt.Errorf("invaild auth header: %s", authorization)
-	}
-
-	ai.Username, ai.Password = parts[0], parts[1]
+	ai.Username = ri.ProxyUser.Username
+	ai.Password = ri.ProxyUser.Password
 
 	records := h.csvloader.Load()
 	if records == nil {

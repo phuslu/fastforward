@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	_ "embed"
+	"encoding/base64"
 	"mime"
 	"net"
 	"net/http"
@@ -31,6 +32,11 @@ type HTTPServerHandler struct {
 	WebHandler     HTTPHandler
 }
 
+type Userinfo struct {
+	Username string
+	Password string
+}
+
 type RequestInfo struct {
 	RemoteIP        string
 	ServerAddr      string
@@ -41,6 +47,7 @@ type RequestInfo struct {
 	ClientTCPConn   *net.TCPConn
 	TraceID         log.XID
 	UserAgent       useragent.UserAgent
+	ProxyUser       Userinfo
 	GeoipInfo       GeoipInfo
 	LogContext      log.Context
 }
@@ -106,6 +113,16 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	ri.UserAgent, _, _ = h.UserAgentMap.Get(req.Header.Get("User-Agent"))
 	if h.GeoResolver.CityReader != nil {
 		ri.GeoipInfo.Country, ri.GeoipInfo.Region, ri.GeoipInfo.City, _ = h.GeoResolver.LookupCity(context.Background(), net.ParseIP(ri.RemoteIP))
+	}
+
+	ri.ProxyUser = Userinfo{}
+	if s := req.Header.Get("proxy-authorization"); s != "" {
+		switch t, s, _ := strings.Cut(s, " "); t {
+		case "Basic":
+			if b, err := base64.StdEncoding.DecodeString(s); err == nil {
+				ri.ProxyUser.Username, ri.ProxyUser.Password, _ = strings.Cut(string(b), ":")
+			}
+		}
 	}
 
 	ri.TraceID = log.NewXID()
