@@ -33,8 +33,10 @@ type HTTPServerHandler struct {
 }
 
 type Userinfo struct {
-	Username string
-	Password string
+	Username  string
+	Password  string
+	Attrs     map[string]string
+	AuthError error
 }
 
 type RequestInfo struct {

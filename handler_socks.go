@@ -13,7 +13,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/jszwec/csvutil"
 	"github.com/phuslu/log"
 	"github.com/valyala/bytebufferpool"
 )
@@ -25,8 +24,7 @@ type SocksRequest struct {
 	Version     SocksVersion
 	ConnectType SocksCommand
 	SupportAuth bool
-	Username    string
-	Password    string
+	User        Userinfo
 	Host        string
 	Port        int
 	TraceID     log.XID
@@ -42,7 +40,7 @@ type SocksHandler struct {
 
 	policy    *template.Template
 	dialer    *template.Template
-	csvloader *FileLoader[[]ForwardAuthInfo]
+	csvloader *FileLoader[[]Userinfo]
 }
 
 func (h *SocksHandler) Load() error {
@@ -63,18 +61,9 @@ func (h *SocksHandler) Load() error {
 	}
 
 	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
-		h.csvloader = &FileLoader[[]ForwardAuthInfo]{
-			Filename: h.Config.Forward.AuthTable,
-			Unmarshal: func(data []byte, v any) error {
-				err := csvutil.Unmarshal(data, v)
-				if err != nil {
-					return err
-				}
-				slices.SortFunc(*v.(*[]ForwardAuthInfo), func(a, b ForwardAuthInfo) int {
-					return cmp.Compare(a.Username, b.Username)
-				})
-				return nil
-			},
+		h.csvloader = &FileLoader[[]Userinfo]{
+			Filename:     h.Config.Forward.AuthTable,
+			Unmarshal:    UserCsvUnmarshal,
 			PollDuration: 30 * time.Second,
 			ErrorLogger:  log.DefaultLogger.Std("", 0),
 		}
@@ -112,7 +101,6 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		}
 	}
 
-	var ai ForwardAuthInfo
 	if h.Config.Forward.AuthTable != "" {
 		if !req.SupportAuth {
 			log.Error().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Msg("socks client not support auth")
@@ -125,11 +113,20 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 			return
 		}
 		// unpack username & password
-		req.Username = string(b[2 : 2+int(b[1])])
-		req.Password = string(b[3+int(b[1]) : 3+int(b[1])+int(b[2+int(b[1])])])
+		req.User.Username = string(b[2 : 2+int(b[1])])
+		req.User.Password = string(b[3+int(b[1]) : 3+int(b[1])+int(b[2+int(b[1])])])
 		// auth plugin
-		ai, err = h.GetAuthInfo(req)
-		if err != nil {
+		records := h.csvloader.Load()
+		i, ok := slices.BinarySearchFunc(*records, req.User, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+		switch {
+		case !ok:
+			req.User.AuthError = fmt.Errorf("invalid username: %v", req.User.Username)
+		case req.User.Password != (*records)[i].Password:
+			req.User.AuthError = fmt.Errorf("wrong password: %v", req.User.Username)
+		default:
+			req.User.AuthError = nil
+		}
+		if req.User.AuthError != nil {
 			log.Warn().Err(err).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Int("socks_version", int(req.Version)).Msg("auth error")
 			conn.Write([]byte{VersionSocks5, byte(Socks5StatusGeneralFailure)})
 			return
@@ -162,10 +159,9 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	}
 	req.Port = int(b[n-2])<<8 | int(b[n-1])
 
-	if ai.VIP == 0 {
-		if ai.SpeedLimit == 0 && h.Config.Forward.SpeedLimit > 0 {
-			ai.SpeedLimit = h.Config.Forward.SpeedLimit
-		}
+	var speedlimit int64
+	if n, _ := strconv.ParseInt(req.User.Attrs["speedlimit"], 10, 64); n > 0 {
+		speedlimit = n
 	}
 
 	bb := bytebufferpool.Get()
@@ -192,7 +188,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		}
 	}
 
-	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("socks_host", req.Host).Msg("forward socks request")
+	log.Info().Str("remote_ip", req.RemoteIP).Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.User.Username).Str("socks_host", req.Host).Msg("forward socks request")
 
 	var dialerName = h.Config.Forward.Dialer
 	dail := h.LocalDialer.DialContext
@@ -224,11 +220,11 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		network = "udp"
 	}
 
-	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_policy_name", policyName).Str("forward_dialer_name", dialerName).Msg("forward socks request")
+	log.Info().Str("server_addr", req.ServerAddr).Int("socks_version", int(req.Version)).Str("username", req.User.Username).Str("remote_ip", req.RemoteIP).Str("socks_network", network).Str("socks_host", req.Host).Int("socks_port", req.Port).Str("forward_policy_name", policyName).Str("forward_dialer_name", dialerName).Msg("forward socks request")
 
 	ctx = context.WithValue(context.Background(), DialerHTTPHeaderContextKey, http.Header{
 		"X-Forwarded-For":  []string{req.RemoteIP},
-		"X-Forwarded-User": []string{req.Username},
+		"X-Forwarded-User": []string{req.User.Username},
 	})
 	rconn, err := dail(ctx, network, net.JoinHostPort(req.Host, strconv.Itoa(req.Port)))
 	if err != nil {
@@ -244,7 +240,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	WriteSocks5Status(conn, Socks5StatusRequestGranted)
 
 	go io.Copy(rconn, conn)
-	_, err = io.Copy(conn, NewRateLimitReader(rconn, ai.SpeedLimit))
+	_, err = io.Copy(conn, NewRateLimitReader(rconn, speedlimit))
 
 	if h.Config.Forward.Log {
 		var country, region, city string
@@ -253,27 +249,6 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		}
 		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_dialer_name", dialerName).Msg("forward socks request end")
 	}
-
-	return
-}
-
-func (h *SocksHandler) GetAuthInfo(req SocksRequest) (ai ForwardAuthInfo, err error) {
-	ai.Username, ai.Password = req.Username, req.Password
-
-	records := h.csvloader.Load()
-	if records == nil {
-		return ai, fmt.Errorf("empty records in csvloader %s", h.csvloader.Filename)
-	}
-
-	i, ok := slices.BinarySearchFunc(*records, ai, func(a, b ForwardAuthInfo) int { return cmp.Compare(a.Username, b.Username) })
-	if !ok {
-		return ai, fmt.Errorf("invalid username: %v", ai)
-	}
-	if ai.Password != (*records)[i].Password {
-		return ai, fmt.Errorf("invalid password: %v", ai)
-	}
-
-	ai = (*records)[i]
 
 	return
 }

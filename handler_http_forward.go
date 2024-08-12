@@ -16,7 +16,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/jszwec/csvutil"
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
 	"github.com/valyala/bytebufferpool"
@@ -35,7 +34,7 @@ type HTTPForwardHandler struct {
 	tcpcongestion *template.Template
 	dialer        *template.Template
 	transports    map[string]*http.Transport
-	csvloader     *FileLoader[[]ForwardAuthInfo]
+	csvloader     *FileLoader[[]Userinfo]
 }
 
 func (h *HTTPForwardHandler) Load() error {
@@ -77,18 +76,9 @@ func (h *HTTPForwardHandler) Load() error {
 	}
 
 	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
-		h.csvloader = &FileLoader[[]ForwardAuthInfo]{
-			Filename: h.Config.Forward.AuthTable,
-			Unmarshal: func(data []byte, v any) error {
-				err := csvutil.Unmarshal(data, v)
-				if err != nil {
-					return err
-				}
-				slices.SortFunc(*v.(*[]ForwardAuthInfo), func(a, b ForwardAuthInfo) int {
-					return cmp.Compare(a.Username, b.Username)
-				})
-				return nil
-			},
+		h.csvloader = &FileLoader[[]Userinfo]{
+			Filename:     h.Config.Forward.AuthTable,
+			Unmarshal:    UserCsvUnmarshal,
 			PollDuration: 15 * time.Second,
 			ErrorLogger:  log.DefaultLogger.Std("", 0),
 		}
@@ -132,6 +122,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	if h.Config.Forward.Policy == "" {
 		http.NotFound(rw, req)
 		return
+	}
+
+	if ri.ProxyUser.Username != "" && h.Config.Forward.AuthTable != "" {
 	}
 
 	bb := bytebufferpool.Get()
@@ -206,20 +199,27 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	var ai ForwardAuthInfo
 	if h.Config.Forward.AuthTable != "" && !bypassAuth {
-		ai, err = h.GetAuthInfo(ri, req)
-		if err != nil {
-			log.Warn().Err(err).Context(ri.LogContext).Str("username", ai.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
+		records := h.csvloader.Load()
+		i, ok := slices.BinarySearchFunc(*records, ri.ProxyUser, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+		switch {
+		case !ok:
+			ri.ProxyUser.AuthError = fmt.Errorf("invalid username: %v", ri.ProxyUser.Username)
+		case ri.ProxyUser.Password != (*records)[i].Password:
+			ri.ProxyUser.AuthError = fmt.Errorf("wrong password: %v", ri.ProxyUser.Username)
+		default:
+			ri.ProxyUser.AuthError = nil
+		}
+		if ri.ProxyUser.AuthError != nil {
+			log.Warn().Err(err).Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
 			RejectRequest(rw, req)
 			return
 		}
 	}
 
-	if ai.VIP == 0 {
-		if ai.SpeedLimit == 0 && h.Config.Forward.SpeedLimit > 0 {
-			ai.SpeedLimit = h.Config.Forward.SpeedLimit
-		}
+	var speedlimit int64
+	if n, _ := strconv.ParseInt(ri.ProxyUser.Attrs["speedlimit"], 10, 64); n > 0 {
+		speedlimit = n
 	}
 
 	// eval tcp_congestion template
@@ -232,8 +232,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				ClientHelloInfo *tls.ClientHelloInfo
 				UserAgent       *useragent.UserAgent
 				ServerAddr      string
-				User            ForwardAuthInfo
-			}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ai})
+				User            Userinfo
+			}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ri.ProxyUser})
 			if err != nil {
 				log.Error().Err(err).Context(ri.LogContext).Str("forward_tcp_congestion", h.Config.Forward.TcpCongestion).Msg("execute forward_tcp_congestion error")
 				http.Error(rw, err.Error(), http.StatusBadGateway)
@@ -281,8 +281,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 			UserAgent       *useragent.UserAgent
 			ServerAddr      string
-			User            ForwardAuthInfo
-		}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ai})
+			User            Userinfo
+		}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ri.ProxyUser})
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Str("forward_dialer_name", h.Config.Forward.Dialer).Msg("execute forward_dialer error")
 			http.NotFound(rw, req)
@@ -291,14 +291,14 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		dialerValue = strings.TrimSpace(bb.String())
 	}
 
-	log.Info().Context(ri.LogContext).Str("username", ai.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Msg("forward request")
+	log.Info().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Msg("forward request")
 
 	var dialerName = dialerValue
 	var preferIPv6 = h.Config.Forward.PreferIpv6
 	if strings.Contains(dialerValue, "=") {
 		u, err := url.ParseQuery(dialerValue)
 		if err != nil {
-			log.Error().Context(ri.LogContext).Err(err).Str("username", ai.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Msg("forward parse dialer json error")
+			log.Error().Context(ri.LogContext).Err(err).Str("username", ri.ProxyUser.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Msg("forward parse dialer json error")
 			return
 		}
 		dialerName = u.Get("dialer")
@@ -338,14 +338,14 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				header.Set("x-forwarded-for", ri.RemoteIP)
 			}
 			if s := header.Get("x-forwarded-user"); s != "" {
-				header.Set("x-forwarded-user", s+","+ai.Username)
+				header.Set("x-forwarded-user", s+","+ri.ProxyUser.Username)
 			} else {
-				header.Set("x-forwarded-user", ai.Username)
+				header.Set("x-forwarded-user", ri.ProxyUser.Username)
 			}
 		} else {
 			ctx = context.WithValue(ctx, DialerHTTPHeaderContextKey, http.Header{
 				"x-forwarded-for":  []string{ri.RemoteIP},
-				"x-forwarded-user": []string{ai.Username},
+				"x-forwarded-user": []string{ri.ProxyUser.Username},
 			})
 		}
 		network := cmp.Or(req.Header.Get("x-forwarded-network"), "tcp")
@@ -416,7 +416,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("server_name", ri.ServerName).
 					Str("server_addr", ri.ServerAddr).
 					Str("tls_version", ri.TLSVersion.String()).
-					Str("username", ai.Username).
+					Str("username", ri.ProxyUser.Username).
 					Str("remote_ip", ri.RemoteIP).
 					Str("remote_country", ri.GeoipInfo.Country).
 					Str("remote_region", ri.GeoipInfo.Region).
@@ -435,8 +435,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
-		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(conn, ai.SpeedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
-		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(conn, speedlimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
 			http.NotFound(rw, req)
@@ -512,7 +512,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("server_name", ri.ServerName).
 					Str("server_addr", ri.ServerAddr).
 					Str("tls_version", ri.TLSVersion.String()).
-					Str("username", ai.Username).
+					Str("username", ri.ProxyUser.Username).
 					Str("remote_ip", ri.RemoteIP).
 					Str("remote_country", ri.GeoipInfo.Country).
 					Str("remote_region", ri.GeoipInfo.Region).
@@ -532,38 +532,46 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			}
 		}
 
-		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(resp.Body, ai.SpeedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
-		log.Debug().Context(ri.LogContext).Str("username", ai.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(resp.Body, speedlimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 }
 
-type ForwardAuthInfo struct {
-	Username   string `csv:"username"`
-	Password   string `csv:"password"`
-	SpeedLimit int64  `csv:"speedlimit"`
-	VIP        int    `csv:"vip"`
-}
-
-func (h *HTTPForwardHandler) GetAuthInfo(ri *RequestInfo, req *http.Request) (ai ForwardAuthInfo, err error) {
-	ai.Username = ri.ProxyUser.Username
-	ai.Password = ri.ProxyUser.Password
-
-	records := h.csvloader.Load()
-	if records == nil {
-		return ai, fmt.Errorf("empty records in csvloader %s", h.csvloader.Filename)
+func UserCsvUnmarshal(data []byte, v any) error {
+	lines := AppendSplitLines(nil, b2s(data))
+	if len(lines) <= 1 {
+		return nil
 	}
-
-	i, ok := slices.BinarySearchFunc(*records, ai, func(a, b ForwardAuthInfo) int { return cmp.Compare(a.Username, b.Username) })
-	if !ok {
-		return ai, fmt.Errorf("invalid username: %v", ai)
+	names := strings.Split(lines[0], ",")
+	if len(names) <= 1 {
+		return nil
 	}
-	if ai.Password != (*records)[i].Password {
-		return ai, fmt.Errorf("invalid password: %v", ai)
+	for i := range names {
+		names[i] = strings.ToLower(names[i])
 	}
-
-	ai = (*records)[i]
-
-	return
+	infos := v.(*[]Userinfo)
+	for _, line := range lines[1:] {
+		parts := strings.Split(line, ",")
+		if len(parts) <= 1 {
+			continue
+		}
+		var attrs map[string]string
+		for i, part := range parts[2:] {
+			if attrs == nil {
+				attrs = make(map[string]string)
+			}
+			attrs[names[2+i]] = part
+		}
+		*infos = append(*infos, Userinfo{
+			Username: parts[0],
+			Password: parts[1],
+			Attrs:    attrs,
+		})
+	}
+	slices.SortFunc(*infos, func(a, b Userinfo) int {
+		return cmp.Compare(a.Username, b.Username)
+	})
+	return nil
 }
 
 func RejectRequest(rw http.ResponseWriter, req *http.Request) {
