@@ -160,8 +160,10 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	req.Port = int(b[n-2])<<8 | int(b[n-1])
 
 	var speedlimit int64
-	if n, _ := strconv.ParseInt(req.User.Attrs["speedlimit"], 10, 64); n > 0 {
-		speedlimit = n
+	if s, _ := req.User.Attrs["speedlimit"].(string); s != "" {
+		if n, _ := strconv.ParseInt(s, 10, 64); n > 0 {
+			speedlimit = n
+		}
 	}
 
 	bb := bytebufferpool.Get()

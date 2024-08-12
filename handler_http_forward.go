@@ -213,8 +213,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	var speedlimit int64
-	if n, _ := strconv.ParseInt(ri.ProxyUser.Attrs["speedlimit"], 10, 64); n > 0 {
-		speedlimit = n
+	if s, _ := ri.ProxyUser.Attrs["speedlimit"].(string); s != "" {
+		if n, _ := strconv.ParseInt(s, 10, 64); n > 0 {
+			speedlimit = n
+		}
 	}
 
 	// eval tcp_congestion template
@@ -302,7 +304,6 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	var transmitBytes int64
 	switch req.Method {
 	case http.MethodConnect:
 		if req.URL.Host == ri.ServerName {
@@ -430,7 +431,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
-		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(conn, speedlimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(conn, speedlimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
 		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
@@ -527,7 +528,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			}
 		}
 
-		transmitBytes, err = io.CopyBuffer(w, NewRateLimitReader(resp.Body, speedlimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(resp.Body, speedlimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
 		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	}
 }
@@ -562,7 +563,7 @@ func UserCsvUnmarshal(data []byte, v any) error {
 				user.Password = part
 			default:
 				if user.Attrs == nil {
-					user.Attrs = make(map[string]string)
+					user.Attrs = make(map[string]any)
 				}
 				if i >= len(names) {
 					return fmt.Errorf("overflow csv cloumn, names=%v parts=%v", names, parts)

@@ -35,7 +35,7 @@ type HTTPServerHandler struct {
 type Userinfo struct {
 	Username  string
 	Password  string
-	Attrs     map[string]string
+	Attrs     map[string]any
 	AuthError error
 }
 
