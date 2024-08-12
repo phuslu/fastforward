@@ -194,7 +194,7 @@ func main() {
 					EnableDatagrams:    true,
 					TLSClientConfig: &tls.Config{
 						NextProtos:         []string{"h3"},
-						InsecureSkipVerify: u.Query().Get("insecure") == "1",
+						InsecureSkipVerify: u.Query().Get("insecure") == "true",
 						ServerName:         u.Hostname(),
 						ClientSessionCache: tls.NewLRUClientSessionCache(128),
 					},
@@ -239,6 +239,7 @@ func main() {
 		Resolver:        resolver,
 		ResolveCache:    lru.NewTTLCache[string, []netip.Addr](8192),
 		Concurrency:     2,
+		PerferIPv6:      false,
 		ForbidLocalAddr: config.Global.ForbidLocalAddr,
 		ReadBuffSize:    config.Global.DialReadBuffer,
 		WriteBuffSize:   config.Global.DialWriteBuffer,
@@ -262,12 +263,13 @@ func main() {
 				Resolver:        resolver,
 				ResolveCache:    dialer.ResolveCache,
 				Interface:       u.Host,
+				PerferIPv6:      u.Query().Get("perfer_ipv6") == "true",
 				Concurrency:     2,
 				ForbidLocalAddr: config.Global.ForbidLocalAddr,
 				DialTimeout:     time.Duration(cmp.Or(first(strconv.Atoi(u.Query().Get("dial_timeout"))), config.Global.DialTimeout, 30)) * time.Second,
 				TCPKeepAlive:    30 * time.Second,
 				TLSConfig: &tls.Config{
-					InsecureSkipVerify: u.Query().Get("insecure") == "1",
+					InsecureSkipVerify: u.Query().Get("insecure") == "true",
 					ClientSessionCache: tls.NewLRUClientSessionCache(2048),
 				},
 			}
@@ -279,7 +281,7 @@ func main() {
 				Port:       u.Port(),
 				IsTLS:      u.Scheme == "https",
 				UserAgent:  cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-				Insecure:   u.Query().Get("insecure") == "1",
+				Insecure:   u.Query().Get("insecure") == "true",
 				CACert:     u.Query().Get("cacert"),
 				ClientKey:  u.Query().Get("key"),
 				ClientCert: u.Query().Get("cert"),
@@ -313,7 +315,7 @@ func main() {
 				Username:       u.User.Username(),
 				Password:       first(u.User.Password()),
 				UserAgent:      cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-				Insecure:       u.Query().Get("insecure") == "1",
+				Insecure:       u.Query().Get("insecure") == "true",
 				Dialer:         dialer,
 			}
 		case "socks", "socks5", "socks5h":

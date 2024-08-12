@@ -37,6 +37,7 @@ type LocalDialer struct {
 	ResolveCache *lru.TTLCache[string, []netip.Addr]
 
 	Interface       string
+	PerferIPv6      bool
 	ForbidLocalAddr bool
 	Concurrency     int
 
@@ -84,7 +85,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 
 	var ipv6only []netip.Addr
 	if i := slices.IndexFunc(ips, func(a netip.Addr) bool { return a.Is6() }); i > 0 {
-		if ctx.Value(DialerPreferIPv6ContextKey) != nil {
+		if d.PerferIPv6 || ctx.Value(DialerPreferIPv6ContextKey) != nil {
 			ips = ips[i:]
 			ipv6only = ips[:len(ips)-i]
 		} else {
