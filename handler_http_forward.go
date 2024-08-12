@@ -125,13 +125,22 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	if ri.ProxyUser.Username != "" && h.Config.Forward.AuthTable != "" {
+		records := *h.csvloader.Load()
+		i, ok := slices.BinarySearchFunc(records, ri.ProxyUser, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+		switch {
+		case !ok:
+			ri.ProxyUser.AuthError = fmt.Errorf("invalid username: %v", ri.ProxyUser.Username)
+		case ri.ProxyUser.Password != records[i].Password:
+			ri.ProxyUser.AuthError = fmt.Errorf("wrong password: %v", ri.ProxyUser.Username)
+		default:
+			ri.ProxyUser.AuthError = nil
+		}
 	}
 
 	bb := bytebufferpool.Get()
 	defer bytebufferpool.Put(bb)
 
-	var policyName = h.Config.Forward.Policy
-	bypassAuth := false
+	policyName := h.Config.Forward.Policy
 	if h.policy != nil {
 		bb.Reset()
 		err = h.policy.Execute(bb, struct {
@@ -194,27 +203,13 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			rw.WriteHeader(resp.StatusCode)
 			io.Copy(rw, resp.Body)
 			return
-		case "bypass_auth":
-			bypassAuth = true
 		}
 	}
 
-	if h.Config.Forward.AuthTable != "" && !bypassAuth {
-		records := h.csvloader.Load()
-		i, ok := slices.BinarySearchFunc(*records, ri.ProxyUser, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
-		switch {
-		case !ok:
-			ri.ProxyUser.AuthError = fmt.Errorf("invalid username: %v", ri.ProxyUser.Username)
-		case ri.ProxyUser.Password != (*records)[i].Password:
-			ri.ProxyUser.AuthError = fmt.Errorf("wrong password: %v", ri.ProxyUser.Username)
-		default:
-			ri.ProxyUser.AuthError = nil
-		}
-		if ri.ProxyUser.AuthError != nil {
-			log.Warn().Err(err).Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
-			RejectRequest(rw, req)
-			return
-		}
+	if (ri.ProxyUser.Username == "" || ri.ProxyUser.AuthError != nil) && policyName != "bypass_auth" {
+		log.Warn().Err(err).Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
+		RejectRequest(rw, req)
+		return
 	}
 
 	var speedlimit int64
