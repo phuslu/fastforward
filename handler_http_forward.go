@@ -206,7 +206,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
-	if (ri.ProxyUser.Username == "" || ri.ProxyUser.AuthError != nil) && policyName != "bypass_auth" {
+	if policyName != "bypass_auth" && (ri.ProxyUser.Username == "" || ri.ProxyUser.AuthError != nil) {
 		log.Warn().Err(err).Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("auth error")
 		RejectRequest(rw, req)
 		return
@@ -533,35 +533,44 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 }
 
 func UserCsvUnmarshal(data []byte, v any) error {
+	infos, ok := v.(*[]Userinfo)
+	if !ok {
+		return fmt.Errorf("*[]Userinfo required, found %T", v)
+	}
 	lines := AppendSplitLines(nil, b2s(data))
 	if len(lines) <= 1 {
-		return nil
+		return fmt.Errorf("no csv rows: %s", data)
 	}
 	names := strings.Split(lines[0], ",")
 	if len(names) <= 1 {
-		return nil
+		return fmt.Errorf("no csv columns: %s", data)
 	}
 	for i := range names {
 		names[i] = strings.ToLower(names[i])
 	}
-	infos := v.(*[]Userinfo)
 	for _, line := range lines[1:] {
 		parts := strings.Split(line, ",")
 		if len(parts) <= 1 {
 			continue
 		}
-		var attrs map[string]string
-		for i, part := range parts[2:] {
-			if attrs == nil {
-				attrs = make(map[string]string)
+		var user Userinfo
+		for i, part := range parts {
+			switch i {
+			case 0:
+				user.Username = part
+			case 1:
+				user.Password = part
+			default:
+				if user.Attrs == nil {
+					user.Attrs = make(map[string]string)
+				}
+				if i >= len(names) {
+					return fmt.Errorf("overflow csv cloumn, names=%v parts=%v", names, parts)
+				}
+				user.Attrs[names[i]] = part
 			}
-			attrs[names[2+i]] = part
 		}
-		*infos = append(*infos, Userinfo{
-			Username: parts[0],
-			Password: parts[1],
-			Attrs:    attrs,
-		})
+		*infos = append(*infos, user)
 	}
 	slices.SortFunc(*infos, func(a, b Userinfo) int {
 		return cmp.Compare(a.Username, b.Username)
