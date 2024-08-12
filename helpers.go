@@ -119,13 +119,16 @@ func AppendSplitLines(dst []string, input string) []string {
 	var i int
 	for {
 		i = strings.IndexByte(input, '\n')
-		if i >= 0 {
+		if i > 0 {
 			_ = input[i]
 			if input[i-1] != '\r' {
 				dst = append(dst, input[:i])
 			} else {
 				dst = append(dst, input[:i-1])
 			}
+			input = input[i+1:]
+		} else if i == 0 {
+			dst = append(dst, "")
 			input = input[i+1:]
 		} else {
 			break
