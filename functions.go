@@ -100,6 +100,7 @@ func (f *Functions) host(hostport string) string {
 }
 
 type GeoipInfo struct {
+	IP             string
 	Country        string
 	Region         string
 	City           string
@@ -116,7 +117,7 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 		if ip == nil {
 			ips, _ := f.GeoResolver.Resolver.LookupNetIP(ctx, "ip", ipStr)
 			if len(ips) == 0 {
-				return &GeoipInfo{Country: "ZZ"}, time.Minute, nil
+				return &GeoipInfo{IP: ipStr, Country: "ZZ"}, time.Minute, nil
 			}
 			ip = net.IP(ips[0].AsSlice())
 		}
@@ -127,12 +128,13 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 		}
 
 		if country == "CN" && IsBogusChinaIP(ip) {
-			return &GeoipInfo{Country: "ZZ"}, time.Minute, nil
+			return &GeoipInfo{IP: ipStr, Country: "ZZ"}, time.Minute, nil
 		}
 
 		log.Debug().IPAddr("ip", ip).Str("country", country).Str("region", region).Str("city", city).Msg("get city by ip")
 
 		result := &GeoipInfo{
+			IP:      ipStr,
 			Country: country,
 			Region:  region,
 			City:    city,
