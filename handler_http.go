@@ -163,7 +163,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		h.ForwardHandler.ServeHTTP(rw, req)
 	case containsHostname && h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0))):
 		h.ForwardHandler.ServeHTTP(rw, req)
-	case containsHostname && strings.HasPrefix(req.URL.Path, "/.well-known/reverse/tcp/"):
+	case containsHostname && h.Config.Tunnel.Enabled && strings.HasPrefix(req.URL.Path, "/.well-known/reverse/tcp/"):
 		h.TunnelHandler.ServeHTTP(rw, req)
 	case req.Method == http.MethodConnect:
 		h.ForwardHandler.ServeHTTP(rw, req)

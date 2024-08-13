@@ -424,6 +424,9 @@ func main() {
 				Dialers:        dialers,
 				Functions:      functions.FuncMap,
 			},
+			TunnelHandler: &HTTPTunnelHandler{
+				Config: server,
+			},
 			WebHandler: &HTTPWebHandler{
 				Config:    server,
 				Transport: transport,
@@ -436,7 +439,12 @@ func main() {
 			Config:         server,
 		}
 
-		for _, h := range []HTTPHandler{handler.ForwardHandler, handler.WebHandler, handler} {
+		for _, h := range []HTTPHandler{
+			handler.ForwardHandler,
+			handler.TunnelHandler,
+			handler.WebHandler,
+			handler,
+		} {
 			err = h.Load()
 			if err != nil {
 				log.Fatal().Err(err).Strs("server_name", server.ServerName).Msgf("%T.Load() return error: %+v", h, err)

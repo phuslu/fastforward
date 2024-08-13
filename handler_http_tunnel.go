@@ -1,11 +1,14 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,8 +17,8 @@ import (
 )
 
 type HTTPTunnelHandler struct {
-	Config        HTTPConfig
-	ForwardLogger log.Logger
+	Config       HTTPConfig
+	TunnelLogger log.Logger
 
 	csvloader *FileLoader[[]Userinfo]
 }
@@ -39,7 +42,7 @@ func (h *HTTPTunnelHandler) Load() error {
 }
 
 func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
+	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
 	var user Userinfo
 	if s := req.Header.Get("authorization"); s != "" {
@@ -51,20 +54,46 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		}
 	}
 
+	if user.Username == "" || user.Password == "" {
+		log.Error().Context(ri.LogContext).Str("username", user.Username).Msg("tunnel user authorization required")
+		http.Error(rw, "Authorization Required", http.StatusUnauthorized)
+		return
+	}
+
+	records := *h.csvloader.Load()
+	i, ok := slices.BinarySearchFunc(records, ri.ProxyUser, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+	switch {
+	case !ok:
+		user.AuthError = fmt.Errorf("invalid username: %v", user.Username)
+	case user.Password != records[i].Password:
+		user.AuthError = fmt.Errorf("wrong password: %v", user.Username)
+	default:
+		user.AuthError = nil
+	}
+
+	if user.AuthError != nil {
+		log.Error().Context(ri.LogContext).Str("username", user.Username).Msg("tunnel user auth failed")
+		http.Error(rw, user.AuthError.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	hijacker, ok := rw.(http.Hijacker)
 	if !ok {
+		log.Error().Context(ri.LogContext).Str("username", user.Username).Msg("tunnel cannot hijack request")
 		http.Error(rw, "Hijack request failed", http.StatusInternalServerError)
 		return
 	}
 
 	conn, _, err := hijacker.Hijack()
 	if !ok {
+		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel hijack request error")
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	session, err := yamux.Client(conn, nil)
 	if err != nil {
+		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open yamux session error")
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -74,11 +103,12 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
+		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open tcp listener error")
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Info().Msgf("Listening on %s", ln.Addr())
+	log.Info().Context(ri.LogContext).Str("username", user.Username).Stringer("addr", ln.Addr()).Msg("tunnel open tcp listener")
 
 	go func(ctx context.Context, ln net.Listener, conn net.Conn, session *yamux.Session) {
 		defer ln.Close()
@@ -98,6 +128,8 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				log.Error().Err(err).Msg("Failed to open local session")
 				break
 			}
+
+			log.Info().Stringer("remote_addr", rconn.RemoteAddr()).Stringer("local_addr", conn.RemoteAddr()).Msg("tunnel forwarding")
 
 			go func(c1, c2 net.Conn) {
 				defer c1.Close()

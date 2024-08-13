@@ -42,6 +42,11 @@ type HTTPConfig struct {
 		Log              bool   `json:"log" yaml:"log"`
 		LogInterval      int64  `json:"log_interval" yaml:"log_interval"`
 	} `json:"forward" yaml:"forward"`
+	Tunnel struct {
+		Enabled   bool   `json:"enabled" yaml:"enabled"`
+		AuthTable string `json:"auth_table" yaml:"auth_table"`
+		Log       bool   `json:"log" yaml:"log"`
+	} `json:"tunnel" yaml:"tunnel"`
 	Web []struct {
 		Location string `json:"location" yaml:"location"`
 		Cgi      struct {
