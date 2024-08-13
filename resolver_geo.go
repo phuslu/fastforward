@@ -9,10 +9,11 @@ import (
 )
 
 type GeoResolver struct {
-	Resolver     *Resolver
-	CityReader   *maxminddb.Reader
-	ISPReader    *maxminddb.Reader
-	DomainReader *maxminddb.Reader
+	Resolver             *Resolver
+	CityReader           *maxminddb.Reader
+	ISPReader            *maxminddb.Reader
+	DomainReader         *maxminddb.Reader
+	ConnectionTypeReader *maxminddb.Reader
 }
 
 func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {
@@ -93,6 +94,24 @@ func (r *GeoResolver) LookupDomain(ctx context.Context, ip net.IP) (string, erro
 	err := r.DomainReader.Lookup(ip, &record)
 
 	return record.Domain, err
+}
+
+func (r *GeoResolver) LookupConnectionType(ctx context.Context, ip net.IP) (string, error) {
+	if r.ConnectionTypeReader == nil {
+		return "", errors.New("no maxmind domain database found")
+	}
+
+	if ip == nil {
+		return "", errors.New("invalid ip address")
+	}
+
+	var record struct {
+		ConnectionType string `maxminddb:"connection_type"`
+	}
+
+	err := r.ConnectionTypeReader.Lookup(ip, &record)
+
+	return record.ConnectionType, err
 }
 
 func IsBogusChinaIP(ip net.IP) (ok bool) {

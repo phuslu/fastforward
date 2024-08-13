@@ -233,6 +233,13 @@ func main() {
 		}
 		break
 	}
+	for _, name := range []string{"GeoIP2-Connection-Type.mmdb", "GeoLite2-Connection-Type.mmdb"} {
+		geoResolver.ConnectionTypeReader, err = maxminddb.Open(name)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Fatal().Err(err).Str("geoip2_connection_type_database", name).Msg("load geoip2 connection_type database error")
+		}
+		break
+	}
 
 	// global dialer
 	dialer := &LocalDialer{

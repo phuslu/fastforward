@@ -100,12 +100,13 @@ func (f *Functions) host(hostport string) string {
 }
 
 type GeoipInfo struct {
-	Country string
-	Region  string
-	City    string
-	ISP     string
-	ASN     string
-	Domain  string
+	Country        string
+	Region         string
+	City           string
+	ISP            string
+	ASN            string
+	Domain         string
+	ConnectionType string
 }
 
 func (f *Functions) geoip(ipStr string) GeoipInfo {
@@ -113,7 +114,7 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 		ip := net.ParseIP(ipStr)
 
 		if ip == nil {
-			ips, _ := f.GeoResolver.Resolver.LookupNetIP(context.Background(), "ip", ipStr)
+			ips, _ := f.GeoResolver.Resolver.LookupNetIP(ctx, "ip", ipStr)
 			if len(ips) == 0 {
 				return &GeoipInfo{Country: "ZZ"}, time.Minute, nil
 			}
@@ -122,7 +123,7 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 
 		var country, region, city string
 		if f.GeoResolver.CityReader != nil {
-			country, region, city, _ = f.GeoResolver.LookupCity(context.Background(), ip)
+			country, region, city, _ = f.GeoResolver.LookupCity(ctx, ip)
 		}
 
 		if country == "CN" && IsBogusChinaIP(ip) {
@@ -138,7 +139,7 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 		}
 
 		if f.GeoResolver.ISPReader != nil {
-			if isp, asn, err := f.GeoResolver.LookupISP(context.Background(), ip); err == nil {
+			if isp, asn, err := f.GeoResolver.LookupISP(ctx, ip); err == nil {
 				result.ISP = isp
 				result.ASN = fmt.Sprintf("AS%d", asn)
 				log.Debug().IPAddr("ip", ip).Str("isp", isp).Uint("asn", asn).Msg("get isp by ip")
@@ -146,9 +147,16 @@ func (f *Functions) geoip(ipStr string) GeoipInfo {
 		}
 
 		if f.GeoResolver.DomainReader != nil {
-			if domain, err := f.GeoResolver.LookupDomain(context.Background(), ip); err == nil {
+			if domain, err := f.GeoResolver.LookupDomain(ctx, ip); err == nil {
 				result.Domain = domain
 				log.Debug().IPAddr("ip", ip).Str("domain", domain).Msg("get domain by ip")
+			}
+		}
+
+		if f.GeoResolver.ConnectionTypeReader != nil {
+			if conntype, err := f.GeoResolver.LookupConnectionType(ctx, ip); err == nil {
+				result.ConnectionType = conntype
+				log.Debug().IPAddr("ip", ip).Str("connection_type", conntype).Msg("get connection_type by ip")
 			}
 		}
 
