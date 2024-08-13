@@ -24,6 +24,7 @@ require (
 require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 // indirect
+	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.20.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
