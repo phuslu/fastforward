@@ -7,8 +7,13 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/yamux"
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/ssh"
 )
@@ -18,6 +23,7 @@ type TunnelHandler struct {
 	ForwardLogger log.Logger
 	GeoResolver   *GeoResolver
 	LocalDialer   Dialer
+	Transport     *http.Transport
 }
 
 func (h *TunnelHandler) Load() error {
@@ -26,8 +32,11 @@ func (h *TunnelHandler) Load() error {
 
 func (h *TunnelHandler) Serve(ctx context.Context) {
 	loop := func() bool {
-		// Connect to the SSH server
-		ln, err := h.tunnel(ctx)
+		tunnel := h.sshtunnel
+		if h.Config.SSH.Host == "" && h.Config.HTTP.Host != "" {
+			tunnel = h.httptunnel
+		}
+		ln, err := tunnel(ctx)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to listen %s", h.Config.RemoteAddr)
 			time.Sleep(2 * time.Second)
@@ -59,7 +68,7 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 	return
 }
 
-func (h *TunnelHandler) tunnel(ctx context.Context) (net.Listener, error) {
+func (h *TunnelHandler) sshtunnel(ctx context.Context) (net.Listener, error) {
 	config := &ssh.ClientConfig{
 		User: h.Config.SSH.User,
 		Auth: []ssh.AuthMethod{
@@ -93,6 +102,65 @@ func (h *TunnelHandler) tunnel(ctx context.Context) (net.Listener, error) {
 	}
 
 	return &TunnelListener{ln, lconn}, nil
+}
+
+func (h *TunnelHandler) httptunnel(ctx context.Context) (net.Listener, error) {
+	pr, pw := io.Pipe()
+	req := &http.Request{
+		ProtoMajor: 1,
+		Method:     http.MethodGet,
+		URL: &url.URL{
+			Scheme: h.Config.HTTP.Scheme,
+			Host:   net.JoinHostPort(h.Config.HTTP.Host, strconv.Itoa(h.Config.HTTP.Port)),
+			Path:   "/.well-known/reverse/tcp/" + strings.Replace(h.Config.RemoteAddr, ":", "/", 1) + "/",
+		},
+		Host: h.Config.HTTP.Host,
+		Header: http.Header{
+			"content-type": []string{"application/octet-stream"},
+			"user-agent":   []string{DefaultUserAgent},
+		},
+		Body:          pr,
+		ContentLength: -1,
+	}
+
+	var remoteAddr, localAddr net.Addr
+
+	req = req.WithContext(httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		GotConn: func(connInfo httptrace.GotConnInfo) {
+			remoteAddr, localAddr = connInfo.Conn.RemoteAddr(), connInfo.Conn.LocalAddr()
+		},
+	}))
+
+	resp, err := h.Transport.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		data, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("proxy: read from %s error: %s: %s", req.URL.String(), resp.Status, data)
+	}
+
+	if remoteAddr == nil || localAddr == nil {
+		remoteAddr, localAddr = &net.TCPAddr{}, &net.TCPAddr{}
+	}
+
+	conn := &http2Stream{
+		r:          resp.Body,
+		w:          pw,
+		closed:     make(chan struct{}),
+		remoteAddr: remoteAddr,
+		localAddr:  localAddr,
+	}
+
+	ln, err := yamux.Server(conn, nil)
+	if err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("proxy: open yamux server on %s: %w", remoteAddr.String(), err)
+	}
+
+	return &TunnelListener{ln, conn}, nil
 }
 
 func (h *TunnelHandler) handle(ctx context.Context, rconn net.Conn, laddr string) {
