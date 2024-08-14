@@ -24,18 +24,18 @@ type HTTPTunnelHandler struct {
 }
 
 func (h *HTTPTunnelHandler) Load() error {
-	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
+	if strings.HasSuffix(h.Config.Tunnel.AuthTable, ".csv") {
 		h.csvloader = &FileLoader[[]Userinfo]{
-			Filename:     h.Config.Forward.AuthTable,
+			Filename:     h.Config.Tunnel.AuthTable,
 			Unmarshal:    UserCsvUnmarshal,
 			PollDuration: 15 * time.Second,
 			ErrorLogger:  log.DefaultLogger.Std("", 0),
 		}
 		records := h.csvloader.Load()
 		if records == nil {
-			log.Fatal().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Forward.AuthTable).Msg("load auth_table failed")
+			log.Fatal().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Tunnel.AuthTable).Msg("load auth_table failed")
 		}
-		log.Info().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Forward.AuthTable).Int("auth_table_size", len(*records)).Msg("load auth_table ok")
+		log.Info().Strs("server_name", h.Config.ServerName).Str("auth_table", h.Config.Tunnel.AuthTable).Int("auth_table_size", len(*records)).Msg("load auth_table ok")
 	}
 
 	return nil
@@ -60,8 +60,10 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	log.Info().Context(ri.LogContext).Str("username", user.Username).Str("password", user.Password).Msg("tunnel verify user")
+
 	records := *h.csvloader.Load()
-	i, ok := slices.BinarySearchFunc(records, ri.ProxyUser, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+	i, ok := slices.BinarySearchFunc(records, user, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
 	switch {
 	case !ok:
 		user.AuthError = fmt.Errorf("invalid username: %v", user.Username)
@@ -72,7 +74,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	if user.AuthError != nil {
-		log.Error().Context(ri.LogContext).Str("username", user.Username).Msg("tunnel user auth failed")
+		log.Error().Err(user.AuthError).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel user auth failed")
 		http.Error(rw, user.AuthError.Error(), http.StatusUnauthorized)
 		return
 	}

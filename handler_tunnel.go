@@ -3,6 +3,7 @@ package main
 import (
 	"cmp"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -33,7 +34,7 @@ func (h *TunnelHandler) Load() error {
 func (h *TunnelHandler) Serve(ctx context.Context) {
 	loop := func() bool {
 		tunnel := h.sshtunnel
-		if h.Config.SSH.Host == "" && h.Config.HTTP.Host != "" {
+		if h.Config.SSH.Host == "" && h.Config.HTTPS.Host != "" {
 			tunnel = h.httptunnel
 		}
 		ln, err := tunnel(ctx)
@@ -110,18 +111,21 @@ func (h *TunnelHandler) httptunnel(ctx context.Context) (net.Listener, error) {
 		ProtoMajor: 1,
 		Method:     http.MethodGet,
 		URL: &url.URL{
-			Scheme: h.Config.HTTP.Scheme,
-			Host:   net.JoinHostPort(h.Config.HTTP.Host, strconv.Itoa(h.Config.HTTP.Port)),
+			Scheme: "https",
+			Host:   net.JoinHostPort(h.Config.HTTPS.Host, strconv.Itoa(h.Config.HTTPS.Port)),
 			Path:   "/.well-known/reverse/tcp/" + strings.Replace(h.Config.RemoteAddr, ":", "/", 1) + "/",
 		},
-		Host: h.Config.HTTP.Host,
+		Host: h.Config.HTTPS.Host,
 		Header: http.Header{
-			"content-type": []string{"application/octet-stream"},
-			"user-agent":   []string{DefaultUserAgent},
+			"content-type":  []string{"application/octet-stream"},
+			"user-agent":    []string{DefaultUserAgent},
+			"authorization": []string{"Basic " + base64.StdEncoding.EncodeToString([]byte(h.Config.HTTPS.User+":"+h.Config.HTTPS.Password))},
 		},
 		Body:          pr,
 		ContentLength: -1,
 	}
+
+	log.Info().Stringer("request_url", req.URL).Msg("send tunnel request")
 
 	var remoteAddr, localAddr net.Addr
 

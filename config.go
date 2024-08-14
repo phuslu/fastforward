@@ -109,13 +109,12 @@ type TunnelConfig struct {
 		Password string `json:"password" yaml:"password"`
 		Key      string `json:"key" yaml:"key"`
 	} `json:"ssh" yaml:"ssh"`
-	HTTP struct {
-		Scheme   string `json:"scheme" yaml:"scheme"`
+	HTTPS struct {
 		Host     string `json:"host" yaml:"host"`
 		Port     int    `json:"port" yaml:"port"`
 		User     string `json:"user" yaml:"user"`
 		Password string `json:"password" yaml:"password"`
-	} `json:"http" yaml:"http"`
+	} `json:"https" yaml:"https"`
 }
 
 type Config struct {
