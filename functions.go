@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -81,6 +82,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["host"] = f.host
 	f.FuncMap["ipRange"] = f.ipRange
 	f.FuncMap["isInNet"] = f.isInNet
+	f.FuncMap["isInFile"] = f.isInFile
 	f.FuncMap["readfile"] = f.readfile
 
 	return nil
@@ -274,6 +276,16 @@ func (f *Functions) fetch(ua string, timeout, ttl int, uri string) (response Fet
 func (f *Functions) ipRange(cidr string) (result IPRange) {
 	result, _ = GetIPRange(strings.TrimSpace(cidr))
 	return
+}
+
+func (f *Functions) isInFile(line, filename string) bool {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		log.Error().Err(err).Str("line", line).Str("filename", filename).Msg("isInFile error")
+		return false
+	}
+
+	return slices.Contains(AppendSplitLines(make([]string, 0, 1024), b2s(data)), line)
 }
 
 func (f *Functions) isInNet(host, cidr string) bool {
