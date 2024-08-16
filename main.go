@@ -733,7 +733,6 @@ func main() {
 			ForwardLogger: forwardLogger,
 			GeoResolver:   geoResolver,
 			LocalDialer:   dialer,
-			Transport:     transport,
 		}
 
 		go h.Serve(context.Background())

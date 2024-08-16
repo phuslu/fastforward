@@ -2,7 +2,6 @@ package main
 
 import (
 	"cmp"
-	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -93,6 +92,12 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	_, err = io.WriteString(conn, "HTTP/1.1 200 OK\r\n\r\n")
+	if !ok {
+		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel send response error")
+		return
+	}
+
 	session, err := yamux.Client(conn, nil)
 	if err != nil {
 		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open yamux session error")
@@ -112,33 +117,36 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	log.Info().Context(ri.LogContext).Str("username", user.Username).Stringer("addr", ln.Addr()).Msg("tunnel open tcp listener")
 
-	go func(ctx context.Context, ln net.Listener, conn net.Conn, session *yamux.Session) {
-		defer ln.Close()
-		defer conn.Close()
-		defer session.Close()
-		for {
-			rconn, err := ln.Accept()
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to accept remote connection")
-				time.Sleep(10 * time.Millisecond)
-				rconn.Close()
-				continue
-			}
+	defer ln.Close()
+	defer conn.Close()
+	defer session.Close()
 
-			lconn, err := session.Open()
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to open local session")
-				break
-			}
-
-			log.Info().Stringer("remote_addr", rconn.RemoteAddr()).Stringer("local_addr", conn.RemoteAddr()).Msg("tunnel forwarding")
-
-			go func(c1, c2 net.Conn) {
-				defer c1.Close()
-				defer c2.Close()
-				go io.Copy(c1, c2)
-				io.Copy(c2, c1)
-			}(lconn, rconn)
+	for {
+		rconn, err := ln.Accept()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to accept remote connection")
+			time.Sleep(10 * time.Millisecond)
+			rconn.Close()
+			continue
 		}
-	}(context.Background(), ln, conn, session)
+
+		lconn, err := session.Open()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to open local session")
+			break
+		}
+
+		log.Info().Stringer("remote_addr", rconn.RemoteAddr()).Stringer("local_addr", conn.RemoteAddr()).Msg("tunnel forwarding")
+
+		go func(c1, c2 net.Conn) {
+			defer c1.Close()
+			defer c2.Close()
+			go func() {
+				_, err := io.Copy(c1, c2)
+				log.Error().Err(err).Stringer("src_addr", c2.RemoteAddr()).Stringer("dest_addr", c1.RemoteAddr()).Msg("tunnel forwarding error")
+			}()
+			_, err := io.Copy(c2, c1)
+			log.Error().Err(err).Stringer("src_addr", c1.RemoteAddr()).Stringer("dest_addr", c2.RemoteAddr()).Msg("tunnel forwarding error")
+		}(lconn, rconn)
+	}
 }

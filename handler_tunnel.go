@@ -1,15 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"net/http/httptrace"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +24,6 @@ type TunnelHandler struct {
 	ForwardLogger log.Logger
 	GeoResolver   *GeoResolver
 	LocalDialer   Dialer
-	Transport     *http.Transport
 }
 
 func (h *TunnelHandler) Load() error {
@@ -106,62 +105,98 @@ func (h *TunnelHandler) sshtunnel(ctx context.Context) (net.Listener, error) {
 }
 
 func (h *TunnelHandler) httptunnel(ctx context.Context) (net.Listener, error) {
-	pr, pw := io.Pipe()
-	req := &http.Request{
-		ProtoMajor: 1,
-		Method:     http.MethodGet,
-		URL: &url.URL{
-			Scheme: "https",
-			Host:   net.JoinHostPort(h.Config.HTTPS.Host, strconv.Itoa(h.Config.HTTPS.Port)),
-			Path:   "/.well-known/reverse/tcp/" + strings.Replace(h.Config.RemoteAddr, ":", "/", 1) + "/",
-		},
-		Host: h.Config.HTTPS.Host,
-		Header: http.Header{
-			"content-type":  []string{"application/octet-stream"},
-			"user-agent":    []string{DefaultUserAgent},
-			"authorization": []string{"Basic " + base64.StdEncoding.EncodeToString([]byte(h.Config.HTTPS.User+":"+h.Config.HTTPS.Password))},
-		},
-		Body:          pr,
-		ContentLength: -1,
+	log.Info().Str("tunnel_host", h.Config.HTTPS.Host).Int("tunnel_port", h.Config.HTTPS.Port).Msg("connect tunnel host")
+
+	ctx1, cancel := context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
+	defer cancel()
+
+	conn, err := h.LocalDialer.DialContext(ctx1, "tcp", net.JoinHostPort(h.Config.HTTPS.Host, strconv.Itoa(h.Config.HTTPS.Port)))
+	if err != nil {
+		log.Error().Err(err).Str("tunnel_host", h.Config.HTTPS.Host).Int("tunnel_port", h.Config.HTTPS.Port).Msg("connect tunnel host error")
+		return nil, err
 	}
 
-	log.Info().Stringer("request_url", req.URL).Msg("send tunnel request")
+	tlsConn := tls.Client(conn, &tls.Config{
+		NextProtos:         []string{"http/1.1"},
+		InsecureSkipVerify: h.Config.HTTPS.Insecure,
+		ServerName:         h.Config.HTTPS.Host,
+	})
+	err = tlsConn.HandshakeContext(ctx1)
+	if err != nil {
+		_ = conn.Close()
+		log.Error().Err(err).Str("tunnel_host", h.Config.HTTPS.Host).Int("tunnel_port", h.Config.HTTPS.Port).Msg("handshake tunnel host error")
+		return nil, err
+	}
 
-	var remoteAddr, localAddr net.Addr
+	i := strings.LastIndexByte(h.Config.RemoteAddr, ':')
+	if i < 0 || i == len(h.Config.RemoteAddr)-1 {
+		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.RemoteAddr)
+	}
 
-	req = req.WithContext(httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
-		GotConn: func(connInfo httptrace.GotConnInfo) {
-			remoteAddr, localAddr = connInfo.Conn.RemoteAddr(), connInfo.Conn.LocalAddr()
-		},
-	}))
+	buf := make([]byte, 0, 2048)
+	buf = fmt.Appendf(buf, "GET /.well-known/reverse/tcp/%s/%s/ HTTP/1.0\r\n", h.Config.RemoteAddr[:i], h.Config.RemoteAddr[i+1:])
+	buf = fmt.Appendf(buf, "Host: %s\r\n", h.Config.HTTPS.Host)
+	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(h.Config.HTTPS.User+":"+h.Config.HTTPS.Password)))
+	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", DefaultUserAgent)
+	buf = fmt.Appendf(buf, "Content-Type: application/octet-stream\r\n")
+	buf = fmt.Appendf(buf, "\r\n")
 
-	resp, err := h.Transport.RoundTrip(req)
+	log.Info().Stringer("tunnel_conn_addr", tlsConn.RemoteAddr()).Bytes("request_body", buf).Msg("send tunnel request")
+
+	_, err = tlsConn.Write(buf)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		data, _ := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		return nil, fmt.Errorf("proxy: read from %s error: %s: %s", req.URL.String(), resp.Status, data)
+	// see https://github.com/golang/go/issues/5373
+	buf = buf[:cap(buf)]
+	for i := range buf {
+		buf[i] = 0
 	}
 
-	if remoteAddr == nil || localAddr == nil {
-		remoteAddr, localAddr = &net.TCPAddr{}, &net.TCPAddr{}
+	b := buf
+	total := 0
+
+	conn = tlsConn
+	// conn.SetDeadline(time.Now().Add(time.Duration(h.Config.DialTimeout) * time.Second))
+
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			return nil, err
+		}
+		total += n
+		buf = buf[n:]
+
+		if i := bytes.Index(b, CRLFCRLF); i > 0 {
+			if i+4 < total {
+				conn = &ConnWithData{conn, b[i+4 : total]}
+			}
+			break
+		}
 	}
 
-	conn := &http2Stream{
-		r:          resp.Body,
-		w:          pw,
-		closed:     make(chan struct{}),
-		remoteAddr: remoteAddr,
-		localAddr:  localAddr,
+	status := 0
+	n := bytes.IndexByte(b, ' ')
+	if n < 0 {
+		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.RemoteAddr, conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
 	}
+	for i, c := range b[n+1:] {
+		if i == 3 || c < '0' || c > '9' {
+			break
+		}
+		status = status*10 + int(c-'0')
+	}
+	if status != http.StatusOK && status != http.StatusSwitchingProtocols {
+		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.RemoteAddr, conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
+	}
+
+	conn.SetDeadline(time.Time{})
 
 	ln, err := yamux.Server(conn, nil)
 	if err != nil {
 		_ = conn.Close()
-		return nil, fmt.Errorf("proxy: open yamux server on %s: %w", remoteAddr.String(), err)
+		return nil, fmt.Errorf("tunnel: open yamux server on remote %s: %w", h.Config.RemoteAddr, err)
 	}
 
 	return &TunnelListener{ln, conn}, nil
@@ -181,10 +216,12 @@ func (h *TunnelHandler) handle(ctx context.Context, rconn net.Conn, laddr string
 		defer cancel()
 	}
 
+	log.Info().Str("remote_host", rhost).Str("local_addr", laddr).Msg("tunnel handler connect local addr")
 	lconn, err := h.LocalDialer.DialContext(ctx, "tcp", laddr)
 	if err != nil {
 		log.Error().Err(err).Msgf("Fail to dial %v", laddr)
 	}
+	defer lconn.Close()
 
 	go io.Copy(rconn, lconn)
 	io.Copy(lconn, rconn)

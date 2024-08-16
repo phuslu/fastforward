@@ -114,6 +114,7 @@ type TunnelConfig struct {
 		Port     int    `json:"port" yaml:"port"`
 		User     string `json:"user" yaml:"user"`
 		Password string `json:"password" yaml:"password"`
+		Insecure bool   `json:"insecure" yaml:"insecure"`
 	} `json:"https" yaml:"https"`
 }
 
