@@ -223,8 +223,19 @@ func (h *TunnelHandler) handle(ctx context.Context, rconn net.Conn, laddr string
 	}
 	defer lconn.Close()
 
-	go io.Copy(rconn, lconn)
-	io.Copy(lconn, rconn)
+	go func() {
+		defer rconn.Close()
+		defer lconn.Close()
+		_, err := io.Copy(rconn, lconn)
+		if err != nil {
+			log.Error().Err(err).Stringer("src_addr", lconn.RemoteAddr()).Stringer("dest_addr", rconn.RemoteAddr()).Msg("tunnel forwarding error")
+		}
+	}()
+
+	_, err = io.Copy(lconn, rconn)
+	if err != nil {
+		log.Error().Err(err).Stringer("src_addr", rconn.RemoteAddr()).Stringer("dest_addr", lconn.RemoteAddr()).Msg("tunnel forwarding error")
+	}
 }
 
 type TunnelListener struct {
