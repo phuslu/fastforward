@@ -65,6 +65,11 @@ var riPool = sync.Pool{
 	},
 }
 
+const (
+	HTTPTunnelConnectTCPPathPrefix = "/.well-known/connect/tcp/"
+	HTTPTunnelReverseTCPPathPrefix = "/.well-known/reverse/tcp/"
+)
+
 func (h *HTTPServerHandler) Load() error {
 	for ext, typ := range mimeTypes {
 		mime.AddExtensionType(ext, typ)
@@ -161,9 +166,9 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	switch {
 	case hostname != "" && !containsHostname:
 		h.ForwardHandler.ServeHTTP(rw, req)
-	case containsHostname && h.Config.Forward.Websocket != "" && req.URL.Path == h.Config.Forward.Websocket && ((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0))):
+	case containsHostname && strings.HasPrefix(req.URL.Path, HTTPTunnelConnectTCPPathPrefix):
 		h.ForwardHandler.ServeHTTP(rw, req)
-	case containsHostname && h.Config.Tunnel.Enabled && strings.HasPrefix(req.URL.Path, "/.well-known/reverse/tcp/"):
+	case containsHostname && h.Config.Tunnel.Enabled && strings.HasPrefix(req.URL.Path, HTTPTunnelReverseTCPPathPrefix):
 		h.TunnelHandler.ServeHTTP(rw, req)
 	case req.Method == http.MethodConnect:
 		h.ForwardHandler.ServeHTTP(rw, req)

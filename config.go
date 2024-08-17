@@ -38,7 +38,6 @@ type HTTPConfig struct {
 		DenyDomainsTable string `json:"deny_domains_table" yaml:"deny_domains_table"`
 		SpeedLimit       int64  `json:"speed_limit" yaml:"speed_limit"`
 		PreferIpv6       bool   `json:"prefer_ipv6" yaml:"prefer_ipv6"`
-		Websocket        string `json:"websocket" yaml:"websocket"`
 		Log              bool   `json:"log" yaml:"log"`
 		LogInterval      int64  `json:"log_interval" yaml:"log_interval"`
 	} `json:"forward" yaml:"forward"`
