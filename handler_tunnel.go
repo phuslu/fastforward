@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
@@ -10,7 +9,8 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strconv"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -24,6 +24,7 @@ type TunnelHandler struct {
 	ForwardLogger log.Logger
 	GeoResolver   *GeoResolver
 	LocalDialer   Dialer
+	Dialers       map[string]string
 }
 
 func (h *TunnelHandler) Load() error {
@@ -32,11 +33,17 @@ func (h *TunnelHandler) Load() error {
 
 func (h *TunnelHandler) Serve(ctx context.Context) {
 	loop := func() bool {
-		tunnel := h.sshtunnel
-		if h.Config.SSH.Host == "" && h.Config.HTTPS.Host != "" {
+		var tunnel func(context.Context, string) (net.Listener, error)
+		dialer := h.Dialers[h.Config.Dialer]
+		switch strings.Split(dialer, "://")[0] {
+		case "ssh", "ssh2":
+			tunnel = h.sshtunnel
+		case "http", "https":
 			tunnel = h.httptunnel
+		default:
+			log.Fatal().Str("dialer", dialer).Msg("dialer tunnel is unsupported")
 		}
-		ln, err := tunnel(ctx)
+		ln, err := tunnel(ctx, dialer)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to listen %s", h.Config.RemoteAddr)
 			time.Sleep(2 * time.Second)
@@ -68,63 +75,99 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 	return
 }
 
-func (h *TunnelHandler) sshtunnel(ctx context.Context) (net.Listener, error) {
+func (h *TunnelHandler) sshtunnel(ctx context.Context, dialer string) (net.Listener, error) {
+	log.Info().Str("dialer", dialer).Msg("connecting tunnel host")
+
+	u, err := url.Parse(dialer)
+	if err != nil {
+		return nil, err
+	}
+	if u.User == nil {
+		return nil, fmt.Errorf("no user info in dialer: %s", dialer)
+	}
+
 	config := &ssh.ClientConfig{
-		User: h.Config.SSH.User,
+		User: u.User.Username(),
 		Auth: []ssh.AuthMethod{
-			ssh.Password(h.Config.SSH.Password),
+			ssh.Password(first(u.User.Password())),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         60 * time.Second,
 	}
-	if h.Config.SSH.Key != "" {
-		signer, err := ssh.ParsePrivateKey([]byte(h.Config.SSH.Key))
+	if key := u.Query().Get("key"); key != "" {
+		data, err := os.ReadFile(key)
 		if err != nil {
-			log.Error().Err(err).Msgf("invalid ssh key %s", h.Config.SSH.Key)
-			return nil, fmt.Errorf("invalid ssh key %s: %w", h.Config.SSH.Key, err)
+			log.Error().Err(err).Msgf("failed to read ssh key %s", key)
+			return nil, err
+		}
+		signer, err := ssh.ParsePrivateKey(data)
+		if err != nil {
+			log.Error().Err(err).Msgf("invalid ssh key %s", data)
+			return nil, fmt.Errorf("invalid ssh key %s: %w", data, err)
 		}
 		config.Auth = append([]ssh.AuthMethod{ssh.PublicKeys(signer)}, config.Auth...)
 	}
 
-	hostport := fmt.Sprintf("%s:%d", h.Config.SSH.Host, cmp.Or(h.Config.SSH.Port, 22))
-	lconn, err := ssh.Dial("tcp", hostport, config)
+	hostport := u.Host
+	if _, _, err := net.SplitHostPort(hostport); err != nil {
+		hostport = net.JoinHostPort(hostport, "22")
+	}
+	conn, err := ssh.Dial("tcp", hostport, config)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to dial %s", hostport)
-		return nil, fmt.Errorf("invalid ssh key %s: %w", h.Config.SSH.Key, err)
+		log.Error().Err(err).Msgf("failed to dial %s", hostport)
+		return nil, fmt.Errorf("failed to dial %s: %w", hostport, err)
 	}
 
 	// Set up the remote listener
-	ln, err := lconn.Listen("tcp", h.Config.RemoteAddr)
+	ln, err := conn.Listen("tcp", h.Config.RemoteAddr)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to listen %s", h.Config.RemoteAddr)
-		lconn.Close()
-		return nil, fmt.Errorf("invalid ssh key %s: %w", h.Config.SSH.Key, err)
+		log.Error().Err(err).Msgf("failed to listen %s", h.Config.RemoteAddr)
+		conn.Close()
+		return nil, fmt.Errorf("failed to dial %s: %w", h.Config.RemoteAddr, err)
 	}
 
-	return &TunnelListener{ln, lconn}, nil
+	return &TunnelListener{ln, conn}, nil
 }
 
-func (h *TunnelHandler) httptunnel(ctx context.Context) (net.Listener, error) {
-	log.Info().Str("tunnel_host", h.Config.HTTPS.Host).Int("tunnel_port", h.Config.HTTPS.Port).Msg("connect tunnel host")
+func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.Listener, error) {
+	log.Info().Str("dialer", dialer).Msg("connecting tunnel host")
 
 	ctx1, cancel := context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
 	defer cancel()
 
-	conn, err := h.LocalDialer.DialContext(ctx1, "tcp", net.JoinHostPort(h.Config.HTTPS.Host, strconv.Itoa(h.Config.HTTPS.Port)))
+	u, err := url.Parse(dialer)
 	if err != nil {
-		log.Error().Err(err).Str("tunnel_host", h.Config.HTTPS.Host).Int("tunnel_port", h.Config.HTTPS.Port).Msg("connect tunnel host error")
+		return nil, err
+	}
+	if u.User == nil {
+		return nil, fmt.Errorf("no user info in dialer: %s", dialer)
+	}
+
+	hostport := u.Host
+	if _, _, err := net.SplitHostPort(hostport); err != nil {
+		switch u.Scheme {
+		case "http":
+			hostport = net.JoinHostPort(hostport, "80")
+		default:
+			hostport = net.JoinHostPort(hostport, "443")
+		}
+	}
+
+	conn, err := h.LocalDialer.DialContext(ctx1, "tcp", hostport)
+	if err != nil {
+		log.Error().Err(err).Str("tunnel_host", hostport).Msg("connect tunnel host error")
 		return nil, err
 	}
 
 	tlsConn := tls.Client(conn, &tls.Config{
 		NextProtos:         []string{"http/1.1"},
-		InsecureSkipVerify: h.Config.HTTPS.Insecure,
-		ServerName:         h.Config.HTTPS.Host,
+		InsecureSkipVerify: u.Query().Get("insecure") == "true",
+		ServerName:         u.Hostname(),
 	})
 	err = tlsConn.HandshakeContext(ctx1)
 	if err != nil {
 		_ = conn.Close()
-		log.Error().Err(err).Str("tunnel_host", h.Config.HTTPS.Host).Int("tunnel_port", h.Config.HTTPS.Port).Msg("handshake tunnel host error")
+		log.Error().Err(err).Str("tunnel_host", hostport).Msg("handshake tunnel host error")
 		return nil, err
 	}
 
@@ -135,8 +178,8 @@ func (h *TunnelHandler) httptunnel(ctx context.Context) (net.Listener, error) {
 
 	buf := make([]byte, 0, 2048)
 	buf = fmt.Appendf(buf, "GET /.well-known/reverse/tcp/%s/%s/ HTTP/1.0\r\n", h.Config.RemoteAddr[:i], h.Config.RemoteAddr[i+1:])
-	buf = fmt.Appendf(buf, "Host: %s\r\n", h.Config.HTTPS.Host)
-	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(h.Config.HTTPS.User+":"+h.Config.HTTPS.Password)))
+	buf = fmt.Appendf(buf, "Host: %s\r\n", u.Hostname())
+	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(u.User.Username()+":"+first(u.User.Password()))))
 	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", DefaultUserAgent)
 	buf = fmt.Appendf(buf, "Content-Type: application/octet-stream\r\n")
 	buf = fmt.Appendf(buf, "\r\n")
