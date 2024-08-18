@@ -144,7 +144,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	defer bytebufferpool.Put(bb)
 
 	policyName := h.Config.Forward.Policy
-	speedlimit := 0
+	speedLimit := h.Config.Forward.SpeedLimit
 	if h.policy != nil {
 		bb.Reset()
 		err = h.policy.Execute(bb, struct {
@@ -165,7 +165,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		if strings.Contains(policyName, "=") {
 			if u, err := url.ParseQuery(policyName); err == nil {
 				policyName = u.Get("policy")
-				speedlimit, _ = strconv.Atoi(u.Get("speedlimit"))
+				if n, _ := strconv.ParseInt(u.Get("speed_limit"), 10, 64); n > 0 {
+					speedLimit = n
+				}
 			}
 		}
 
@@ -223,9 +225,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		return
 	}
 
-	if s, _ := ri.ProxyUser.Attrs["speedlimit"].(string); s != "" {
-		if n, _ := strconv.Atoi(s); n > 0 {
-			speedlimit = n
+	if s, _ := ri.ProxyUser.Attrs["speed_limit"].(string); s != "" {
+		if n, _ := strconv.ParseInt(s, 10, 64); n > 0 {
+			speedLimit = n
 		}
 	}
 
@@ -298,7 +300,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		dialerValue = strings.TrimSpace(bb.String())
 	}
 
-	log.Info().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Msg("forward request")
+	log.Info().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Int64("speed_limit", speedLimit).Msg("forward request")
 
 	var dialerName = dialerValue
 	var preferIPv6 = h.Config.Forward.PreferIpv6
@@ -436,13 +438,14 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("user_agent_os_version", ri.UserAgent.OSVersion).
 					Str("user_agent_name", ri.UserAgent.Name).
 					Str("user_agent_version", ri.UserAgent.Version).
+					Int64("speed_limit", speedLimit).
 					Value(),
 				FieldName: "transmit_bytes",
 				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
-		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(conn, int64(speedlimit)), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
-		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(conn, speedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("speed_limit", speedLimit).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
 			http.NotFound(rw, req)
@@ -532,14 +535,15 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("user_agent_os_version", ri.UserAgent.OSVersion).
 					Str("user_agent_name", ri.UserAgent.Name).
 					Str("user_agent_version", ri.UserAgent.Version).
+					Int64("speed_limit", speedLimit).
 					Value(),
 				FieldName: "transmit_bytes",
 				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
 
-		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(resp.Body, int64(speedlimit)), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
-		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
+		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(resp.Body, speedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Int64("speed_limit", speedLimit).Err(err).Msg("forward log")
 	}
 }
 

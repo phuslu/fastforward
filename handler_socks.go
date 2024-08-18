@@ -159,10 +159,10 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	}
 	req.Port = int(b[n-2])<<8 | int(b[n-1])
 
-	var speedlimit int64
-	if s, _ := req.User.Attrs["speedlimit"].(string); s != "" {
+	var speedLimit int64
+	if s, _ := req.User.Attrs["speed_limit"].(string); s != "" {
 		if n, _ := strconv.ParseInt(s, 10, 64); n > 0 {
-			speedlimit = n
+			speedLimit = n
 		}
 	}
 
@@ -242,7 +242,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	WriteSocks5Status(conn, Socks5StatusRequestGranted)
 
 	go io.Copy(rconn, conn)
-	_, err = io.Copy(conn, NewRateLimitReader(rconn, speedlimit))
+	_, err = io.Copy(conn, NewRateLimitReader(rconn, speedLimit))
 
 	if h.Config.Forward.Log {
 		var country, region, city string
