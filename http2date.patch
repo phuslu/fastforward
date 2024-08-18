@@ -1,26 +1,8 @@
 diff --git a/http2/server.go b/http2/server.go
-index ce2e8b4..6477501 100644
+index 6c349f3..612d4f4 100644
 --- a/http2/server.go
 +++ b/http2/server.go
-@@ -46,6 +46,7 @@ import (
- 	"strings"
- 	"sync"
- 	"time"
-+	_ "unsafe"
- 
- 	"golang.org/x/net/http/httpguts"
- 	"golang.org/x/net/http2/hpack"
-@@ -2596,6 +2597,9 @@ func (rws *responseWriterState) declareTrailer(k string) {
- 	}
- }
- 
-+//go:linkname appendTime net/http.appendTime
-+func appendTime([]byte, time.Time) []byte
-+
- // writeChunk writes chunks from the bufio.Writer. But because
- // bufio.Writer may bypass its chunking, sometimes p may be
- // arbitrarily large.
-@@ -2638,7 +2642,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
+@@ -2683,7 +2683,7 @@
  		var date string
  		if _, ok := rws.snapHeader["Date"]; !ok {
  			// TODO(bradfitz): be faster here, like net/http? measure.
@@ -29,3 +11,35 @@ index ce2e8b4..6477501 100644
  		}
  
  		for _, v := range rws.snapHeader["Trailer"] {
+diff --git a/http2/server_time.go b/http2/server_time.go
+new file mode 100644
+index 0000000..fa7248b
+--- /dev/null
++++ b/http2/server_time.go
+@@ -0,0 +1,26 @@
++package http2
++
++import (
++	"time"
++)
++
++func appendTime(b []byte, t time.Time) []byte {
++	const days = "SunMonTueWedThuFriSat"
++	const months = "JanFebMarAprMayJunJulAugSepOctNovDec"
++
++	t = t.UTC()
++	yy, mm, dd := t.Date()
++	hh, mn, ss := t.Clock()
++	day := days[3*t.Weekday():]
++	mon := months[3*(mm-1):]
++
++	return append(b,
++		day[0], day[1], day[2], ',', ' ',
++		byte('0'+dd/10), byte('0'+dd%10), ' ',
++		mon[0], mon[1], mon[2], ' ',
++		byte('0'+yy/1000), byte('0'+(yy/100)%10), byte('0'+(yy/10)%10), byte('0'+yy%10), ' ',
++		byte('0'+hh/10), byte('0'+hh%10), ':',
++		byte('0'+mn/10), byte('0'+mn%10), ':',
++		byte('0'+ss/10), byte('0'+ss%10), ' ',
++		'G', 'M', 'T')
++}
