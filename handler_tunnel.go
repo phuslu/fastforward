@@ -159,16 +159,20 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 		return nil, err
 	}
 
-	tlsConn := tls.Client(conn, &tls.Config{
-		NextProtos:         []string{"http/1.1"},
-		InsecureSkipVerify: u.Query().Get("insecure") == "true",
-		ServerName:         u.Hostname(),
-	})
-	err = tlsConn.HandshakeContext(ctx1)
-	if err != nil {
-		_ = conn.Close()
-		log.Error().Err(err).Str("tunnel_host", hostport).Msg("handshake tunnel host error")
-		return nil, err
+	switch u.Scheme {
+	case "https":
+		tlsConn := tls.Client(conn, &tls.Config{
+			NextProtos:         []string{"http/1.1"},
+			InsecureSkipVerify: u.Query().Get("insecure") == "true",
+			ServerName:         u.Hostname(),
+		})
+		err = tlsConn.HandshakeContext(ctx1)
+		if err != nil {
+			_ = conn.Close()
+			log.Error().Err(err).Str("tunnel_host", hostport).Msg("handshake tunnel host error")
+			return nil, err
+		}
+		conn = tlsConn
 	}
 
 	i := strings.LastIndexByte(h.Config.RemoteAddr, ':')
@@ -187,9 +191,10 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	buf = fmt.Appendf(buf, "Sec-WebSocket-Key: %s\r\n", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1)))))
 	buf = fmt.Appendf(buf, "\r\n")
 
-	log.Info().Stringer("tunnel_conn_addr", tlsConn.RemoteAddr()).Bytes("request_body", buf).Msg("send tunnel request")
+	log.Info().Stringer("tunnel_conn_addr", conn.RemoteAddr()).Bytes("request_body", buf).Msg("send tunnel request")
 
-	_, err = tlsConn.Write(buf)
+	// conn.SetDeadline(time.Now().Add(time.Duration(h.Config.DialTimeout) * time.Second))
+	_, err = conn.Write(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -202,9 +207,6 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 
 	b := buf
 	total := 0
-
-	conn = tlsConn
-	// conn.SetDeadline(time.Now().Add(time.Duration(h.Config.DialTimeout) * time.Second))
 
 	for {
 		n, err := conn.Read(buf)
