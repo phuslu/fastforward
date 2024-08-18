@@ -161,11 +161,29 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 
 	switch u.Scheme {
 	case "https":
-		tlsConn := tls.Client(conn, &tls.Config{
+		tlsConfig := &tls.Config{
 			NextProtos:         []string{"http/1.1"},
 			InsecureSkipVerify: u.Query().Get("insecure") == "true",
 			ServerName:         u.Hostname(),
-		})
+		}
+		if ech := u.Query().Get("ech"); ech != "" {
+			switch len(ech) % 4 {
+			case 1:
+				ech += "==="
+			case 2:
+				ech += "=="
+			case 3:
+				ech += "="
+			}
+			data, err := base64.StdEncoding.DecodeString(ech)
+			if err != nil {
+				log.Error().Err(err).Str("tunnel_host", hostport).Stringer("tunnel_url", u).Str("ech", ech).Msg("decode ech error")
+				return nil, err
+			}
+			tlsConfig.MinVersion = tls.VersionTLS13
+			tlsConfig.EncryptedClientHelloConfigList = data
+		}
+		tlsConn := tls.Client(conn, tlsConfig)
 		err = tlsConn.HandshakeContext(ctx1)
 		if err != nil {
 			_ = conn.Close()
