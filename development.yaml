@@ -5,7 +5,8 @@ global:
   dial_timeout: 30
   dns_cache_duration: 10m
 dialer:
-  phuslu: https://phuslu:123456@cloud.phus.lu:443/?user_agent=liner-1984
+  phuslu: https://phuslu:123456@phus.lu:443/?user_agent=liner-1984
+  cloud: wss://phuslu:123456@cloud.phus.lu:443/?user_agent=liner-1984
 http:
   - listen: [':2080']
     server_name: ['127.0.0.1', 'localhost']
@@ -28,5 +29,5 @@ stream:
 tunnel:
   - remote_addr: 127.0.0.1:10080
     local_addr: 192.168.50.1:80
-    dialer: phuslu
+    dialer: cloud
     dial_timeout: 5

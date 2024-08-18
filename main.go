@@ -316,9 +316,9 @@ func main() {
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Resolver:  resolver,
 			}
-		case "websocket", "wss":
-			dialers[name] = &WebsocketDialer{
-				EndpointFormat: fmt.Sprintf("https://%s%s", u.Host, u.RequestURI()),
+		case "ws", "wss":
+			dialers[name] = &WSSDialer{
+				EndpointFormat: fmt.Sprintf("http%s://%s%s", u.Scheme[2:], u.Host, u.RequestURI()),
 				Username:       u.User.Username(),
 				Password:       first(u.User.Password()),
 				UserAgent:      cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),

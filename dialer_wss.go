@@ -16,9 +16,9 @@ import (
 	"time"
 )
 
-var _ Dialer = (*WebsocketDialer)(nil)
+var _ Dialer = (*WSSDialer)(nil)
 
-type WebsocketDialer struct {
+type WSSDialer struct {
 	EndpointFormat string // E.g. https://www.phus.lu/wss/connect?host=%s&port=%d
 	Username       string
 	Password       string
@@ -30,7 +30,7 @@ type WebsocketDialer struct {
 	transport *http.Transport
 }
 
-func (d *WebsocketDialer) init() error {
+func (d *WSSDialer) init() error {
 	if d.transport != nil {
 		return nil
 	}
@@ -61,7 +61,7 @@ func (d *WebsocketDialer) init() error {
 	return nil
 }
 
-func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+func (d *WSSDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	if err := d.init(); err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 		return nil, fmt.Errorf("proxy: failed to get io.ReadWriteCloser")
 	}
 
-	conn := &websocketStream{
+	conn := &wssStream{
 		rwc:    rwc,
 		local:  &net.TCPAddr{},
 		remote: &net.TCPAddr{},
@@ -136,40 +136,40 @@ func (d *WebsocketDialer) DialContext(ctx context.Context, network, addr string)
 
 }
 
-type websocketStream struct {
+type wssStream struct {
 	rwc    io.ReadWriteCloser
 	local  net.Addr
 	remote net.Addr
 }
 
-func (c *websocketStream) Read(b []byte) (n int, err error) {
+func (c *wssStream) Read(b []byte) (n int, err error) {
 	return c.rwc.Read(b)
 }
 
-func (c *websocketStream) Write(b []byte) (n int, err error) {
+func (c *wssStream) Write(b []byte) (n int, err error) {
 	return c.rwc.Write(b)
 }
 
-func (c *websocketStream) Close() (err error) {
+func (c *wssStream) Close() (err error) {
 	return c.rwc.Close()
 }
 
-func (c *websocketStream) LocalAddr() net.Addr {
+func (c *wssStream) LocalAddr() net.Addr {
 	return c.local
 }
 
-func (c *websocketStream) RemoteAddr() net.Addr {
+func (c *wssStream) RemoteAddr() net.Addr {
 	return c.remote
 }
 
-func (c *websocketStream) SetDeadline(t time.Time) error {
+func (c *wssStream) SetDeadline(t time.Time) error {
 	return &net.OpError{Op: "set", Net: "websocket", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }
 
-func (c *websocketStream) SetReadDeadline(t time.Time) error {
+func (c *wssStream) SetReadDeadline(t time.Time) error {
 	return &net.OpError{Op: "set", Net: "websocket", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }
 
-func (c *websocketStream) SetWriteDeadline(t time.Time) error {
+func (c *wssStream) SetWriteDeadline(t time.Time) error {
 	return &net.OpError{Op: "set", Net: "websocket", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
 }

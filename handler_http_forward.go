@@ -374,7 +374,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				return
 			}
 
-			if tunnel {
+			if tunnel && req.Header.Get("Upgrade") == "websocket" {
 				key := sha1.Sum([]byte(req.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
 				rw.Header().Set("sec-websocket-accept", string(key[:]))
 				rw.Header().Set("upgrade", "websocket")
