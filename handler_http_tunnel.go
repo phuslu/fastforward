@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -92,7 +93,27 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	_, err = io.WriteString(conn, "HTTP/1.1 200 OK\r\n\r\n")
+	// see https://www.ietf.org/archive/id/draft-kazuho-httpbis-reverse-tunnel-00.html
+	b := make([]byte, 0, 2048)
+	switch req.Header.Get("Connection") {
+	case "upgrade", "Upgrade":
+		b = fmt.Appendf(b, "HTTP/1.1 101 Switching Protocols\r\n")
+		switch req.Header.Get("Upgrade") {
+		case "websocket":
+			key := sha1.Sum([]byte(req.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
+			b = fmt.Appendf(b, "sec-websocket-accept: %s\r\n", key[:])
+			b = fmt.Appendf(b, "connection: Upgrade\r\n")
+			b = fmt.Appendf(b, "upgrade: websocket\r\n")
+		case "reverse":
+			b = fmt.Appendf(b, "connection: Upgrade\r\n")
+			b = fmt.Appendf(b, "upgrade: reverse\r\n")
+		}
+		b = append(b, "\r\n"...)
+	default:
+		b = append(b, "HTTP/1.1 200 OK\r\n\r\n"...)
+	}
+
+	_, err = conn.Write(b)
 	if !ok {
 		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel send response error")
 		return

@@ -181,7 +181,10 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	buf = fmt.Appendf(buf, "Host: %s\r\n", u.Hostname())
 	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(u.User.Username()+":"+first(u.User.Password()))))
 	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", DefaultUserAgent)
-	buf = fmt.Appendf(buf, "Content-Type: application/octet-stream\r\n")
+	buf = fmt.Appendf(buf, "Connection: Upgrade\r\n")
+	buf = fmt.Appendf(buf, "Upgrade: websocket\r\n")
+	buf = fmt.Appendf(buf, "Sec-WebSocket-Version: 13\r\n")
+	buf = fmt.Appendf(buf, "Sec-WebSocket-Key: %s\r\n", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1)))))
 	buf = fmt.Appendf(buf, "\r\n")
 
 	log.Info().Stringer("tunnel_conn_addr", tlsConn.RemoteAddr()).Bytes("request_body", buf).Msg("send tunnel request")
