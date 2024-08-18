@@ -10,7 +10,7 @@ require (
 	github.com/nathanaelle/password/v2 v2.0.1
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/phuslu/geosite v1.0.20240801
-	github.com/phuslu/log v1.0.108
+	github.com/phuslu/log v1.0.110
 	github.com/phuslu/lru v1.0.16
 	github.com/puzpuzpuz/xsync/v3 v3.4.0
 	github.com/robfig/cron/v3 v3.0.1
