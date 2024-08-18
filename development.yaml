@@ -5,7 +5,7 @@ global:
   dial_timeout: 30
   dns_cache_duration: 10m
 dialer:
-  phuslu: http://phuslu:123456@phus.lu:443/?user_agent=liner-1984
+  phuslu: https://phuslu:123456@cloud.phus.lu:443/?user_agent=liner-1984
 http:
   - listen: [':2080']
     server_name: ['127.0.0.1', 'localhost']
