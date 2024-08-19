@@ -142,32 +142,40 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	defer conn.Close()
 	defer session.Close()
 
-	for {
-		rconn, err := ln.Accept()
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to accept remote connection")
-			time.Sleep(10 * time.Millisecond)
-			rconn.Close()
-			continue
+	exit := make(chan error)
+
+	go func() {
+		for {
+			rconn, err := ln.Accept()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to accept remote connection")
+				time.Sleep(10 * time.Millisecond)
+				rconn.Close()
+				continue
+			}
+
+			lconn, err := session.Open()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to open local session")
+				exit <- err
+				return
+			}
+
+			log.Info().Stringer("remote_addr", rconn.RemoteAddr()).Stringer("local_addr", conn.RemoteAddr()).Msg("tunnel forwarding")
+
+			go func(c1, c2 net.Conn) {
+				defer c1.Close()
+				defer c2.Close()
+				go func() {
+					_, err := io.Copy(c1, c2)
+					log.Error().Err(err).Stringer("src_addr", c2.RemoteAddr()).Stringer("dest_addr", c1.RemoteAddr()).Msg("tunnel forwarding error")
+				}()
+				_, err := io.Copy(c2, c1)
+				log.Error().Err(err).Stringer("src_addr", c1.RemoteAddr()).Stringer("dest_addr", c2.RemoteAddr()).Msg("tunnel forwarding error")
+			}(lconn, rconn)
 		}
+	}()
 
-		lconn, err := session.Open()
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to open local session")
-			break
-		}
-
-		log.Info().Stringer("remote_addr", rconn.RemoteAddr()).Stringer("local_addr", conn.RemoteAddr()).Msg("tunnel forwarding")
-
-		go func(c1, c2 net.Conn) {
-			defer c1.Close()
-			defer c2.Close()
-			go func() {
-				_, err := io.Copy(c1, c2)
-				log.Error().Err(err).Stringer("src_addr", c2.RemoteAddr()).Stringer("dest_addr", c1.RemoteAddr()).Msg("tunnel forwarding error")
-			}()
-			_, err := io.Copy(c2, c1)
-			log.Error().Err(err).Stringer("src_addr", c1.RemoteAddr()).Stringer("dest_addr", c2.RemoteAddr()).Msg("tunnel forwarding error")
-		}(lconn, rconn)
-	}
+	err = <-exit
+	log.Info().Err(err).Msg("tunnel forwarding exit.")
 }
