@@ -66,12 +66,6 @@ func (d *WSSDialer) DialContext(ctx context.Context, network, addr string) (net.
 		return nil, err
 	}
 
-	switch network {
-	case "tcp", "tcp6", "tcp4":
-	default:
-		return nil, errors.New("proxy: no support for Websocket proxy connections of type " + network)
-	}
-
 	host, portStr, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, err
