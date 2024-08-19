@@ -316,13 +316,14 @@ func main() {
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Resolver:  resolver,
 			}
-		case "ws", "wss":
+		case "ws", "wss", "wss+h3", "wss+http3":
 			dialers[name] = &WSSDialer{
-				EndpointFormat: fmt.Sprintf("http%s://%s%s", u.Scheme[2:], u.Host, u.RequestURI()),
+				EndpointFormat: fmt.Sprintf("http%s://%s%s", strings.Split(u.Scheme, "+")[0][2:], u.Host, u.RequestURI()),
 				Username:       u.User.Username(),
 				Password:       first(u.User.Password()),
 				UserAgent:      cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Insecure:       u.Query().Get("insecure") == "true",
+				Http3:          strings.HasSuffix(u.Scheme, "+h3") || strings.HasSuffix(u.Scheme, "+http3"),
 				Dialer:         dialer,
 			}
 		case "socks", "socks5", "socks5h":

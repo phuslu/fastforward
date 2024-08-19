@@ -14,20 +14,23 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/apernet/quic-go/http3"
 )
 
 var _ Dialer = (*WSSDialer)(nil)
 
 type WSSDialer struct {
-	EndpointFormat string // E.g. https://www.phus.lu/wss/connect?host=%s&port=%d
+	EndpointFormat string // E.g. https://cloud.phus.lu/.well-known/connect/tcp/%s/%d/
 	Username       string
 	Password       string
 	UserAgent      string
 	Insecure       bool
+	Http3          bool
 	Dialer         Dialer
 
 	mu        sync.Mutex
-	transport *http.Transport
+	transport http.RoundTripper
 }
 
 func (d *WSSDialer) init() error {
@@ -47,15 +50,28 @@ func (d *WSSDialer) init() error {
 		return err
 	}
 
-	d.transport = &http.Transport{
-		DisableCompression: false,
-		DialContext:        d.Dialer.DialContext,
-		TLSClientConfig: &tls.Config{
-			NextProtos:         []string{"http/1.1"},
-			InsecureSkipVerify: d.Insecure,
-			ServerName:         u.Hostname(),
-			ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-		},
+	if d.Http3 {
+		d.transport = &http3.RoundTripper{
+			DisableCompression: false,
+			EnableDatagrams:    false,
+			TLSClientConfig: &tls.Config{
+				NextProtos:         []string{"h3"},
+				InsecureSkipVerify: false,
+				ServerName:         u.Hostname(),
+				ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+			},
+		}
+	} else {
+		d.transport = &http.Transport{
+			DisableCompression: false,
+			DialContext:        d.Dialer.DialContext,
+			TLSClientConfig: &tls.Config{
+				NextProtos:         []string{"http/1.1"},
+				InsecureSkipVerify: d.Insecure,
+				ServerName:         u.Hostname(),
+				ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+			},
+		}
 	}
 
 	return nil
