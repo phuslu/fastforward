@@ -161,6 +161,17 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 		return nil, err
 	}
 
+	if tc, ok := conn.(*net.TCPConn); ok {
+		config := net.KeepAliveConfig{
+			Enable:   true,
+			Idle:     15 * time.Second,
+			Interval: 15 * time.Second,
+			Count:    3,
+		}
+		err := tc.SetKeepAliveConfig(config)
+		log.Info().Err(err).Str("tunnel_host", hostport).Any("keepalive_config", config).Msg("set tunnel host keepalive")
+	}
+
 	switch u.Scheme {
 	case "https", "wss":
 		tlsConfig := &tls.Config{
@@ -265,8 +276,6 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	if status != http.StatusOK && status != http.StatusSwitchingProtocols {
 		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.RemoteAddr, conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
 	}
-
-	conn.SetDeadline(time.Time{})
 
 	ln, err := yamux.Server(conn, nil)
 	if err != nil {
