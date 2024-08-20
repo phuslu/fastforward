@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -35,42 +36,32 @@ type HTTPDialer struct {
 }
 
 func (d *HTTPDialer) init() error {
-	if d.Dialer != nil && d.UserAgent != "" {
+	if !d.IsTLS || d.tlsConfig != nil {
 		return nil
 	}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.Dialer == nil {
-		d.Dialer = &LocalDialer{}
+	d.tlsConfig = &tls.Config{
+		InsecureSkipVerify: d.Insecure,
+		ServerName:         d.Host,
+		ClientSessionCache: tls.NewLRUClientSessionCache(1024),
 	}
-
-	if d.UserAgent == "" {
-		d.UserAgent = DefaultUserAgent
-	}
-
-	if d.IsTLS {
-		d.tlsConfig = &tls.Config{
-			InsecureSkipVerify: d.Insecure,
-			ServerName:         d.Host,
-			ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+	if d.CACert != "" && d.ClientKey != "" && d.ClientCert != "" {
+		caData, err := os.ReadFile(d.CACert)
+		if err != nil {
+			return err
 		}
-		if d.CACert != "" && d.ClientKey != "" && d.ClientCert != "" {
-			caData, err := os.ReadFile(d.CACert)
-			if err != nil {
-				return err
-			}
 
-			cert, err := tls.LoadX509KeyPair(d.ClientCert, d.ClientKey)
-			if err != nil {
-				return err
-			}
-
-			d.tlsConfig.RootCAs = x509.NewCertPool()
-			d.tlsConfig.RootCAs.AppendCertsFromPEM(caData)
-			d.tlsConfig.Certificates = []tls.Certificate{cert}
+		cert, err := tls.LoadX509KeyPair(d.ClientCert, d.ClientKey)
+		if err != nil {
+			return err
 		}
+
+		d.tlsConfig.RootCAs = x509.NewCertPool()
+		d.tlsConfig.RootCAs.AppendCertsFromPEM(caData)
+		d.tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 
 	return nil
@@ -86,7 +77,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 	switch network {
 	case "tcp", "tcp6", "tcp4":
 	default:
-		return nil, errors.New("proxy: no support for HTTP proxy connections of type " + network)
+		return nil, errors.New("httpdialer: no support for HTTP proxy connections of type " + network)
 	}
 
 	conn, err := d.Dialer.DialContext(ctx, network, net.JoinHostPort(d.Host, d.Port))
@@ -102,7 +93,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 
 	if d.IsTLS {
 		if d.tlsConfig == nil {
-			return nil, errors.New("empty tls config")
+			return nil, errors.New("httpdialer: empty tls config")
 		}
 		tlsConn := tls.Client(conn, d.tlsConfig)
 		err = tlsConn.HandshakeContext(ctx)
@@ -116,7 +107,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 
 	buf = fmt.Appendf(buf, "CONNECT %s HTTP/1.1\r\n", addr)
 	buf = fmt.Appendf(buf, "Host: %s\r\n", addr)
-	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", d.UserAgent)
+	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", cmp.Or(d.UserAgent, DefaultUserAgent))
 	if d.Username != "" {
 		buf = fmt.Appendf(buf, "Proxy-Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
@@ -130,7 +121,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 	buf = fmt.Appendf(buf, "\r\n")
 
 	if _, err := conn.Write(buf); err != nil {
-		return nil, errors.New("proxy: failed to write greeting to HTTP proxy at " + d.Host + ": " + err.Error())
+		return nil, errors.New("httpdialer: failed to write greeting to HTTP proxy at " + d.Host + ": " + err.Error())
 	}
 
 	// see https://github.com/golang/go/issues/5373
@@ -166,7 +157,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 	status := 0
 	n := bytes.IndexByte(b, ' ')
 	if n < 0 {
-		return nil, fmt.Errorf("proxy: failed to connect %s via %s: %s", addr, d.Host, bytes.TrimRight(b, "\x00"))
+		return nil, fmt.Errorf("httpdialer: failed to connect %s via %s: %s", addr, d.Host, bytes.TrimRight(b, "\x00"))
 	}
 	for i, c := range b[n+1:] {
 		if i == 3 || c < '0' || c > '9' {
@@ -175,7 +166,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		status = status*10 + int(c-'0')
 	}
 	if status != http.StatusOK && status != http.StatusSwitchingProtocols {
-		return nil, fmt.Errorf("proxy: failed to connect %s via %s: %s", addr, d.Host, bytes.TrimRight(b, "\x00"))
+		return nil, fmt.Errorf("httpdialer: failed to connect %s via %s: %s", addr, d.Host, bytes.TrimRight(b, "\x00"))
 	}
 
 	closeConn = nil
