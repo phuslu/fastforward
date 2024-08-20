@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"crypto/sha1"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -159,13 +160,18 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	defer conn.Close()
 	defer session.Close()
 
-	exit := make(chan error)
+	exit := make(chan error, 2)
 
 	go func() {
 		for {
 			rconn, err := ln.Accept()
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to accept remote connection")
+				if errors.Is(err, net.ErrClosed) {
+					log.Error().Err(err).Msg("tunnel listener is closed")
+					exit <- err
+					return
+				}
+				log.Error().Err(err).Msg("failed to accept remote connection")
 				time.Sleep(10 * time.Millisecond)
 				rconn.Close()
 				continue
@@ -173,7 +179,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 			lconn, err := session.Open()
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to open local session")
+				log.Error().Err(err).Msg("failed to open local session")
 				exit <- err
 				return
 			}
@@ -190,6 +196,22 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				_, err := io.Copy(c2, c1)
 				log.Error().Err(err).Stringer("src_addr", c1.RemoteAddr()).Stringer("dest_addr", c2.RemoteAddr()).Msg("tunnel forwarding error")
 			}(lconn, rconn)
+		}
+	}()
+
+	go func() {
+		count := 0
+		for range time.NewTicker(15 * time.Second).C {
+			conn, err := net.DialTimeout("tcp", addr, 3*time.Second)
+			if err != nil {
+				count++
+				if count == 3 {
+					exit <- err
+				}
+			} else {
+				conn.Close()
+				count = 0
+			}
 		}
 	}()
 
