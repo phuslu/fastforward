@@ -277,7 +277,16 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.RemoteAddr, conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
 	}
 
-	ln, err := yamux.Server(conn, nil)
+	ln, err := yamux.Server(conn, &yamux.Config{
+		AcceptBacklog:          1024,
+		EnableKeepAlive:        true,
+		KeepAliveInterval:      180 * time.Second,
+		ConnectionWriteTimeout: 15 * time.Second,
+		MaxStreamWindowSize:    1024 * 1024,
+		StreamOpenTimeout:      10 * time.Second,
+		StreamCloseTimeout:     10 * time.Second,
+		Logger:                 log.DefaultLogger.Std("tunnel", 0),
+	})
 	if err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("tunnel: open yamux server on remote %s: %w", h.Config.RemoteAddr, err)

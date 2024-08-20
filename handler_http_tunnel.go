@@ -119,7 +119,16 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	session, err := yamux.Client(conn, nil)
+	session, err := yamux.Client(conn, &yamux.Config{
+		AcceptBacklog:          1024,
+		EnableKeepAlive:        true,
+		KeepAliveInterval:      180 * time.Second,
+		ConnectionWriteTimeout: 15 * time.Second,
+		MaxStreamWindowSize:    1024 * 1024,
+		StreamOpenTimeout:      10 * time.Second,
+		StreamCloseTimeout:     10 * time.Second,
+		Logger:                 log.DefaultLogger.Std("tunnel", 0),
+	})
 	if err != nil {
 		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open yamux session error")
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
