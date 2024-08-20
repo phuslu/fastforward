@@ -79,6 +79,27 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	// req.URL.Path is /.well-known/reverse/tcp/{listen_host}/{listen_port}/
+	parts := strings.Split(req.URL.Path, "/")
+	addr := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
+
+	ln, err := (&net.ListenConfig{
+		KeepAliveConfig: net.KeepAliveConfig{
+			Enable:   true,
+			Interval: 15 * time.Second,
+			Count:    3,
+		},
+	}).Listen(req.Context(), "tcp", addr)
+	if err != nil {
+		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open tcp listener error")
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Info().Context(ri.LogContext).Str("username", user.Username).Stringer("addr", ln.Addr()).Msg("tunnel open tcp listener")
+
+	defer ln.Close()
+
 	hijacker, ok := rw.(http.Hijacker)
 	if !ok {
 		log.Error().Context(ri.LogContext).Str("username", user.Username).Msg("tunnel cannot hijack request")
@@ -122,7 +143,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	session, err := yamux.Client(conn, &yamux.Config{
 		AcceptBacklog:          1024,
 		EnableKeepAlive:        true,
-		KeepAliveInterval:      180 * time.Second,
+		KeepAliveInterval:      60 * time.Second,
 		ConnectionWriteTimeout: 15 * time.Second,
 		MaxStreamWindowSize:    1024 * 1024,
 		StreamOpenTimeout:      10 * time.Second,
@@ -135,19 +156,6 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	parts := strings.Split(req.URL.Path, "/")
-	addr := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
-
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open tcp listener error")
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	log.Info().Context(ri.LogContext).Str("username", user.Username).Stringer("addr", ln.Addr()).Msg("tunnel open tcp listener")
-
-	defer ln.Close()
 	defer conn.Close()
 	defer session.Close()
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -249,6 +250,9 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return nil, err
 		}
 		total += n
