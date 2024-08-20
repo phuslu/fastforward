@@ -74,6 +74,7 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 
 	for loop() {
 		log.Info().Msg("tunnel loop...")
+		time.Sleep(2 * time.Second)
 	}
 
 	return
