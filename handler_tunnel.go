@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -211,10 +212,14 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	if i < 0 || i == len(h.Config.RemoteAddr)-1 {
 		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.RemoteAddr)
 	}
+	port, err := strconv.Atoi(h.Config.RemoteAddr[i+1:])
+	if err != nil {
+		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.RemoteAddr)
+	}
 
 	// see https://www.ietf.org/archive/id/draft-kazuho-httpbis-reverse-tunnel-00.html
 	buf := make([]byte, 0, 2048)
-	buf = fmt.Appendf(buf, "GET /.well-known/reverse/tcp/%s/%s/ HTTP/1.0\r\n", h.Config.RemoteAddr[:i], h.Config.RemoteAddr[i+1:])
+	buf = fmt.Appendf(buf, "GET %s HTTP/1.1\r\n", fmt.Sprintf(u.RequestURI(), h.Config.RemoteAddr[:i], port))
 	buf = fmt.Appendf(buf, "Host: %s\r\n", u.Hostname())
 	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(u.User.Username()+":"+first(u.User.Password()))))
 	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", DefaultUserAgent)

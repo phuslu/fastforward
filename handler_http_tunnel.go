@@ -207,6 +207,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				count++
 				if count == 3 {
 					exit <- err
+					break
 				}
 			} else {
 				conn.Close()

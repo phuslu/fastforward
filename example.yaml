@@ -10,11 +10,11 @@ global:
 dialer:
   wireguard: local://wg0
   torsocks: socks5h://127.0.0.1:9050
-  ssh2: ssh://phuslu:123456@phus.lu:22/?timeout=8&max_clients=4&key=/home/phuslu/.ssh/id_rsa
-  proxyws: wss://phuslu:123456@www.phus.lu:443/wss/connect?h=%s&p=%d
   proxy1: https://user:passwd@proxy1.example.org:443/?user_agent=liner-1984
   proxy2: http2://foobar:123456@proxy2.example.com:443/?user_agent=liner-1984&max_clients=8
   proxy3: http3://foobar:123456@proxy3.example.com:443/?user_agent=liner-1984
+  wss: wss://phuslu:123456@www.phus.lu:443/.well-known/reverse/tcp/%s/%d/
+  ssh: ssh://phuslu:123456@phus.lu:22/?timeout=8&max_clients=4&key=/home/phuslu/.ssh/id_rsa
 https:
   - listen: [':443']
     server_name: ['example.org']
