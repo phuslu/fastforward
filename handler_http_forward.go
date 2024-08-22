@@ -305,7 +305,12 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		dialerValue = strings.TrimSpace(bb.String())
 	}
 
-	log.Info().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Int64("speed_limit", speedLimit).Msg("forward request")
+	var userLog = h.Config.Forward.Log
+	if ri.ProxyUser.Attrs["no_log"] == "1" {
+		userLog = false
+	}
+
+	log.Info().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Any("user_attrs", ri.ProxyUser.Attrs).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Int64("speed_limit", speedLimit).Msg("forward request")
 
 	var dialerName = dialerValue
 	var preferIPv6 = h.Config.Forward.PreferIpv6
@@ -420,7 +425,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 		go io.Copy(conn, r)
 
-		if h.Config.Forward.Log {
+		if userLog {
 			w = &ForwardLogWriter{
 				Writer: w,
 				Logger: h.ForwardLogger,
@@ -517,7 +522,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		defer resp.Body.Close()
 
 		var w io.Writer = rw
-		if h.Config.Forward.Log {
+		if userLog {
 			w = &ForwardLogWriter{
 				Writer: w,
 				Logger: h.ForwardLogger,
