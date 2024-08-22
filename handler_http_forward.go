@@ -136,7 +136,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		case ri.ProxyUser.Password != records[i].Password:
 			ri.ProxyUser.AuthError = fmt.Errorf("wrong password: %v", ri.ProxyUser.Username)
 		default:
-			ri.ProxyUser.AuthError = nil
+			ri.ProxyUser = records[i]
 		}
 	}
 

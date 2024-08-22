@@ -71,7 +71,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	case user.Password != records[i].Password:
 		user.AuthError = fmt.Errorf("wrong password: %v", user.Username)
 	default:
-		user.AuthError = nil
+		user = records[i]
 	}
 
 	if user.AuthError != nil {
