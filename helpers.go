@@ -29,7 +29,6 @@ import (
 
 	"github.com/nathanaelle/password/v2"
 	"github.com/valyala/bytebufferpool"
-	"go.uber.org/ratelimit"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -554,32 +553,6 @@ func IsReservedIP(ip net.IP) bool {
 		}
 	}
 	return false
-}
-
-type RateLimitReader struct {
-	r       io.Reader
-	limiter ratelimit.Limiter
-}
-
-func (r *RateLimitReader) Read(buf []byte) (int, error) {
-	n, err := r.r.Read(buf)
-	if err != nil || n <= 0 {
-		return n, err
-	}
-	if r.limiter != nil {
-		r.limiter.Take()
-	}
-	return n, err
-}
-
-func NewRateLimitReader(r io.Reader, rate int64) io.Reader {
-	if rate > 0 {
-		return &RateLimitReader{
-			r:       r,
-			limiter: ratelimit.New(int(rate)),
-		}
-	}
-	return r
 }
 
 func ReadFile(s string) (body []byte, err error) {

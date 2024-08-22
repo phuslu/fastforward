@@ -12,12 +12,14 @@ import (
 	"net/netip"
 	"os"
 	"reflect"
+	"strconv"
 	"syscall"
 	"unsafe"
 )
 
 const (
 	SO_REUSEPORT            = 15
+	SO_MAX_PACING_RATE      = 47
 	TCP_FASTOPEN            = 23
 	IP_BIND_ADDRESS_NO_PORT = 24
 )
@@ -154,6 +156,21 @@ func SetTcpCongestion(tc *net.TCPConn, name string, values ...any) (err error) {
 			if err != nil {
 				err = os.NewSyscallError("setsockopt IPPROTO_TCP TCP_BRUTAL_PARAMS", err)
 			}
+		}
+		return
+	})
+}
+
+func SetTcpMaxPacingRate(tc *net.TCPConn, rate int) (err error) {
+	var c syscall.RawConn
+	c, err = tc.SyscallConn()
+	if err != nil {
+		return
+	}
+	return c.Control(func(fd uintptr) {
+		err = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, SO_MAX_PACING_RATE, rate)
+		if err != nil {
+			err = os.NewSyscallError("setsockopt IPPROTO_TCP SO_MAX_PACING_RATE "+strconv.Itoa(rate), err)
 		}
 		return
 	})

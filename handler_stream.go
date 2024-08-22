@@ -66,6 +66,10 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 	req.ServerAddr = conn.LocalAddr().String()
 	req.TraceID = log.NewXID()
 
+	if tc, _ := conn.(*net.TCPConn); conn != nil && h.Config.SpeedLimit > 0 {
+		SetTcpMaxPacingRate(tc, int(h.Config.SpeedLimit))
+	}
+
 	if h.tlsConfig != nil {
 		tconn := tls.Server(conn, h.tlsConfig)
 		err := tconn.HandshakeContext(ctx)
@@ -118,7 +122,7 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 	log.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("proxy_pass", h.Config.ProxyPass).Str("stream_dialer_name", h.Config.Dialer).Msg("forward stream")
 
 	go io.Copy(rconn, conn)
-	_, err = io.Copy(conn, NewRateLimitReader(rconn, h.Config.SpeedLimit))
+	_, err = io.Copy(conn, rconn)
 
 	if h.Config.Log {
 		var country, region, city string

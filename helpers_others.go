@@ -41,6 +41,10 @@ func SetTcpCongestion(tc *net.TCPConn, name string, values ...any) error {
 	return nil
 }
 
+func SetTcpMaxPacingRate(tc *net.TCPConn, rate int) (err error) {
+	return nil
+}
+
 func SetProcessName(name string) error {
 	return nil
 }

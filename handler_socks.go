@@ -241,8 +241,12 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 
 	WriteSocks5Status(conn, Socks5StatusRequestGranted)
 
+	if tc, _ := conn.(*net.TCPConn); conn != nil && speedLimit > 0 {
+		SetTcpMaxPacingRate(tc, int(speedLimit))
+	}
+
 	go io.Copy(rconn, conn)
-	_, err = io.Copy(conn, NewRateLimitReader(rconn, speedLimit))
+	_, err = io.Copy(conn, rconn)
 
 	if h.Config.Forward.Log {
 		var country, region, city string

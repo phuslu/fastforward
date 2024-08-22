@@ -282,6 +282,11 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 	}
 
+	if ri.ClientTCPConn != nil && speedLimit > 0 {
+		err := SetTcpMaxPacingRate(ri.ClientTCPConn, int(speedLimit))
+		log.Info().Context(ri.LogContext).Err(err).Msg("set forward_speedlimit error")
+	}
+
 	var dialerValue = h.Config.Forward.Dialer
 	if h.dialer != nil {
 		bb.Reset()
@@ -444,7 +449,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
-		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(conn, speedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		transmitBytes, err := io.CopyBuffer(w, conn, make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
 		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("speed_limit", speedLimit).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
@@ -542,7 +547,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			}
 		}
 
-		transmitBytes, err := io.CopyBuffer(w, NewRateLimitReader(resp.Body, speedLimit), make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
+		transmitBytes, err := io.CopyBuffer(w, resp.Body, make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
 		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Int64("speed_limit", speedLimit).Err(err).Msg("forward log")
 	}
 }
