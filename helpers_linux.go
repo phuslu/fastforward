@@ -69,8 +69,8 @@ type DailerController struct {
 }
 
 func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err error) {
-	return c.Control(func(fd uintptr) {
-		if ip, err := netip.ParseAddr(dc.Interface); err == nil {
+	c.Control(func(fd uintptr) {
+		if ip, _ := netip.ParseAddr(dc.Interface); ip.IsValid() {
 			var sa syscall.Sockaddr
 			if ip.Is4() {
 				ip4 := ip.As4()
@@ -98,6 +98,7 @@ func (dc DailerController) Control(network, addr string, c syscall.RawConn) (err
 			err = syscall.BindToDevice(int(fd), dc.Interface)
 		}
 	})
+	return
 }
 
 //go:linkname setsockopt syscall.setsockopt
@@ -137,7 +138,7 @@ func SetTcpCongestion(tc *net.TCPConn, name string, values ...any) (err error) {
 	if err != nil {
 		return
 	}
-	return c.Control(func(fd uintptr) {
+	c.Control(func(fd uintptr) {
 		err = syscall.SetsockoptString(int(fd), syscall.IPPROTO_TCP, syscall.TCP_CONGESTION, name)
 		if err != nil {
 			err = os.NewSyscallError("setsockopt IPPROTO_TCP TCP_CONGESTION brutal", err)
@@ -157,8 +158,8 @@ func SetTcpCongestion(tc *net.TCPConn, name string, values ...any) (err error) {
 				err = os.NewSyscallError("setsockopt IPPROTO_TCP TCP_BRUTAL_PARAMS", err)
 			}
 		}
-		return
 	})
+	return
 }
 
 func SetTcpMaxPacingRate(tc *net.TCPConn, rate int) (err error) {
@@ -167,13 +168,13 @@ func SetTcpMaxPacingRate(tc *net.TCPConn, rate int) (err error) {
 	if err != nil {
 		return
 	}
-	return c.Control(func(fd uintptr) {
-		err = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, SO_MAX_PACING_RATE, rate)
+	c.Control(func(fd uintptr) {
+		err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, SO_MAX_PACING_RATE, rate)
 		if err != nil {
-			err = os.NewSyscallError("setsockopt IPPROTO_TCP SO_MAX_PACING_RATE "+strconv.Itoa(rate), err)
+			err = os.NewSyscallError("setsockopt SOL_SOCKET SO_MAX_PACING_RATE "+strconv.Itoa(rate), err)
 		}
-		return
 	})
+	return
 }
 
 func RedirectStderrTo(file *os.File) error {

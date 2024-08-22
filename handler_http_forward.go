@@ -284,7 +284,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	if ri.ClientTCPConn != nil && speedLimit > 0 {
 		err := SetTcpMaxPacingRate(ri.ClientTCPConn, int(speedLimit))
-		log.Info().Context(ri.LogContext).Err(err).Msg("set forward_speedlimit error")
+		log.Info().Context(ri.LogContext).Err(err).Msg("set forward_speedlimit")
 	}
 
 	var dialerValue = h.Config.Forward.Dialer
