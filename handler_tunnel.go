@@ -217,9 +217,20 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.RemoteAddr)
 	}
 
+	uri := u.RequestURI()
+	if u.Path == "/" {
+		uri = "/.well-known/reverse/tcp/{listen_host}/{listen_port}/"
+	}
+	uri = strings.NewReplacer(
+		"{listen_host}", h.Config.RemoteAddr[:i],
+		"%7Blisten_host%7D", h.Config.RemoteAddr[:i],
+		"{listen_port}", h.Config.RemoteAddr[i+1:],
+		"%7Blisten_port%7D", h.Config.RemoteAddr[i+1:],
+	).Replace(uri)
+
 	// see https://www.ietf.org/archive/id/draft-kazuho-httpbis-reverse-tunnel-00.html
 	buf := make([]byte, 0, 2048)
-	buf = fmt.Appendf(buf, "GET %s HTTP/1.1\r\n", strings.NewReplacer("%7Blisten_host%7D", h.Config.RemoteAddr[:i], "%7Blisten_port%7D", h.Config.RemoteAddr[i+1:]).Replace(u.RequestURI()))
+	buf = fmt.Appendf(buf, "GET %s HTTP/1.1\r\n", uri)
 	buf = fmt.Appendf(buf, "Host: %s\r\n", u.Hostname())
 	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(u.User.Username()+":"+first(u.User.Password()))))
 	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", DefaultUserAgent)
