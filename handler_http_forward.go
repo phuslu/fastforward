@@ -100,11 +100,13 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		if !((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0))) {
 			http.Error(rw, "Bad Tunnel Request", http.StatusBadRequest)
 		}
-		host, port := req.URL.Query().Get("host"), req.URL.Query().Get("port")
-		if host == "" && port == "" {
-			host, port = req.URL.Query().Get("h"), req.URL.Query().Get("p")
-		}
-		req.Host = net.JoinHostPort(host, port)
+
+		// req.URL.Path is /.well-known/reverse/tcp/{listen_host}/{listen_port}/
+		parts := strings.Split(req.URL.Path, "/")
+		hostport := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
+
+		// fix up request
+		req.Host = hostport
 		req.URL = &url.URL{Host: req.Host}
 		req.Method = http.MethodConnect
 	}

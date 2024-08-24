@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,7 +22,7 @@ import (
 var _ Dialer = (*WSSDialer)(nil)
 
 type WSSDialer struct {
-	EndpointFormat string // E.g. https://cloud.phus.lu/.well-known/connect/tcp/%s/%d/
+	EndpointFormat string // E.g. wss://cloud.phus.lu/.well-known/connect/tcp/{listen_host}/{listen_port}/
 	Username       string
 	Password       string
 	UserAgent      string
@@ -86,12 +87,26 @@ func (d *WSSDialer) DialContext(ctx context.Context, network, addr string) (net.
 	if err != nil {
 		return nil, err
 	}
-	port, err := strconv.Atoi(portStr)
+	_, err = strconv.Atoi(portStr)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(d.EndpointFormat, host, port), nil)
+	uri := d.EndpointFormat
+	if u, err := url.Parse(d.EndpointFormat); err == nil {
+		if u.Path == "/" {
+			u.Path = "/.well-known/connect/tcp/{listen_host}/{listen_port}/"
+			uri = u.String()
+		}
+	}
+	uri = strings.NewReplacer(
+		"{listen_host}", host,
+		"%7Blisten_host%7D", host,
+		"{listen_port}", portStr,
+		"%7Blisten_port%7D", portStr,
+	).Replace(uri)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -120,20 +135,20 @@ func (d *WSSDialer) DialContext(ctx context.Context, network, addr string) (net.
 
 	resp, err := d.transport.RoundTrip(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("wssdialer: roundtrip %s error: %w", req.URL, err)
 	}
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
-		return nil, fmt.Errorf("proxy: failed to get greeting to HTTP proxy at %s: %d", host, resp.StatusCode)
+		return nil, fmt.Errorf("wssdialer: failed to get greeting to HTTP proxy at %s: %d", host, resp.StatusCode)
 	}
 
 	if s := resp.Header.Get("Sec-WebSocket-Accept"); s != "" && s != base64.StdEncoding.EncodeToString(secWebsocketAccept[:]) {
-		return nil, fmt.Errorf("proxy: failed to get sec-websocket-accept to HTTP proxy at " + host + ": " + s)
+		return nil, fmt.Errorf("wssdialer: failed to get sec-websocket-accept to HTTP proxy at " + host + ": " + s)
 	}
 
 	rwc, ok := resp.Body.(io.ReadWriteCloser)
 	if !ok {
-		return nil, fmt.Errorf("proxy: failed to get io.ReadWriteCloser")
+		return nil, fmt.Errorf("wssdialer: failed to get io.ReadWriteCloser")
 	}
 
 	conn := &wssStream{
