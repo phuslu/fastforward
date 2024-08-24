@@ -80,6 +80,12 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	if allow, _ := user.Attrs["allow_tunnel"].(string); allow != "1" {
+		log.Error().Context(ri.LogContext).Str("username", user.Username).Str("allow_tunnel", allow).Msg("tunnel user permission denied")
+		http.Error(rw, "permission denied", http.StatusForbidden)
+		return
+	}
+
 	// req.URL.Path is /.well-known/reverse/tcp/{listen_host}/{listen_port}/
 	parts := strings.Split(req.URL.Path, "/")
 	addr := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
