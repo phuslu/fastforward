@@ -123,7 +123,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		switch req.Header.Get("Upgrade") {
 		case "websocket":
 			key := sha1.Sum([]byte(req.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
-			b = fmt.Appendf(b, "sec-websocket-accept: %s\r\n", key[:])
+			b = fmt.Appendf(b, "sec-websocket-accept: %s\r\n", base64.StdEncoding.EncodeToString(key[:]))
 			b = fmt.Appendf(b, "connection: Upgrade\r\n")
 			b = fmt.Appendf(b, "upgrade: websocket\r\n")
 		case "reverse":

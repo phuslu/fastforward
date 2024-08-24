@@ -6,7 +6,7 @@ global:
   dns_cache_duration: 10m
 dialer:
   phuslu: https://phuslu:123456@phus.lu:443/?user_agent=liner-1984
-  cloud: wss://phuslu:123456@cloud.phus.lu:443/.well-known/reverse/tcp/{listen_host}/{listen_port}/
+  cloud: wss://phuslu:123456@cloud.phus.lu:443/
 http:
   - listen: [':2080']
     server_name: ['127.0.0.1', 'localhost']
