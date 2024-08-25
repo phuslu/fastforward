@@ -3,7 +3,7 @@ module liner
 go 1.23
 
 require (
-	github.com/apernet/quic-go v0.46.1-0.20240816230517-268ed2476167
+	github.com/apernet/quic-go v0.45.3-0.20240803200022-e3824dfb4b89
 	github.com/go-task/slim-sprig/v3 v3.0.0
 	github.com/hashicorp/yamux v0.1.1
 	github.com/mileusna/useragent v1.3.4
