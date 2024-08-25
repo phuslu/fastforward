@@ -15,8 +15,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/apernet/quic-go/http3"
 )
 
 var _ Dialer = (*WSSDialer)(nil)
@@ -27,7 +25,6 @@ type WSSDialer struct {
 	Password       string
 	UserAgent      string
 	Insecure       bool
-	Http3          bool
 	Dialer         Dialer
 
 	mu        sync.Mutex
@@ -51,28 +48,15 @@ func (d *WSSDialer) init() error {
 		return err
 	}
 
-	if d.Http3 {
-		d.transport = &http3.RoundTripper{
-			DisableCompression: false,
-			EnableDatagrams:    false,
-			TLSClientConfig: &tls.Config{
-				NextProtos:         []string{"h3"},
-				InsecureSkipVerify: false,
-				ServerName:         u.Hostname(),
-				ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-			},
-		}
-	} else {
-		d.transport = &http.Transport{
-			DisableCompression: false,
-			DialContext:        d.Dialer.DialContext,
-			TLSClientConfig: &tls.Config{
-				NextProtos:         []string{"http/1.1"},
-				InsecureSkipVerify: d.Insecure,
-				ServerName:         u.Hostname(),
-				ClientSessionCache: tls.NewLRUClientSessionCache(1024),
-			},
-		}
+	d.transport = &http.Transport{
+		DisableCompression: false,
+		DialContext:        d.Dialer.DialContext,
+		TLSClientConfig: &tls.Config{
+			NextProtos:         []string{"http/1.1"},
+			InsecureSkipVerify: d.Insecure,
+			ServerName:         u.Hostname(),
+			ClientSessionCache: tls.NewLRUClientSessionCache(1024),
+		},
 	}
 
 	return nil

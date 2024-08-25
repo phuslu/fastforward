@@ -313,7 +313,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		userLog = false
 	}
 
-	log.Info().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Any("user_attrs", ri.ProxyUser.Attrs).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Int64("speed_limit", speedLimit).Msg("forward request")
+	log.Info().Context(ri.LogContext).Str("req_method", req.Method).Str("req_host", req.Host).Any("req_header", req.Header).Str("username", ri.ProxyUser.Username).Any("user_attrs", ri.ProxyUser.Attrs).Str("forward_policy_name", policyName).Str("forward_dialer_value", dialerValue).Str("http_domain", domain).Int64("speed_limit", speedLimit).Msg("forward request")
 
 	var dialerName = dialerValue
 	var preferIPv6 = h.Config.Forward.PreferIpv6
@@ -377,6 +377,8 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			return
 		}
 
+		log.Debug().Context(ri.LogContext).Any("req_header", req.Header).Stringer("conn_remote_addr", conn.RemoteAddr()).Msg("dial host ok")
+
 		var w io.Writer
 		var r io.Reader
 
@@ -387,7 +389,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				return
 			}
 
-			if tunnel && req.Header.Get("Upgrade") == "websocket" {
+			if tunnel && req.Header.Get("Sec-Websocket-Key") != "" {
 				key := sha1.Sum([]byte(req.Header.Get("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
 				rw.Header().Set("sec-websocket-accept", base64.StdEncoding.EncodeToString(key[:]))
 				rw.Header().Set("upgrade", "websocket")

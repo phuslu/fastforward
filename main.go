@@ -307,23 +307,23 @@ func main() {
 				MaxClients: cmp.Or(first(strconv.Atoi(u.Query().Get("max_clients"))), 8),
 				Dialer:     dialer,
 			}
-		case "http3":
+		case "http3", "http3+ws", "http3+wss":
 			dialers[name] = &HTTP3Dialer{
 				Username:  u.User.Username(),
 				Password:  first(u.User.Password()),
 				Host:      u.Hostname(),
 				Port:      u.Port(),
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+				Websocket: strings.HasSuffix(u.Scheme, "+ws") || strings.HasSuffix(u.Scheme, "+wss"),
 				Resolver:  resolver,
 			}
-		case "ws", "wss", "wss+h3", "wss+http3":
+		case "ws", "wss":
 			dialers[name] = &WSSDialer{
 				EndpointFormat: fmt.Sprintf("http%s://%s%s", strings.Split(u.Scheme, "+")[0][2:], u.Host, u.RequestURI()),
 				Username:       u.User.Username(),
 				Password:       first(u.User.Password()),
 				UserAgent:      cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Insecure:       u.Query().Get("insecure") == "true",
-				Http3:          strings.HasSuffix(u.Scheme, "+h3") || strings.HasSuffix(u.Scheme, "+http3"),
 				Dialer:         dialer,
 			}
 		case "socks", "socks5", "socks5h":

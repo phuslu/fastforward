@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -27,6 +28,7 @@ type HTTP3Dialer struct {
 	Host      string
 	Port      string
 	UserAgent string
+	Websocket bool
 	Resolver  *Resolver
 
 	mu        sync.Mutex
@@ -123,6 +125,20 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		req.Header.Set("proxy-authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
 
+	if d.Websocket {
+		key := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1))))
+		i := strings.LastIndexByte(addr, ':')
+		req.URL.Path = fmt.Sprintf("/.well-known/connect/tcp/%s/%s/", addr[:i], addr[i+1:])
+		req.URL.Host = d.Host
+		req.Host = d.Host
+		req.Method = http.MethodGet
+		req.Header.Set("Connection", "Upgrade")
+		req.Header.Set("Upgrade", "websocket")
+		req.Header.Set("Sec-WebSocket-Version", "13")
+		req.Header.Set("Sec-WebSocket-Key", key)
+		log.Debug().Stringer("req_url", req.URL).Any("req_header", req.Header).Msg("http3dialer websocket request")
+	}
+
 	var remoteAddr, localAddr net.Addr
 
 	req = req.WithContext(httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
@@ -140,7 +156,9 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	log.Debug().Int("resp_statuscode", resp.StatusCode).Any("resp_header", resp.Header).Msg("http3dialer websocket response")
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusSwitchingProtocols {
 		data, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		return nil, errors.New("proxy: read from " + d.Host + " error: " + resp.Status + ": " + string(data))
