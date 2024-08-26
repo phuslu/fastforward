@@ -73,8 +73,9 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 	}
 
 	for loop() {
-		log.Info().Msg("tunnel loop...")
-		time.Sleep(2 * time.Second)
+		delay := time.Duration(15+log.Fastrandn(15)) * time.Second
+		log.Info().Stringer("delay", delay).Msg("tunnel loop...")
+		time.Sleep(delay)
 	}
 
 	return
