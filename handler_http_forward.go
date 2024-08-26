@@ -98,10 +98,6 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	tunnel := strings.HasPrefix(req.URL.Path, HTTPTunnelConnectTCPPathPrefix)
 	if tunnel {
-		if !((req.Method == http.MethodGet && req.ProtoMajor == 1) || (req.Method == http.MethodConnect && req.ProtoAtLeast(2, 0))) {
-			http.Error(rw, "Bad Tunnel Request", http.StatusBadRequest)
-		}
-
 		// req.URL.Path is /.well-known/reverse/tcp/{listen_host}/{listen_port}/
 		parts := strings.Split(req.URL.Path, "/")
 		hostport := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
