@@ -18,6 +18,7 @@ import (
 	"github.com/apernet/quic-go"
 	"github.com/apernet/quic-go/http3"
 	"github.com/phuslu/log"
+	"github.com/smallnest/ringbuffer"
 )
 
 var _ Dialer = (*HTTP3Dialer)(nil)
@@ -95,7 +96,7 @@ func (d *HTTP3Dialer) init() {
 func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	d.init()
 
-	pr, pw := io.Pipe()
+	pr, pw := ringbuffer.New(8192).Pipe()
 	req := &http.Request{
 		ProtoMajor: 3,
 		Method:     http.MethodConnect,

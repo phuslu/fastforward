@@ -14,6 +14,7 @@ require (
 	github.com/phuslu/lru v1.0.16
 	github.com/puzpuzpuz/xsync/v3 v3.4.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/smallnest/ringbuffer v0.0.0-20240827114233-62e3c686e6c0
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.26.0
 	golang.org/x/net v0.28.0
