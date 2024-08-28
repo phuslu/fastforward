@@ -121,21 +121,35 @@ func (h *TunnelHandler) sshtunnel(ctx context.Context, dialer string) (net.Liste
 	if _, _, err := net.SplitHostPort(hostport); err != nil {
 		hostport = net.JoinHostPort(hostport, "22")
 	}
-	conn, err := ssh.Dial("tcp", hostport, config)
+
+	conn, err := (&net.Dialer{Timeout: time.Duration(h.Config.DialTimeout) * time.Second}).Dial("tcp", hostport)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to dial %s", hostport)
 		return nil, fmt.Errorf("failed to dial %s: %w", hostport, err)
 	}
 
+	c, chans, reqs, err := ssh.NewClientConn(conn, hostport, config)
+	if err != nil {
+		log.Error().Err(err).Msgf("failed to create ssh conn %s", hostport)
+		return nil, fmt.Errorf("failed to create ssh conn %s: %w", hostport, err)
+	}
+
+	client := ssh.NewClient(c, chans, reqs)
+
 	// Set up the remote listener
-	ln, err := conn.Listen("tcp", h.Config.Listen[0])
+	ln, err := client.Listen("tcp", h.Config.Listen[0])
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to listen %s", h.Config.Listen[0])
-		conn.Close()
+		client.Close()
 		return nil, fmt.Errorf("failed to dial %s: %w", h.Config.Listen[0], err)
 	}
 
-	return &TunnelListener{ln, conn}, nil
+	if tc, _ := conn.(*net.TCPConn); conn != nil && h.Config.SpeedLimit > 0 {
+		err := SetTcpMaxPacingRate(tc, int(h.Config.SpeedLimit))
+		log.DefaultLogger.Err(err).Str("tunnel_proxy_pass", h.Config.ProxyPass).Str("tunnel_dialer_name", h.Config.Dialer).Int64("tunnel_speedlimit", h.Config.SpeedLimit).Msg("set speedlimit")
+	}
+
+	return &TunnelListener{ln, client}, nil
 }
 
 func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.Listener, error) {
@@ -176,7 +190,11 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 			Count:    3,
 		}
 		err := tc.SetKeepAliveConfig(config)
-		log.Info().Err(err).Str("tunnel_host", hostport).Any("keepalive_config", config).Msg("set tunnel host keepalive")
+		log.DefaultLogger.Err(err).Str("tunnel_host", hostport).Any("keepalive_config", config).Msg("set tunnel host keepalive")
+		if h.Config.SpeedLimit > 0 {
+			err := SetTcpMaxPacingRate(tc, int(h.Config.SpeedLimit))
+			log.DefaultLogger.Err(err).Str("tunnel_host", hostport).Any("tunnel_speedlimit", h.Config.SpeedLimit).Msg("set tunnel speedlimit")
+		}
 	}
 
 	switch u.Scheme {
