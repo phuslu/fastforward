@@ -149,9 +149,10 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		err = h.policy.Execute(bb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
+			User            Userinfo
 			UserAgent       *useragent.UserAgent
 			ServerAddr      string
-		}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr})
+		}{req, ri.ClientHelloInfo, ri.ProxyUser, &ri.UserAgent, ri.ServerAddr})
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Str("forward_policy", h.Config.Forward.Policy).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Msg("execute forward_policy error")
 			http.NotFound(rw, req)
