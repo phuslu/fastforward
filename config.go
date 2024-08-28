@@ -98,12 +98,12 @@ type StreamConfig struct {
 }
 
 type TunnelConfig struct {
-	RemoteAddr  string `json:"remote_addr" yaml:"remote_addr"`
-	LocalAddr   string `json:"local_addr" yaml:"local_addr"`
-	DialTimeout int    `json:"dial_timeout" yaml:"dial_timeout"`
-	Dialer      string `json:"dialer" yaml:"dialer"`
-	SpeedLimit  int64  `json:"speed_limit" yaml:"speed_limit"`
-	Log         bool   `json:"log" yaml:"log"`
+	Listen      []string `json:"listen" yaml:"listen"`
+	ProxyPass   string   `json:"proxy_pass" yaml:"proxy_pass"`
+	DialTimeout int      `json:"dial_timeout" yaml:"dial_timeout"`
+	Dialer      string   `json:"dialer" yaml:"dialer"`
+	SpeedLimit  int64    `json:"speed_limit" yaml:"speed_limit"`
+	Log         bool     `json:"log" yaml:"log"`
 }
 
 type Config struct {

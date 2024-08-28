@@ -30,6 +30,9 @@ type TunnelHandler struct {
 }
 
 func (h *TunnelHandler) Load() error {
+	if len(h.Config.Listen) != 1 {
+		return fmt.Errorf("invalid tunnel listen: %v", h.Config.Listen)
+	}
 	return nil
 }
 
@@ -49,14 +52,14 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 		}
 		ln, err := tunnel(ctx, dialer)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to listen %s", h.Config.RemoteAddr)
+			log.Error().Err(err).Msgf("Failed to listen %s", h.Config.Listen[0])
 			time.Sleep(2 * time.Second)
 			return true
 		}
 
 		defer ln.Close()
 
-		log.Info().Msgf("Listening on remote %s", h.Config.RemoteAddr)
+		log.Info().Msgf("Listening on remote %s", h.Config.Listen[0])
 
 		// Accept connections from the remote side
 		for {
@@ -68,7 +71,7 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 				return true
 			}
 
-			go h.handle(ctx, rconn, h.Config.LocalAddr)
+			go h.handle(ctx, rconn, h.Config.ProxyPass)
 		}
 	}
 
@@ -125,11 +128,11 @@ func (h *TunnelHandler) sshtunnel(ctx context.Context, dialer string) (net.Liste
 	}
 
 	// Set up the remote listener
-	ln, err := conn.Listen("tcp", h.Config.RemoteAddr)
+	ln, err := conn.Listen("tcp", h.Config.Listen[0])
 	if err != nil {
-		log.Error().Err(err).Msgf("failed to listen %s", h.Config.RemoteAddr)
+		log.Error().Err(err).Msgf("failed to listen %s", h.Config.Listen[0])
 		conn.Close()
-		return nil, fmt.Errorf("failed to dial %s: %w", h.Config.RemoteAddr, err)
+		return nil, fmt.Errorf("failed to dial %s: %w", h.Config.Listen[0], err)
 	}
 
 	return &TunnelListener{ln, conn}, nil
@@ -210,12 +213,12 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 		conn = tlsConn
 	}
 
-	i := strings.LastIndexByte(h.Config.RemoteAddr, ':')
-	if i < 0 || i == len(h.Config.RemoteAddr)-1 {
-		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.RemoteAddr)
+	i := strings.LastIndexByte(h.Config.Listen[0], ':')
+	if i < 0 || i == len(h.Config.Listen[0])-1 {
+		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.Listen[0])
 	}
-	if _, err := strconv.Atoi(h.Config.RemoteAddr[i+1:]); err != nil {
-		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.RemoteAddr)
+	if _, err := strconv.Atoi(h.Config.Listen[0][i+1:]); err != nil {
+		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.Listen[0])
 	}
 
 	uri := u.RequestURI()
@@ -223,10 +226,10 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 		uri = "/.well-known/reverse/tcp/{listen_host}/{listen_port}/"
 	}
 	uri = strings.NewReplacer(
-		"{listen_host}", h.Config.RemoteAddr[:i],
-		"%7Blisten_host%7D", h.Config.RemoteAddr[:i],
-		"{listen_port}", h.Config.RemoteAddr[i+1:],
-		"%7Blisten_port%7D", h.Config.RemoteAddr[i+1:],
+		"{listen_host}", h.Config.Listen[0][:i],
+		"%7Blisten_host%7D", h.Config.Listen[0][:i],
+		"{listen_port}", h.Config.Listen[0][i+1:],
+		"%7Blisten_port%7D", h.Config.Listen[0][i+1:],
 	).Replace(uri)
 
 	// see https://www.ietf.org/archive/id/draft-kazuho-httpbis-reverse-tunnel-00.html
@@ -286,7 +289,7 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	status := 0
 	n := bytes.IndexByte(b, ' ')
 	if n < 0 {
-		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.RemoteAddr, conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
+		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.Listen[0], conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
 	}
 	for i, c := range b[n+1:] {
 		if i == 3 || c < '0' || c > '9' {
@@ -295,7 +298,7 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 		status = status*10 + int(c-'0')
 	}
 	if status != http.StatusOK && status != http.StatusSwitchingProtocols {
-		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.RemoteAddr, conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
+		return nil, fmt.Errorf("tunnel: failed to tunnel %s via %s: %s", h.Config.Listen[0], conn.RemoteAddr().String(), bytes.TrimRight(b, "\x00"))
 	}
 
 	ln, err := yamux.Server(conn, &yamux.Config{
@@ -310,7 +313,7 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	})
 	if err != nil {
 		_ = conn.Close()
-		return nil, fmt.Errorf("tunnel: open yamux server on remote %s: %w", h.Config.RemoteAddr, err)
+		return nil, fmt.Errorf("tunnel: open yamux server on remote %s: %w", h.Config.Listen[0], err)
 	}
 
 	return &TunnelListener{ln, conn}, nil
