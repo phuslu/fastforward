@@ -58,12 +58,6 @@ func main() {
 		return
 	}
 
-	if IsSupervisorProcess() {
-		go StartWorkerProcess(0, os.Args[0], os.Args[1:], ".", nil)
-		StartWorkerSupervisor()
-		return
-	}
-
 	flag.Parse()
 	config, err := NewConfig(flag.Arg(0))
 	if err != nil {
@@ -789,7 +783,7 @@ func main() {
 		go func(server *http.Server) {
 			defer wg.Done()
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 
 			if err := server.Shutdown(ctx); err != nil {

@@ -4,7 +4,7 @@ After=network.target network-online.target
 Description=liner
 
 [Service]
-Type=forking
+Type=simple
 KillMode=process
 WorkingDirectory=/home/phuslu/liner
 ExecStart=/home/phuslu/liner/liner.sh start

@@ -77,7 +77,7 @@ After=network.target network-online.target
 Description=liner
 
 [Service]
-Type=forking
+Type=simple
 KillMode=process
 WorkingDirectory=$(pwd)
 ExecStart=$(pwd)/liner.sh start
