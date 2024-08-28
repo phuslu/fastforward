@@ -19,7 +19,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -768,32 +767,10 @@ func main() {
 	signal.Notify(c, syscall.SIGINT)
 	signal.Notify(c, syscall.SIGHUP)
 
-	switch <-c {
-	case syscall.SIGTERM, syscall.SIGINT:
-		log.Info().Msg("liner flush logs and exit.")
-		log.DefaultLogger.Writer.(io.Closer).Close()
-		forwardLogger.Writer.(io.Closer).Close()
-		os.Exit(0)
-	}
+	<-c
 
-	log.Warn().Msg("liner start graceful shutdown...")
-	SetProcessName("liner: (graceful shutdown)")
-
-	var wg sync.WaitGroup
-	for _, server := range servers {
-		wg.Add(1)
-		go func(server *http.Server) {
-			defer wg.Done()
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			if err := server.Shutdown(ctx); err != nil {
-				log.Error().Err(err).Msgf("%T.Shutdown() error", server)
-			}
-		}(server)
-	}
-	wg.Wait()
-
+	log.Info().Msg("liner flush logs and exit.")
+	log.DefaultLogger.Writer.(io.Closer).Close()
+	forwardLogger.Writer.(io.Closer).Close()
 	log.Info().Msg("liner server shutdown")
 }
