@@ -16,6 +16,7 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
+	"github.com/smallnest/ringbuffer"
 	"golang.org/x/crypto/cryptobyte"
 )
 
@@ -199,8 +200,8 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			r = lconn
 		}
 
-		go io.Copy(w, conn)
-		io.Copy(conn, r)
+		go ringbuffer.New(256*1024).Copy(w, conn)
+		ringbuffer.New(256*1024).Copy(conn, r)
 	} else {
 		if location := resp.Header.Get("location"); location != "" {
 			prefix := "http://" + req.Host + "/"
@@ -215,7 +216,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		}
 		rw.WriteHeader(resp.StatusCode)
 		defer resp.Body.Close()
-		io.Copy(rw, resp.Body)
+		ringbuffer.New(256*1024).Copy(rw, resp.Body)
 	}
 }
 
