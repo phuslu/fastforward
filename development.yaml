@@ -27,7 +27,7 @@ stream:
     dialer: phuslu
     # dial_timeout: 8
 tunnel:
-  - remote_addr: 127.0.0.1:10080
-    local_addr: 192.168.50.1:80
+  - listen: ["127.0.0.1:10080"]
+    proxy_pass: 192.168.50.1:80
     dialer: cloud
     dial_timeout: 5
