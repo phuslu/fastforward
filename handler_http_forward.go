@@ -19,7 +19,6 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
-	"github.com/smallnest/ringbuffer"
 	"github.com/valyala/bytebufferpool"
 	"golang.org/x/net/publicsuffix"
 )
@@ -456,7 +455,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				Interval:  cmp.Or(h.Config.Forward.LogInterval, 1),
 			}
 		}
-		transmitBytes, err := ringbuffer.New(1024*1024).Copy(w, conn) // buffer size should align to http2.MaxReadFrameSize
+		transmitBytes, err := io.CopyBuffer(w, conn, make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
 		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("speed_limit", speedLimit).Int64("transmit_bytes", transmitBytes).Err(err).Msg("forward log")
 	default:
 		if req.Host == "" {
@@ -554,7 +553,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			}
 		}
 
-		transmitBytes, err := ringbuffer.New(1024*1024).Copy(w, resp.Body) // buffer size should align to http2.MaxReadFrameSize
+		transmitBytes, err := io.CopyBuffer(w, resp.Body, make([]byte, 1024*1024)) // buffer size should align to http2.MaxReadFrameSize
 		log.Debug().Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("http_domain", domain).Int64("transmit_bytes", transmitBytes).Int64("speed_limit", speedLimit).Err(err).Msg("forward log")
 	}
 }
