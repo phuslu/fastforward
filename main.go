@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -58,10 +57,13 @@ func main() {
 		return
 	}
 
-	flag.Parse()
-	config, err := NewConfig(flag.Arg(0))
+	filename := ""
+	if len(os.Args) > 1 {
+		filename = os.Args[1]
+	}
+	config, err := NewConfig(filename)
 	if err != nil {
-		log.Fatal().Err(err).Str("filename", flag.Arg(0)).Msg("NewConfig() error")
+		log.Fatal().Err(err).Str("filename", filename).Msg("NewConfig() error")
 		os.Exit(1)
 	}
 
@@ -783,7 +785,7 @@ func main() {
 		go func(server *http.Server) {
 			defer wg.Done()
 
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			if err := server.Shutdown(ctx); err != nil {

@@ -80,8 +80,8 @@ Description=liner
 Type=simple
 KillMode=process
 WorkingDirectory=$(pwd)
-ExecStart=$(pwd)/liner.sh start
-ExecStop=$(pwd)/liner.sh stop
+EnvironmentFile=-$(pwd)/.env
+ExecStart=$(pwd)/liner
 
 [Install]
 WantedBy=multi-user.target

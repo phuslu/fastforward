@@ -7,9 +7,8 @@ Description=liner
 Type=simple
 KillMode=process
 WorkingDirectory=/home/phuslu/liner
-ExecStart=/home/phuslu/liner/liner.sh start
-ExecStop=/home/phuslu/liner/liner.sh stop
-ExecReload=/home/phuslu/liner/liner.sh reload
+EnvironmentFile=-/home/phuslu/liner/.env
+ExecStart=/home/phuslu/liner/liner
 
 [Install]
 WantedBy=multi-user.target
