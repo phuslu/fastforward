@@ -33,7 +33,7 @@ type HTTPServerHandler struct {
 	WebHandler     HTTPHandler
 }
 
-type Userinfo struct {
+type UserInfo struct {
 	Username  string
 	Password  string
 	Attrs     map[string]any
@@ -50,7 +50,7 @@ type RequestInfo struct {
 	ClientTCPConn   *net.TCPConn
 	TraceID         log.XID
 	UserAgent       useragent.UserAgent
-	ProxyUser       Userinfo
+	ProxyUser       UserInfo
 	GeoipInfo       GeoipInfo
 	LogContext      log.Context
 }
@@ -123,7 +123,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		ri.GeoipInfo.Country, ri.GeoipInfo.Region, ri.GeoipInfo.City, _ = h.GeoResolver.LookupCity(context.Background(), net.ParseIP(ri.RemoteIP))
 	}
 
-	ri.ProxyUser = Userinfo{}
+	ri.ProxyUser = UserInfo{}
 	if s := req.Header.Get("proxy-authorization"); s != "" {
 		switch t, s, _ := strings.Cut(s, " "); t {
 		case "Basic":

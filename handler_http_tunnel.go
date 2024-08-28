@@ -21,12 +21,12 @@ type HTTPTunnelHandler struct {
 	Config       HTTPConfig
 	TunnelLogger log.Logger
 
-	csvloader *FileLoader[[]Userinfo]
+	csvloader *FileLoader[[]UserInfo]
 }
 
 func (h *HTTPTunnelHandler) Load() error {
 	if strings.HasSuffix(h.Config.Tunnel.AuthTable, ".csv") {
-		h.csvloader = &FileLoader[[]Userinfo]{
+		h.csvloader = &FileLoader[[]UserInfo]{
 			Filename:     h.Config.Tunnel.AuthTable,
 			Unmarshal:    UserCsvUnmarshal,
 			PollDuration: 15 * time.Second,
@@ -45,7 +45,7 @@ func (h *HTTPTunnelHandler) Load() error {
 func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ri := req.Context().Value(RequestInfoContextKey).(*RequestInfo)
 
-	var user Userinfo
+	var user UserInfo
 	if s := req.Header.Get("authorization"); s != "" {
 		switch t, s, _ := strings.Cut(s, " "); t {
 		case "Basic":
@@ -64,7 +64,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	log.Info().Context(ri.LogContext).Str("username", user.Username).Str("password", user.Password).Msg("tunnel verify user")
 
 	records := *h.csvloader.Load()
-	i, ok := slices.BinarySearchFunc(records, user, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+	i, ok := slices.BinarySearchFunc(records, user, func(a, b UserInfo) int { return cmp.Compare(a.Username, b.Username) })
 	switch {
 	case !ok:
 		user.AuthError = fmt.Errorf("invalid username: %v", user.Username)

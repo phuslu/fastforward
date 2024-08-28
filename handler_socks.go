@@ -24,7 +24,7 @@ type SocksRequest struct {
 	Version     SocksVersion
 	ConnectType SocksCommand
 	SupportAuth bool
-	User        Userinfo
+	User        UserInfo
 	Host        string
 	Port        int
 	TraceID     log.XID
@@ -40,7 +40,7 @@ type SocksHandler struct {
 
 	policy    *template.Template
 	dialer    *template.Template
-	csvloader *FileLoader[[]Userinfo]
+	csvloader *FileLoader[[]UserInfo]
 }
 
 func (h *SocksHandler) Load() error {
@@ -61,7 +61,7 @@ func (h *SocksHandler) Load() error {
 	}
 
 	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
-		h.csvloader = &FileLoader[[]Userinfo]{
+		h.csvloader = &FileLoader[[]UserInfo]{
 			Filename:     h.Config.Forward.AuthTable,
 			Unmarshal:    UserCsvUnmarshal,
 			PollDuration: 30 * time.Second,
@@ -117,7 +117,7 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 		req.User.Password = string(b[3+int(b[1]) : 3+int(b[1])+int(b[2+int(b[1])])])
 		// auth plugin
 		records := h.csvloader.Load()
-		i, ok := slices.BinarySearchFunc(*records, req.User, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+		i, ok := slices.BinarySearchFunc(*records, req.User, func(a, b UserInfo) int { return cmp.Compare(a.Username, b.Username) })
 		switch {
 		case !ok:
 			req.User.AuthError = fmt.Errorf("invalid username: %v", req.User.Username)

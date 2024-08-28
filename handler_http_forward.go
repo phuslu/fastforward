@@ -35,7 +35,7 @@ type HTTPForwardHandler struct {
 	tcpcongestion *template.Template
 	dialer        *template.Template
 	transports    map[string]*http.Transport
-	csvloader     *FileLoader[[]Userinfo]
+	csvloader     *FileLoader[[]UserInfo]
 }
 
 func (h *HTTPForwardHandler) Load() error {
@@ -77,7 +77,7 @@ func (h *HTTPForwardHandler) Load() error {
 	}
 
 	if strings.HasSuffix(h.Config.Forward.AuthTable, ".csv") {
-		h.csvloader = &FileLoader[[]Userinfo]{
+		h.csvloader = &FileLoader[[]UserInfo]{
 			Filename:     h.Config.Forward.AuthTable,
 			Unmarshal:    UserCsvUnmarshal,
 			PollDuration: 15 * time.Second,
@@ -128,7 +128,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	if ri.ProxyUser.Username != "" && h.Config.Forward.AuthTable != "" {
 		records := *h.csvloader.Load()
-		i, ok := slices.BinarySearchFunc(records, ri.ProxyUser, func(a, b Userinfo) int { return cmp.Compare(a.Username, b.Username) })
+		i, ok := slices.BinarySearchFunc(records, ri.ProxyUser, func(a, b UserInfo) int { return cmp.Compare(a.Username, b.Username) })
 		switch {
 		case !ok:
 			ri.ProxyUser.AuthError = fmt.Errorf("invalid username: %v", ri.ProxyUser.Username)
@@ -149,7 +149,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		err = h.policy.Execute(bb, struct {
 			Request         *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
-			User            Userinfo
+			UserInfo        UserInfo
 			UserAgent       *useragent.UserAgent
 			ServerAddr      string
 		}{req, ri.ClientHelloInfo, ri.ProxyUser, &ri.UserAgent, ri.ServerAddr})
@@ -241,7 +241,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 				ClientHelloInfo *tls.ClientHelloInfo
 				UserAgent       *useragent.UserAgent
 				ServerAddr      string
-				User            Userinfo
+				User            UserInfo
 			}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ri.ProxyUser})
 			if err != nil {
 				log.Error().Err(err).Context(ri.LogContext).Str("forward_tcp_congestion", h.Config.Forward.TcpCongestion).Msg("execute forward_tcp_congestion error")
@@ -295,7 +295,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 			ClientHelloInfo *tls.ClientHelloInfo
 			UserAgent       *useragent.UserAgent
 			ServerAddr      string
-			User            Userinfo
+			User            UserInfo
 		}{req, ri.ClientHelloInfo, &ri.UserAgent, ri.ServerAddr, ri.ProxyUser})
 		if err != nil {
 			log.Error().Err(err).Context(ri.LogContext).Str("forward_dialer_name", h.Config.Forward.Dialer).Msg("execute forward_dialer error")
@@ -560,9 +560,9 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 }
 
 func UserCsvUnmarshal(data []byte, v any) error {
-	infos, ok := v.(*[]Userinfo)
+	infos, ok := v.(*[]UserInfo)
 	if !ok {
-		return fmt.Errorf("*[]Userinfo required, found %T", v)
+		return fmt.Errorf("*[]UserInfo required, found %T", v)
 	}
 	lines := AppendSplitLines(nil, b2s(data))
 	if len(lines) <= 1 {
@@ -580,7 +580,7 @@ func UserCsvUnmarshal(data []byte, v any) error {
 		if len(parts) <= 1 {
 			continue
 		}
-		var user Userinfo
+		var user UserInfo
 		for i, part := range parts {
 			switch i {
 			case 0:
@@ -599,7 +599,7 @@ func UserCsvUnmarshal(data []byte, v any) error {
 		}
 		*infos = append(*infos, user)
 	}
-	slices.SortFunc(*infos, func(a, b Userinfo) int {
+	slices.SortFunc(*infos, func(a, b UserInfo) int {
 		return cmp.Compare(a.Username, b.Username)
 	})
 	return nil
