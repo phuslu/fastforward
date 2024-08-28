@@ -225,6 +225,20 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		return
 	}
 
+	if s, _ := ri.ProxyUser.Attrs["allow_client"].(string); s != "" && s != "1" {
+		browser := strings.HasPrefix(req.UserAgent(), "Mozilla/5.0 ")
+		if ri.ClientHelloInfo != nil && len(ri.ClientHelloInfo.CipherSuites) != 0 {
+			if c := ri.ClientHelloInfo.CipherSuites[0]; !(c&0x0f0f == 0x0a0a && c&0xff == c>>8) {
+				browser = false
+			}
+		}
+		if !browser {
+			log.Warn().Err(err).Context(ri.LogContext).Str("username", ri.ProxyUser.Username).Str("proxy_authorization", req.Header.Get("proxy-authorization")).Msg("user is not allow client")
+			RejectRequest(rw, req)
+			return
+		}
+	}
+
 	if s, _ := ri.ProxyUser.Attrs["speed_limit"].(string); s != "" {
 		if n, _ := strconv.ParseInt(s, 10, 64); n > 0 {
 			speedLimit = n
