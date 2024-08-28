@@ -80,6 +80,11 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	if speedLimit := h.Config.Tunnel.SpeedLimit; ri.ClientTCPConn != nil && speedLimit > 0 {
+		err := SetTcpMaxPacingRate(ri.ClientTCPConn, int(speedLimit))
+		log.DefaultLogger.Err(err).Context(ri.LogContext).Int64("tunnel_speedlimit", speedLimit).Msg("set tunnel_speedlimit")
+	}
+
 	if allow, _ := user.Attrs["allow_tunnel"].(string); allow != "1" {
 		log.Error().Context(ri.LogContext).Str("username", user.Username).Str("allow_tunnel", allow).Msg("tunnel user permission denied")
 		http.Error(rw, "permission denied", http.StatusForbidden)
