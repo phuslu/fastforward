@@ -67,7 +67,8 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 	req.TraceID = log.NewXID()
 
 	if tc, _ := conn.(*net.TCPConn); conn != nil && h.Config.SpeedLimit > 0 {
-		SetTcpMaxPacingRate(tc, int(h.Config.SpeedLimit))
+		err := SetTcpMaxPacingRate(tc, int(h.Config.SpeedLimit))
+		log.DefaultLogger.Err(err).Str("stream_proxy_pass", h.Config.ProxyPass).Str("remote_ip", req.RemoteIP).Str("stream_dialer_name", h.Config.Dialer).Int64("stream_speedlimit", h.Config.SpeedLimit).Msg("set speedlimit")
 	}
 
 	if h.tlsConfig != nil {
