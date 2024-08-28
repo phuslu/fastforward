@@ -88,9 +88,15 @@ WantedBy=multi-user.target
 EOF
 
 echo ENV=production > .env
+
+if hash systemctl; then
+  rm -f liner.sh
+  sudo systemctl enable $(pwd)/liner.service
+  sudo systemctl restart liner
+else
+  rm -f liner.service
+  sudo ./liner.sh restart
+fi
+
 mv china.pac $pacfile
-
-sudo ./liner.sh restart
-hash systemctl 2>/dev/null && sudo systemctl enable $(pwd)/liner.service
-
 echo "https://$domain/$pacfile"
