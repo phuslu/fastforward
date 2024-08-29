@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -64,8 +65,8 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 		// Accept connections from the remote side
 		for {
 			rconn, err := ln.Accept()
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to accept remote connection")
+			if err != nil || rconn == nil || reflect.ValueOf(rconn).IsNil() {
+				log.Error().Err(err).Any("rconn", rconn).Msg("Failed to accept remote connection")
 				time.Sleep(10 * time.Millisecond)
 				ln.Close()
 				return true
