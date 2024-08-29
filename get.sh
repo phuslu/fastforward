@@ -18,7 +18,7 @@ esac
 domain=$(curl -sS whatismyip.akamai.com | tr . -).nip.io
 checksum=$(curl https://phus.lu/liner/checksums.txt | grep -E "liner_linux_${arch}-[0-9]+.tar.xz")
 filename=$(echo $checksum | awk '{print $2}')
-pacfile=$(shuf -er -n6 1 2 3 4 5 6 7 8 9 | tr -d '\n').pac
+pacfile=$(head /dev/urandom | tr -dc '1-9' | head -c 6).pac
 
 if test -d liner; then
   cd liner
@@ -79,6 +79,7 @@ Description=liner
 [Service]
 Type=simple
 KillMode=process
+Restart=on-failure
 WorkingDirectory=$(pwd)
 EnvironmentFile=-$(pwd)/.env
 ExecStart=$(pwd)/liner

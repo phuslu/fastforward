@@ -6,6 +6,7 @@ Description=liner
 [Service]
 Type=simple
 KillMode=process
+Restart=on-failure
 WorkingDirectory=/home/phuslu/liner
 EnvironmentFile=-/home/phuslu/liner/.env
 ExecStart=/home/phuslu/liner/liner
