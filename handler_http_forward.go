@@ -240,8 +240,12 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 	}
 
 	if s, _ := ri.ProxyUser.Attrs["speed_limit"].(string); s != "" {
-		if n, _ := strconv.ParseInt(s, 10, 64); n > 0 {
+		n, _ := strconv.ParseInt(s, 10, 64)
+		switch {
+		case n > 0:
 			speedLimit = n
+		case n < 0:
+			speedLimit = 0 // no speed_limit
 		}
 	}
 
