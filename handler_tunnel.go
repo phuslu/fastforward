@@ -77,7 +77,7 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 	}
 
 	for loop() {
-		delay := time.Duration(15+log.Fastrandn(15)) * time.Second
+		delay := time.Duration(10+log.Fastrandn(10)) * time.Second
 		log.Info().Stringer("delay", delay).Msg("tunnel loop...")
 		time.Sleep(delay)
 	}
@@ -356,6 +356,7 @@ func (h *TunnelHandler) handle(ctx context.Context, rconn net.Conn, laddr string
 	lconn, err := h.LocalDialer.DialContext(ctx, "tcp", laddr)
 	if err != nil {
 		log.Error().Err(err).Msgf("Fail to dial %v", laddr)
+		return
 	}
 	defer lconn.Close()
 
