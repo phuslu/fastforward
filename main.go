@@ -302,14 +302,14 @@ func main() {
 				MaxClients: cmp.Or(first(strconv.Atoi(u.Query().Get("max_clients"))), 8),
 				Dialer:     dialer,
 			}
-		case "http3", "http3+ws", "http3+wss":
+		case "http3", "http3+wss":
 			dialers[name] = &HTTP3Dialer{
 				Username:  u.User.Username(),
 				Password:  first(u.User.Password()),
 				Host:      u.Hostname(),
 				Port:      u.Port(),
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-				Websocket: strings.HasSuffix(u.Scheme, "+ws") || strings.HasSuffix(u.Scheme, "+wss"),
+				Websocket: strings.HasSuffix(u.Scheme, "+wss"),
 				Resolver:  resolver,
 			}
 		case "ws", "wss":
