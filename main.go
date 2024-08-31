@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -275,13 +274,14 @@ func main() {
 					ClientSessionCache: tls.NewLRUClientSessionCache(2048),
 				},
 			}
-		case "http", "https":
+		case "http", "https", "ws", "wss":
 			dialers[name] = &HTTPDialer{
 				Username:   u.User.Username(),
 				Password:   first(u.User.Password()),
 				Host:       u.Hostname(),
 				Port:       u.Port(),
-				IsTLS:      u.Scheme == "https",
+				TLS:        u.Scheme == "https" || u.Scheme == "wss",
+				Websocket:  u.Scheme == "ws" || u.Scheme == "wss",
 				UserAgent:  cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Insecure:   u.Query().Get("insecure") == "true",
 				CACert:     u.Query().Get("cacert"),
@@ -311,15 +311,6 @@ func main() {
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Websocket: strings.HasSuffix(u.Scheme, "+wss"),
 				Resolver:  resolver,
-			}
-		case "ws", "wss":
-			dialers[name] = &WSSDialer{
-				EndpointFormat: fmt.Sprintf("http%s://%s%s", strings.Split(u.Scheme, "+")[0][2:], u.Host, u.RequestURI()),
-				Username:       u.User.Username(),
-				Password:       first(u.User.Password()),
-				UserAgent:      cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-				Insecure:       u.Query().Get("insecure") == "true",
-				Dialer:         dialer,
 			}
 		case "socks", "socks5", "socks5h":
 			dialers[name] = &Socks5Dialer{

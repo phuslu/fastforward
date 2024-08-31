@@ -23,7 +23,8 @@ type HTTPDialer struct {
 	Password   string
 	Host       string
 	Port       string
-	IsTLS      bool
+	TLS        bool
+	Websocket  bool
 	Insecure   bool
 	UserAgent  string
 	CACert     string
@@ -36,7 +37,7 @@ type HTTPDialer struct {
 }
 
 func (d *HTTPDialer) init() error {
-	if !d.IsTLS || d.tlsConfig != nil {
+	if !d.TLS || d.tlsConfig != nil {
 		return nil
 	}
 
@@ -91,7 +92,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		}
 	}()
 
-	if d.IsTLS {
+	if d.TLS {
 		if d.tlsConfig == nil {
 			return nil, errors.New("httpdialer: empty tls config")
 		}
@@ -105,9 +106,19 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 
 	buf := make([]byte, 0, 2048)
 
-	buf = fmt.Appendf(buf, "CONNECT %s HTTP/1.1\r\n", addr)
-	buf = fmt.Appendf(buf, "Host: %s\r\n", addr)
-	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", cmp.Or(d.UserAgent, DefaultUserAgent))
+	if !d.Websocket {
+		buf = fmt.Appendf(buf, "CONNECT %s HTTP/1.1\r\n", addr)
+		buf = fmt.Appendf(buf, "Host: %s\r\n", addr)
+	} else {
+		host, port, _ := net.SplitHostPort(addr)
+		key := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1))))
+		buf = fmt.Appendf(buf, "GET /.well-known/connect/tcp/%s/%s/ HTTP/1.1\r\n", host, port)
+		buf = fmt.Appendf(buf, "Host: %s\r\n", d.Host)
+		buf = fmt.Appendf(buf, "Connection: Upgrade\r\n")
+		buf = fmt.Appendf(buf, "Upgrade: websocket\r\n")
+		buf = fmt.Appendf(buf, "Sec-WebSocket-Version: 13\r\n")
+		buf = fmt.Appendf(buf, "Sec-WebSocket-Key: %s\r\n", key)
+	}
 	if d.Username != "" {
 		buf = fmt.Appendf(buf, "Proxy-Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(d.Username+":"+d.Password)))
 	}
@@ -118,6 +129,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 			}
 		}
 	}
+	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", cmp.Or(d.UserAgent, DefaultUserAgent))
 	buf = fmt.Appendf(buf, "\r\n")
 
 	if _, err := conn.Write(buf); err != nil {
