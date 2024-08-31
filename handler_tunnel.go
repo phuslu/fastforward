@@ -44,10 +44,8 @@ func (h *TunnelHandler) Serve(ctx context.Context) {
 		switch strings.Split(dialer, "://")[0] {
 		case "ssh", "ssh2":
 			tunnel = h.sshtunnel
-		case "http", "https":
-			tunnel = h.httptunnel
-		case "ws", "wss":
-			tunnel = h.httptunnel
+		case "http", "https", "ws", "wss":
+			tunnel = h.wstunnel
 		default:
 			log.Fatal().Str("dialer", dialer).Msg("dialer tunnel is unsupported")
 		}
@@ -123,7 +121,7 @@ func (h *TunnelHandler) sshtunnel(ctx context.Context, dialer string) (net.Liste
 		hostport = net.JoinHostPort(hostport, "22")
 	}
 
-	conn, err := (&net.Dialer{Timeout: time.Duration(h.Config.DialTimeout) * time.Second}).Dial("tcp", hostport)
+	conn, err := (&net.Dialer{Timeout: time.Duration(h.Config.DialTimeout) * time.Second}).DialContext(ctx, "tcp", hostport)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to dial %s", hostport)
 		return nil, fmt.Errorf("failed to dial %s: %w", hostport, err)
@@ -153,7 +151,7 @@ func (h *TunnelHandler) sshtunnel(ctx context.Context, dialer string) (net.Liste
 	return &TunnelListener{ln, client}, nil
 }
 
-func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.Listener, error) {
+func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listener, error) {
 	log.Info().Str("dialer", dialer).Msg("connecting tunnel host")
 
 	ctx1, cancel := context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
@@ -170,7 +168,7 @@ func (h *TunnelHandler) httptunnel(ctx context.Context, dialer string) (net.List
 	hostport := u.Host
 	if _, _, err := net.SplitHostPort(hostport); err != nil {
 		switch u.Scheme {
-		case "http":
+		case "http,", "ws":
 			hostport = net.JoinHostPort(hostport, "80")
 		default:
 			hostport = net.JoinHostPort(hostport, "443")
