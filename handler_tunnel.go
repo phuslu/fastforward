@@ -320,7 +320,7 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 
 	ln, err := yamux.Server(conn, &yamux.Config{
 		AcceptBacklog:          1024,
-		EnableKeepAlive:        true,
+		EnableKeepAlive:        false,
 		KeepAliveInterval:      180 * time.Second,
 		ConnectionWriteTimeout: 15 * time.Second,
 		MaxStreamWindowSize:    1024 * 1024,

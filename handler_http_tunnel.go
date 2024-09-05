@@ -154,7 +154,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	session, err := yamux.Client(conn, &yamux.Config{
 		AcceptBacklog:          1024,
-		EnableKeepAlive:        true,
+		EnableKeepAlive:        false,
 		KeepAliveInterval:      60 * time.Second,
 		ConnectionWriteTimeout: 15 * time.Second,
 		MaxStreamWindowSize:    1024 * 1024,
