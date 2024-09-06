@@ -362,7 +362,7 @@ func (h *TunnelHandler) handle(ctx context.Context, rconn net.Conn, laddr string
 		defer rconn.Close()
 		defer lconn.Close()
 		_, err := io.Copy(rconn, lconn)
-		if err != nil {
+		if err != nil && !errors.Is(err, net.ErrClosed) {
 			log.Error().Err(err).Stringer("src_addr", lconn.RemoteAddr()).Stringer("dest_addr", rconn.RemoteAddr()).Msg("tunnel forwarding error")
 		}
 	}()
