@@ -201,6 +201,8 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				defer c1.Close()
 				defer c2.Close()
 				go func() {
+					defer c1.Close()
+					defer c2.Close()
 					_, err := io.Copy(c1, c2)
 					if err != nil {
 						log.Error().Err(err).Stringer("src_addr", c2.RemoteAddr()).Stringer("dest_addr", c1.RemoteAddr()).Msg("tunnel forwarding error")
@@ -217,7 +219,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	go func() {
 		count := 0
 		for range time.NewTicker(15 * time.Second).C {
-			conn, err := net.DialTimeout("tcp", addr, 3*time.Second)
+			stream, err := session.OpenStream()
 			if err != nil {
 				count++
 				if count == 3 {
@@ -225,7 +227,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 					break
 				}
 			} else {
-				conn.Close()
+				stream.Close()
 				count = 0
 			}
 		}
