@@ -162,15 +162,6 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		policyName = strings.TrimSpace(bb.String())
 		log.Debug().Context(ri.LogContext).Interface("client_hello_info", ri.ClientHelloInfo).Interface("tls_connection_state", req.TLS).Str("forward_policy_name", policyName).Msg("execute forward_policy ok")
 
-		if strings.Contains(policyName, "=") {
-			if u, err := url.ParseQuery(policyName); err == nil {
-				policyName = u.Get("policy")
-				if n, _ := strconv.ParseInt(u.Get("speed_limit"), 10, 64); n > 0 {
-					speedLimit = n
-				}
-			}
-		}
-
 		switch policyName {
 		case "", "proxy_pass":
 			http.NotFound(rw, req)
