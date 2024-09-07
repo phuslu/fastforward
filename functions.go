@@ -197,6 +197,10 @@ func (f *Functions) dnsResolve(host string) string {
 }
 
 func (f *Functions) domain(domain string) string {
+	if s, _, err := net.SplitHostPort(domain); err == nil {
+		domain = s
+	}
+
 	s, _ := publicsuffix.EffectiveTLDPlusOne(domain)
 	return s
 }
