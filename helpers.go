@@ -351,6 +351,62 @@ func GetMirrorHeader(conn net.Conn) *bytebufferpool.ByteBuffer {
 	return nil
 }
 
+type MemoryListener struct {
+	net.Listener
+
+	once  sync.Once
+	queue chan struct {
+		conn net.Conn
+		err  error
+	}
+}
+
+func (ln *MemoryListener) init() {
+	ln.queue = make(chan struct {
+		conn net.Conn
+		err  error
+	}, 2048)
+	go func() {
+		for {
+			c, err := ln.Listener.Accept()
+			if err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					break
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			ln.queue <- struct {
+				conn net.Conn
+				err  error
+			}{c, err}
+		}
+	}()
+}
+
+func (ln *MemoryListener) Accept() (c net.Conn, err error) {
+	item := <-ln.queue
+	c, err = item.conn, item.err
+	return
+}
+
+func (ln *MemoryListener) Close() (err error) {
+	err = ln.Listener.Close()
+	for item := range ln.queue {
+		if item.conn != nil {
+			_ = item.conn.Close()
+		}
+	}
+	return
+}
+
+func (ln *MemoryListener) Add(c net.Conn) {
+	ln.once.Do(ln.init)
+	ln.queue <- struct {
+		conn net.Conn
+		err  error
+	}{c, nil}
+}
+
 type ConnWithData struct {
 	net.Conn
 	Data []byte
