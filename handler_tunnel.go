@@ -120,6 +120,10 @@ func (h *TunnelHandler) sshtunnel(ctx context.Context, dialer string) (net.Liste
 	if _, _, err := net.SplitHostPort(hostport); err != nil {
 		hostport = net.JoinHostPort(hostport, "22")
 	}
+	if resolve := u.Query().Get("resolve"); resolve != "" {
+		_, port, _ := net.SplitHostPort(hostport)
+		hostport = net.JoinHostPort(resolve, port)
+	}
 
 	conn, err := (&net.Dialer{Timeout: time.Duration(h.Config.DialTimeout) * time.Second}).DialContext(ctx, "tcp", hostport)
 	if err != nil {
@@ -173,6 +177,10 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 		default:
 			hostport = net.JoinHostPort(hostport, "443")
 		}
+	}
+	if resolve := u.Query().Get("resolve"); resolve != "" {
+		_, port, _ := net.SplitHostPort(hostport)
+		hostport = net.JoinHostPort(resolve, port)
 	}
 
 	conn, err := h.LocalDialer.DialContext(ctx1, "tcp", hostport)
