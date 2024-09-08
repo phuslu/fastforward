@@ -26,8 +26,9 @@ type DialerContextKey struct {
 func (k *DialerContextKey) String() string { return "dialer context value " + k.name }
 
 var (
-	DialerHTTPHeaderContextKey = &DialerContextKey{"dailer-http-header"}
-	DialerPreferIPv6ContextKey = &DialerContextKey{"dailer-prefer-ipv6"}
+	DialerHTTPHeaderContextKey  = &DialerContextKey{"dailer-http-header"}
+	DialerPreferIPv6ContextKey  = &DialerContextKey{"dailer-prefer-ipv6"}
+	DialerResolveHostContextKey = &DialerContextKey{"dailer-resolve-host"}
 )
 
 var _ Dialer = (*LocalDialer)(nil)
@@ -74,7 +75,11 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 
 	ips, _ := d.ResolveCache.Get(host)
 	if len(ips) == 0 {
-		ips, err = d.Resolver.LookupNetIP(ctx, "ip", host)
+		resolveHost := host
+		if s, _ := ctx.Value(DialerResolveHostContextKey).(string); s != "" {
+			resolveHost = host
+		}
+		ips, err = d.Resolver.LookupNetIP(ctx, "ip", resolveHost)
 		if err != nil {
 			return nil, err
 		}
