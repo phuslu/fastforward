@@ -287,6 +287,7 @@ func main() {
 				CACert:     u.Query().Get("cacert"),
 				ClientKey:  u.Query().Get("key"),
 				ClientCert: u.Query().Get("cert"),
+				Resolve:    map[string]string{u.Host: u.Query().Get("resolve")},
 				Dialer:     dialer,
 			}
 		case "http2":

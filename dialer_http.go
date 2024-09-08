@@ -30,6 +30,7 @@ type HTTPDialer struct {
 	CACert     string
 	ClientKey  string
 	ClientCert string
+	Resolve    map[string]string
 	Dialer     Dialer
 
 	mu        sync.Mutex
@@ -81,7 +82,15 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		return nil, errors.New("httpdialer: no support for HTTP proxy connections of type " + network)
 	}
 
-	conn, err := d.Dialer.DialContext(ctx, network, net.JoinHostPort(d.Host, d.Port))
+	hostport := net.JoinHostPort(d.Host, d.Port)
+	for _, key := range []string{hostport, d.Host} {
+		if value, _ := d.Resolve[key]; value != "" {
+			hostport = net.JoinHostPort(value, d.Port)
+			break
+		}
+	}
+
+	conn, err := d.Dialer.DialContext(ctx, network, hostport)
 	if err != nil {
 		return nil, err
 	}
