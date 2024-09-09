@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -238,28 +237,14 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 		conn = tlsConn
 	}
 
-	i := strings.LastIndexByte(h.Config.Listen[0], ':')
-	if i < 0 || i == len(h.Config.Listen[0])-1 {
+	targetHost, targetPort, err := net.SplitHostPort(h.Config.Listen[0])
+	if err != nil {
 		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.Listen[0])
 	}
-	if _, err := strconv.Atoi(h.Config.Listen[0][i+1:]); err != nil {
-		return nil, fmt.Errorf("invalid remote addr: %s", h.Config.Listen[0])
-	}
-
-	uri := u.RequestURI()
-	if u.Path == "/" {
-		uri = "/.well-known/reverse/tcp/{listen_host}/{listen_port}/"
-	}
-	uri = strings.NewReplacer(
-		"{listen_host}", h.Config.Listen[0][:i],
-		"%7Blisten_host%7D", h.Config.Listen[0][:i],
-		"{listen_port}", h.Config.Listen[0][i+1:],
-		"%7Blisten_port%7D", h.Config.Listen[0][i+1:],
-	).Replace(uri)
 
 	// see https://www.ietf.org/archive/id/draft-kazuho-httpbis-reverse-tunnel-00.html
 	buf := make([]byte, 0, 2048)
-	buf = fmt.Appendf(buf, "GET %s HTTP/1.1\r\n", uri)
+	buf = fmt.Appendf(buf, "GET /.well-known/reverse/tcp/%s/%s/ HTTP/1.1\r\n", targetHost, targetPort)
 	buf = fmt.Appendf(buf, "Host: %s\r\n", u.Hostname())
 	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(u.User.Username()+":"+first(u.User.Password()))))
 	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", DefaultUserAgent)

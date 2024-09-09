@@ -91,7 +91,8 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	// req.URL.Path is /.well-known/reverse/tcp/{listen_host}/{listen_port}/
+	// req.URL.Path format is /.well-known/reverse/tcp/{listen_host}/{listen_port}/
+	// see https://www.ietf.org/archive/id/draft-kazuho-httpbis-reverse-tunnel-00.html
 	parts := strings.Split(req.URL.Path, "/")
 	addr := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
 
