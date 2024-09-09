@@ -241,6 +241,11 @@ func NewConfig(filename string) (*Config, error) {
 		config.Socks[i].Forward.Policy = read(config.Socks[i].Forward.Policy)
 		config.Socks[i].Forward.Dialer = read(config.Socks[i].Forward.Dialer)
 	}
+	for i := range config.Tunnel {
+		if len(config.Tunnel[i].Listen) != 1 && config.Tunnel[i].Listen[0] == "" {
+			return nil, fmt.Errorf("invalid tunnel listen=%v", config.Tunnel[i].Listen)
+		}
+	}
 
 	if filename == "development.yaml" {
 		fmt.Fprintf(os.Stderr, "%s WAN 1 config.go:122 > liner is running in the development mode.\n", timeNow().Format("15:04:05"))
