@@ -1,21 +1,194 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+/*
+	sudo bpftool btf dump file /sys/kernel/btf/vmlinux format c | sudo tee /usr/src/linux-headers-$(uname -r)/tools/bpf/resolve_btfids/libbpf/include/vmlinux.h
+	clang -g -O2 -target bpf -c bpf_brutal.c -o bpf_brutal.o -I /usr/src/linux-headers-$(uname -r)/tools/bpf/resolve_btfids/libbpf/include/
+	bpftool struct_ops register bpf_brutal.o
+*/
+
 /* WARNING: This implemenation is not necessarily the same
- * as the tcp_cubic.c.  The purpose is mainly for testing
+ * as the tcp_brutal.c.  The purpose is mainly for testing
  * the kernel BPF logic.
  *
  * Highlights:
  * 1. CONFIG_HZ .kconfig map is used.
  * 2. In bictcp_update(), calculation is changed to use usec
  *    resolution (i.e. USEC_PER_JIFFY) instead of using jiffies.
- *    Thus, usecs_to_jiffies() is not used in the bpf_cubic.c.
+ *    Thus, usecs_to_jiffies() is not used in the bpf_brutal.c.
  * 3. In bitctcp_update() [under tcp_friendliness], the original
  *    "while (ca->ack_cnt > delta)" loop is changed to the equivalent
  *    "ca->ack_cnt / delta" operation.
  */
 
-#include "bpf_tracing_net.h"
+#include <vmlinux.h>
+#include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>
+
+#define AF_INET			2
+#define AF_INET6		10
+
+#define SOL_SOCKET		1
+#define SO_REUSEADDR		2
+#define SO_SNDBUF		7
+#define SO_RCVBUF		8
+#define SO_KEEPALIVE		9
+#define SO_PRIORITY		12
+#define SO_REUSEPORT		15
+#define SO_RCVLOWAT		18
+#define SO_BINDTODEVICE		25
+#define SO_MARK			36
+#define SO_MAX_PACING_RATE	47
+#define SO_BINDTOIFINDEX	62
+#define SO_TXREHASH		74
+#define __SO_ACCEPTCON		(1 << 16)
+
+#define IP_TOS			1
+
+#define SOL_IPV6		41
+#define IPV6_TCLASS		67
+#define IPV6_AUTOFLOWLABEL	70
+
+#define TC_ACT_UNSPEC		(-1)
+#define TC_ACT_OK		0
+#define TC_ACT_SHOT		2
+
+#define SOL_TCP			6
+#define TCP_NODELAY		1
+#define TCP_MAXSEG		2
+#define TCP_KEEPIDLE		4
+#define TCP_KEEPINTVL		5
+#define TCP_KEEPCNT		6
+#define TCP_SYNCNT		7
+#define TCP_WINDOW_CLAMP	10
+#define TCP_CONGESTION		13
+#define TCP_THIN_LINEAR_TIMEOUTS	16
+#define TCP_USER_TIMEOUT	18
+#define TCP_NOTSENT_LOWAT	25
+#define TCP_SAVE_SYN		27
+#define TCP_SAVED_SYN		28
+#define TCP_CA_NAME_MAX		16
+#define TCP_NAGLE_OFF		1
+
+#define TCP_ECN_OK              1
+#define TCP_ECN_QUEUE_CWR       2
+#define TCP_ECN_DEMAND_CWR      4
+#define TCP_ECN_SEEN            8
+
+#define TCP_CONG_NEEDS_ECN     0x2
+
+#define ICSK_TIME_RETRANS	1
+#define ICSK_TIME_PROBE0	3
+#define ICSK_TIME_LOSS_PROBE	5
+#define ICSK_TIME_REO_TIMEOUT	6
+
+#define ETH_ALEN		6
+#define ETH_HLEN		14
+#define ETH_P_IP		0x0800
+#define ETH_P_IPV6		0x86DD
+
+#define NEXTHDR_TCP		6
+
+#define TCPOPT_NOP		1
+#define TCPOPT_EOL		0
+#define TCPOPT_MSS		2
+#define TCPOPT_WINDOW		3
+#define TCPOPT_TIMESTAMP	8
+#define TCPOPT_SACK_PERM	4
+
+#define TCPOLEN_MSS		4
+#define TCPOLEN_WINDOW		3
+#define TCPOLEN_TIMESTAMP	10
+#define TCPOLEN_SACK_PERM	2
+
+#define CHECKSUM_NONE		0
+#define CHECKSUM_PARTIAL	3
+
+#define IFNAMSIZ		16
+
+#define RTF_GATEWAY		0x0002
+
+#define TCP_INFINITE_SSTHRESH	0x7fffffff
+#define TCP_PINGPONG_THRESH	3
+
+#define FLAG_DATA_ACKED 0x04 /* This ACK acknowledged new data.		*/
+#define FLAG_SYN_ACKED 0x10 /* This ACK acknowledged SYN.		*/
+#define FLAG_DATA_SACKED 0x20 /* New SACK.				*/
+#define FLAG_SND_UNA_ADVANCED \
+	0x400 /* Snd_una was changed (!= FLAG_DATA_ACKED) */
+#define FLAG_ACKED (FLAG_DATA_ACKED | FLAG_SYN_ACKED)
+#define FLAG_FORWARD_PROGRESS (FLAG_ACKED | FLAG_DATA_SACKED)
+
+#define fib_nh_dev		nh_common.nhc_dev
+#define fib_nh_gw_family	nh_common.nhc_gw_family
+#define fib_nh_gw6		nh_common.nhc_gw.ipv6
+
+#define inet_daddr		sk.__sk_common.skc_daddr
+#define inet_rcv_saddr		sk.__sk_common.skc_rcv_saddr
+#define inet_dport		sk.__sk_common.skc_dport
+
+#define udp_portaddr_hash	inet.sk.__sk_common.skc_u16hashes[1]
+
+#define ir_loc_addr		req.__req_common.skc_rcv_saddr
+#define ir_num			req.__req_common.skc_num
+#define ir_rmt_addr		req.__req_common.skc_daddr
+#define ir_rmt_port		req.__req_common.skc_dport
+#define ir_v6_rmt_addr		req.__req_common.skc_v6_daddr
+#define ir_v6_loc_addr		req.__req_common.skc_v6_rcv_saddr
+
+#define sk_num			__sk_common.skc_num
+#define sk_dport		__sk_common.skc_dport
+#define sk_family		__sk_common.skc_family
+#define sk_rmem_alloc		sk_backlog.rmem_alloc
+#define sk_refcnt		__sk_common.skc_refcnt
+#define sk_state		__sk_common.skc_state
+#define sk_net			__sk_common.skc_net
+#define sk_v6_daddr		__sk_common.skc_v6_daddr
+#define sk_v6_rcv_saddr		__sk_common.skc_v6_rcv_saddr
+#define sk_flags		__sk_common.skc_flags
+#define sk_reuse		__sk_common.skc_reuse
+#define sk_cookie		__sk_common.skc_cookie
+
+#define s6_addr32		in6_u.u6_addr32
+
+#define tw_daddr		__tw_common.skc_daddr
+#define tw_rcv_saddr		__tw_common.skc_rcv_saddr
+#define tw_dport		__tw_common.skc_dport
+#define tw_refcnt		__tw_common.skc_refcnt
+#define tw_v6_daddr		__tw_common.skc_v6_daddr
+#define tw_v6_rcv_saddr		__tw_common.skc_v6_rcv_saddr
+
+#define tcp_jiffies32 ((__u32)bpf_jiffies64())
+
+static inline struct inet_connection_sock *inet_csk(const struct sock *sk)
+{
+	return (struct inet_connection_sock *)sk;
+}
+
+static inline void *inet_csk_ca(const struct sock *sk)
+{
+	return (void *)inet_csk(sk)->icsk_ca_priv;
+}
+
+static inline struct tcp_sock *tcp_sk(const struct sock *sk)
+{
+	return (struct tcp_sock *)sk;
+}
+
+static inline bool tcp_in_slow_start(const struct tcp_sock *tp)
+{
+	return tp->snd_cwnd < tp->snd_ssthresh;
+}
+
+static inline bool tcp_is_cwnd_limited(const struct sock *sk)
+{
+	const struct tcp_sock *tp = tcp_sk(sk);
+
+	/* If in slow start, ensure cwnd grows to twice what was ACKed. */
+	if (tcp_in_slow_start(tp))
+		return tp->snd_cwnd < 2 * tp->max_packets_out;
+
+	return !!BPF_CORE_READ_BITFIELD(tp, is_cwnd_limited);
+}
 
 char _license[] SEC("license") = "GPL";
 
@@ -61,7 +234,7 @@ static const __u32 cube_rtt_scale = (bic_scale * 10);	/* 1024*c/rtt */
 static const __u32 beta_scale = 8*(BICTCP_BETA_SCALE+beta) / 3
 				/ (BICTCP_BETA_SCALE - beta);
 /* calculate the "K" for (wmax-cwnd) = c/rtt * K^3
- *  so K = cubic_root( (wmax-cwnd)*rtt/c )
+ *  so K = brutal_root( (wmax-cwnd)*rtt/c )
  * the unit of K is bictcp_HZ=2^10, not HZ
  *
  *  c = bic_scale >> 10
@@ -178,7 +351,7 @@ static void bictcp_hystart_reset(struct sock *sk)
 }
 
 SEC("struct_ops")
-void BPF_PROG(bpf_cubic_init, struct sock *sk)
+void BPF_PROG(bpf_brutal_init, struct sock *sk)
 {
 	struct bpf_bictcp *ca = inet_csk_ca(sk);
 
@@ -192,7 +365,7 @@ void BPF_PROG(bpf_cubic_init, struct sock *sk)
 }
 
 SEC("struct_ops")
-void BPF_PROG(bpf_cubic_cwnd_event, struct sock *sk, enum tcp_ca_event event)
+void BPF_PROG(bpf_brutal_cwnd_event, struct sock *sk, enum tcp_ca_event event)
 {
 	if (event == CA_EVENT_TX_START) {
 		struct bpf_bictcp *ca = inet_csk_ca(sk);
@@ -202,7 +375,7 @@ void BPF_PROG(bpf_cubic_cwnd_event, struct sock *sk, enum tcp_ca_event event)
 		delta = now - tcp_sk(sk)->lsndtime;
 
 		/* We were application limited (idle) for a while.
-		 * Shift epoch_start to keep cwnd growth to cubic curve.
+		 * Shift epoch_start to keep cwnd growth to brutal curve.
 		 */
 		if (ca->epoch_start && delta > 0) {
 			ca->epoch_start += delta;
@@ -232,11 +405,11 @@ static const __u8 v[] = {
 	/* 0x38 */  244,  245,  246,  248,  250,  251,  252,  254,
 };
 
-/* calculate the cubic root of x using a table lookup followed by one
+/* calculate the brutal root of x using a table lookup followed by one
  * Newton-Raphson iteration.
  * Avg err ~= 0.195%
  */
-static __u32 cubic_root(__u64 a)
+static __u32 brutal_root(__u64 a)
 {
 	__u32 x, b, shift;
 
@@ -280,7 +453,7 @@ static void bictcp_update(struct bpf_bictcp *ca, __u32 cwnd, __u32 acked)
 	    (__s32)(tcp_jiffies32 - ca->last_time) <= HZ / 32)
 		return;
 
-	/* The CUBIC function can update ca->cnt at most once per jiffy.
+	/* The brutal function can update ca->cnt at most once per jiffy.
 	 * On all cwnd reduction events, ca->epoch_start is set to 0,
 	 * which will force a recalculation of ca->cnt.
 	 */
@@ -293,7 +466,7 @@ static void bictcp_update(struct bpf_bictcp *ca, __u32 cwnd, __u32 acked)
 	if (ca->epoch_start == 0) {
 		ca->epoch_start = tcp_jiffies32;	/* record beginning */
 		ca->ack_cnt = acked;			/* start counting */
-		ca->tcp_cwnd = cwnd;			/* syn with cubic */
+		ca->tcp_cwnd = cwnd;			/* syn with brutal */
 
 		if (ca->last_max_cwnd <= cwnd) {
 			ca->bic_K = 0;
@@ -302,13 +475,13 @@ static void bictcp_update(struct bpf_bictcp *ca, __u32 cwnd, __u32 acked)
 			/* Compute new K based on
 			 * (wmax-cwnd) * (srtt>>3 / HZ) / c * 2^(3*bictcp_HZ)
 			 */
-			ca->bic_K = cubic_root(cube_factor
+			ca->bic_K = brutal_root(cube_factor
 					       * (ca->last_max_cwnd - cwnd));
 			ca->bic_origin_point = ca->last_max_cwnd;
 		}
 	}
 
-	/* cubic function - calc*/
+	/* brutal function - calc*/
 	/* calculate c * time^3 / rtt,
 	 *  while considering overflow in calculation of time^3
 	 * (so time^3 is done by using 64 bit)
@@ -340,7 +513,7 @@ static void bictcp_update(struct bpf_bictcp *ca, __u32 cwnd, __u32 acked)
 	else                                          /* above origin*/
 		bic_target = ca->bic_origin_point + delta;
 
-	/* cubic function - calc bictcp_cnt*/
+	/* brutal function - calc bictcp_cnt*/
 	if (bic_target > cwnd) {
 		ca->cnt = cwnd / (bic_target - cwnd);
 	} else {
@@ -348,7 +521,7 @@ static void bictcp_update(struct bpf_bictcp *ca, __u32 cwnd, __u32 acked)
 	}
 
 	/*
-	 * The initial growth of cubic function may be too conservative
+	 * The initial growth of brutal function may be too conservative
 	 * when the available bandwidth is still unknown.
 	 */
 	if (ca->last_max_cwnd == 0 && ca->cnt > 20)
@@ -376,14 +549,14 @@ tcp_friendliness:
 		}
 	}
 
-	/* The maximum rate of cwnd increase CUBIC allows is 1 packet per
+	/* The maximum rate of cwnd increase brutal allows is 1 packet per
 	 * 2 packets ACKed, meaning cwnd grows at 1.5x per RTT.
 	 */
 	ca->cnt = max(ca->cnt, 2U);
 }
 
 SEC("struct_ops")
-void BPF_PROG(bpf_cubic_cong_avoid, struct sock *sk, __u32 ack, __u32 acked)
+void BPF_PROG(bpf_brutal_cong_avoid, struct sock *sk, __u32 ack, __u32 acked)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bpf_bictcp *ca = inet_csk_ca(sk);
@@ -403,7 +576,7 @@ void BPF_PROG(bpf_cubic_cong_avoid, struct sock *sk, __u32 ack, __u32 acked)
 }
 
 SEC("struct_ops")
-__u32 BPF_PROG(bpf_cubic_recalc_ssthresh, struct sock *sk)
+__u32 BPF_PROG(bpf_brutal_recalc_ssthresh, struct sock *sk)
 {
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bpf_bictcp *ca = inet_csk_ca(sk);
@@ -421,7 +594,7 @@ __u32 BPF_PROG(bpf_cubic_recalc_ssthresh, struct sock *sk)
 }
 
 SEC("struct_ops")
-void BPF_PROG(bpf_cubic_state, struct sock *sk, __u8 new_state)
+void BPF_PROG(bpf_brutal_state, struct sock *sk, __u8 new_state)
 {
 	if (new_state == TCP_CA_Loss) {
 		bictcp_reset(inet_csk_ca(sk));
@@ -497,16 +670,16 @@ static void hystart_update(struct sock *sk, __u32 delay)
 	}
 }
 
-int bpf_cubic_acked_called = 0;
+int bpf_brutal_acked_called = 0;
 
 SEC("struct_ops")
-void BPF_PROG(bpf_cubic_acked, struct sock *sk, const struct ack_sample *sample)
+void BPF_PROG(bpf_brutal_acked, struct sock *sk, const struct ack_sample *sample)
 {
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bpf_bictcp *ca = inet_csk_ca(sk);
 	__u32 delay;
 
-	bpf_cubic_acked_called = 1;
+	bpf_brutal_acked_called = 1;
 	/* Some calls are for duplicates without timetamps */
 	if (sample->rtt_us < 0)
 		return;
@@ -532,19 +705,19 @@ void BPF_PROG(bpf_cubic_acked, struct sock *sk, const struct ack_sample *sample)
 extern __u32 tcp_reno_undo_cwnd(struct sock *sk) __ksym;
 
 SEC("struct_ops")
-__u32 BPF_PROG(bpf_cubic_undo_cwnd, struct sock *sk)
+__u32 BPF_PROG(bpf_brutal_undo_cwnd, struct sock *sk)
 {
 	return tcp_reno_undo_cwnd(sk);
 }
 
 SEC(".struct_ops")
-struct tcp_congestion_ops cubic = {
-	.init		= (void *)bpf_cubic_init,
-	.ssthresh	= (void *)bpf_cubic_recalc_ssthresh,
-	.cong_avoid	= (void *)bpf_cubic_cong_avoid,
-	.set_state	= (void *)bpf_cubic_state,
-	.undo_cwnd	= (void *)bpf_cubic_undo_cwnd,
-	.cwnd_event	= (void *)bpf_cubic_cwnd_event,
-	.pkts_acked     = (void *)bpf_cubic_acked,
-	.name		= "bpf_cubic",
+struct tcp_congestion_ops brutal = {
+	.init		= (void *)bpf_brutal_init,
+	.ssthresh	= (void *)bpf_brutal_recalc_ssthresh,
+	.cong_avoid	= (void *)bpf_brutal_cong_avoid,
+	.set_state	= (void *)bpf_brutal_state,
+	.undo_cwnd	= (void *)bpf_brutal_undo_cwnd,
+	.cwnd_event	= (void *)bpf_brutal_cwnd_event,
+	.pkts_acked     = (void *)bpf_brutal_acked,
+	.name		= "bpf_brutal",
 };
