@@ -66,7 +66,7 @@ var riPool = sync.Pool{
 }
 
 const (
-	HTTPTunnelConnectTCPPathPrefix = "/.well-known/connect/tcp/"
+	HTTPTunnelConnectTCPPathPrefix = "/.well-known/masque/tcp/"
 	HTTPTunnelReverseTCPPathPrefix = "/.well-known/reverse/tcp/"
 )
 

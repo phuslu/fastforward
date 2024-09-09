@@ -98,7 +98,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 
 	tunnel := strings.HasPrefix(req.URL.Path, HTTPTunnelConnectTCPPathPrefix)
 	if tunnel {
-		// req.URL.Path is /.well-known/reverse/tcp/{listen_host}/{listen_port}/
+		// see https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-connect-tcp-05
 		parts := strings.Split(req.URL.Path, "/")
 		hostport := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
 

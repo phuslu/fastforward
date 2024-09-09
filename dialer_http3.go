@@ -127,9 +127,10 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 	}
 
 	if d.Websocket {
+		// see https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-connect-tcp-05
 		key := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1))))
 		i := strings.LastIndexByte(addr, ':')
-		req.URL.Path = fmt.Sprintf("/.well-known/connect/tcp/%s/%s/", addr[:i], addr[i+1:])
+		req.URL.Path = fmt.Sprintf("/.well-known/masque/tcp/%s/%s/", addr[:i], addr[i+1:])
 		req.URL.Host = d.Host
 		req.Host = d.Host
 		req.Method = http.MethodGet

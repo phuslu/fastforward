@@ -119,9 +119,10 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		buf = fmt.Appendf(buf, "CONNECT %s HTTP/1.1\r\n", addr)
 		buf = fmt.Appendf(buf, "Host: %s\r\n", addr)
 	} else {
+		// see https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-connect-tcp-05
 		host, port, _ := net.SplitHostPort(addr)
 		key := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1))))
-		buf = fmt.Appendf(buf, "GET /.well-known/connect/tcp/%s/%s/ HTTP/1.1\r\n", host, port)
+		buf = fmt.Appendf(buf, "GET /.well-known/masque/tcp/%s/%s/ HTTP/1.1\r\n", host, port)
 		buf = fmt.Appendf(buf, "Host: %s\r\n", d.Host)
 		buf = fmt.Appendf(buf, "Connection: Upgrade\r\n")
 		buf = fmt.Appendf(buf, "Upgrade: websocket\r\n")
