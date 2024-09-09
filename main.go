@@ -395,6 +395,11 @@ func main() {
 		DeferAccept: true,
 	}
 
+	mls := make(map[string]*MemoryListener)
+	for _, tunnel := range config.Tunnel {
+		mls[tunnel.Listen[0]] = nil
+	}
+
 	servers := make([]*http.Server, 0)
 
 	// listen and serve https
@@ -629,12 +634,18 @@ func main() {
 			ErrorLog: log.DefaultLogger.Std("", 0),
 		}
 
-		go server.Serve(TCPListener{
+		ln = TCPListener{
 			TCPListener:     ln.(*net.TCPListener),
 			KeepAlivePeriod: 3 * time.Minute,
 			ReadBufferSize:  32 * 1024,
 			WriteBufferSize: 32 * 1024,
-		})
+		}
+		if _, ok := mls[addr]; ok {
+			mls[addr] = &MemoryListener{Listener: ln}
+			ln = mls[addr]
+		}
+
+		go server.Serve(ln)
 
 		servers = append(servers, server)
 	}
@@ -717,11 +728,11 @@ func main() {
 	// tunnel handler
 	for _, tunnel := range config.Tunnel {
 		h := &TunnelHandler{
-			Config:        tunnel,
-			ForwardLogger: forwardLogger,
-			GeoResolver:   geoResolver,
-			LocalDialer:   dialer,
-			Dialers:       config.Dialer,
+			Config:      tunnel,
+			ProxyPass:   mls[tunnel.Listen[0]],
+			GeoResolver: geoResolver,
+			LocalDialer: dialer,
+			Dialers:     config.Dialer,
 		}
 
 		go h.Serve(context.Background())

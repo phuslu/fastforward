@@ -22,11 +22,11 @@ import (
 )
 
 type TunnelHandler struct {
-	Config        TunnelConfig
-	ForwardLogger log.Logger
-	GeoResolver   *GeoResolver
-	LocalDialer   Dialer
-	Dialers       map[string]string
+	Config      TunnelConfig
+	ProxyPass   *MemoryListener
+	GeoResolver *GeoResolver
+	LocalDialer Dialer
+	Dialers     map[string]string
 }
 
 func (h *TunnelHandler) Load() error {
@@ -330,6 +330,12 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 }
 
 func (h *TunnelHandler) handle(ctx context.Context, rconn net.Conn, laddr string) {
+	if h.ProxyPass != nil {
+		log.Info().Str("remote_host", rconn.RemoteAddr().String()).Str("local_addr", h.ProxyPass.Addr().String()).Msg("tunnel handler proxypass local addr")
+		h.ProxyPass.Add(rconn)
+		return
+	}
+
 	defer rconn.Close()
 
 	rhost, _, _ := net.SplitHostPort(rconn.RemoteAddr().String())
