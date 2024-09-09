@@ -374,6 +374,7 @@ func (ln *MemoryListener) init() {
 					break
 				}
 				time.Sleep(10 * time.Millisecond)
+				continue
 			}
 			ln.queue <- struct {
 				conn net.Conn
@@ -384,6 +385,7 @@ func (ln *MemoryListener) init() {
 }
 
 func (ln *MemoryListener) Accept() (c net.Conn, err error) {
+	ln.once.Do(ln.init)
 	item := <-ln.queue
 	c, err = item.conn, item.err
 	return
