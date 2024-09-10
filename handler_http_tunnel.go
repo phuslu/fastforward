@@ -20,6 +20,7 @@ import (
 type HTTPTunnelHandler struct {
 	Config       HTTPConfig
 	TunnelLogger log.Logger
+	ListenConfig *ListenConfig
 
 	csvloader *FileLoader[[]UserInfo]
 }
@@ -96,13 +97,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	parts := strings.Split(req.URL.Path, "/")
 	addr := net.JoinHostPort(parts[len(parts)-3], parts[len(parts)-2])
 
-	ln, err := (&net.ListenConfig{
-		KeepAliveConfig: net.KeepAliveConfig{
-			Enable:   true,
-			Interval: 15 * time.Second,
-			Count:    3,
-		},
-	}).Listen(req.Context(), "tcp", addr)
+	ln, err := h.ListenConfig.Listen(req.Context(), "tcp", addr)
 	if err != nil {
 		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open tcp listener error")
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
