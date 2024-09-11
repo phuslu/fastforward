@@ -418,8 +418,7 @@ func main() {
 				Functions:      functions.FuncMap,
 			},
 			TunnelHandler: &HTTPTunnelHandler{
-				Config:       server,
-				ListenConfig: &lc,
+				Config: server,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    server,
@@ -587,8 +586,7 @@ func main() {
 				Functions:      functions.FuncMap,
 			},
 			TunnelHandler: &HTTPTunnelHandler{
-				Config:       httpConfig,
-				ListenConfig: &lc,
+				Config: httpConfig,
 			},
 			WebHandler: &HTTPWebHandler{
 				Config:    httpConfig,
