@@ -41,7 +41,7 @@ _stop() {
     local pid="$(pidof liner)"
     if test -n "${pid}"; then
         echo -n "Stopping liner(${pid}): "
-        if kill ${pid}; then
+        if kill -9 ${pid}; then
             echo "OK"
         else
             echo "Failed"
