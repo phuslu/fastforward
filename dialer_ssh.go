@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"net"
 	"os"
@@ -39,7 +40,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 				ssh.Password(d.Password),
 			},
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-			Timeout:         d.Timeout,
+			Timeout:         cmp.Or(d.Timeout, 10*time.Second),
 		}
 		if d.PrivateKey != "" {
 			signer, err := ssh.ParsePrivateKey([]byte(d.PrivateKey))
@@ -61,7 +62,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 		}
 		dialer := d.Dialer
 		if dialer == nil {
-			dialer = &net.Dialer{Timeout: d.Timeout}
+			dialer = &net.Dialer{Timeout: config.Timeout}
 		}
 		ctx, cancel := context.WithTimeout(ctx, config.Timeout)
 		defer cancel()
