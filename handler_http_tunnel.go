@@ -219,7 +219,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	go func() {
 		count := 0
-		for range time.NewTicker(15 * time.Second).C {
+		for range time.NewTicker(10 * time.Second).C {
 			stream, err := session.OpenStream()
 			if err != nil {
 				count++
