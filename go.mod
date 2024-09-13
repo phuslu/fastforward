@@ -6,7 +6,7 @@ require (
 	github.com/apernet/quic-go v0.46.1-0.20240816230517-268ed2476167
 	github.com/go-task/slim-sprig/v3 v3.0.0
 	github.com/hashicorp/yamux v0.1.1
-	github.com/mileusna/useragent v1.3.4
+	github.com/mileusna/useragent v1.3.5
 	github.com/nathanaelle/password/v2 v2.0.1
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/phuslu/geosite v1.0.20240901
