@@ -159,8 +159,8 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		KeepAliveInterval:      60 * time.Second,
 		ConnectionWriteTimeout: 15 * time.Second,
 		MaxStreamWindowSize:    1024 * 1024,
-		StreamOpenTimeout:      10 * time.Second,
-		StreamCloseTimeout:     10 * time.Second,
+		StreamOpenTimeout:      8 * time.Second,
+		StreamCloseTimeout:     8 * time.Second,
 		Logger:                 log.DefaultLogger.Std("tunnel", 0),
 	})
 	if err != nil {
@@ -218,18 +218,19 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}()
 
 	go func() {
-		count := 0
-		for range time.NewTicker(10 * time.Second).C {
+		count, duration := 0, 10*time.Second
+		for {
+			time.Sleep(duration)
 			stream, err := session.OpenStream()
 			if err != nil {
-				count++
+				count, duration = count+1, 5*time.Second
 				if count == 3 {
 					exit <- err
 					break
 				}
 			} else {
 				stream.Close()
-				count = 0
+				count, duration = 0, 10*time.Second
 			}
 		}
 	}()
