@@ -10,6 +10,11 @@ Restart=on-failure
 WorkingDirectory=/home/phuslu/liner
 EnvironmentFile=-/home/phuslu/liner/.env
 ExecStart=/home/phuslu/liner/liner
+User=phuslu
+Group=phuslu
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_SYS_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=no
 
 [Install]
 WantedBy=multi-user.target
