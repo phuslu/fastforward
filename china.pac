@@ -30,7 +30,7 @@ var prelude = {
 	"amazon.com":1,
 	"amazonaws.com":1,
 	"ampproject.org":1,
-	"apps.apple.com":1,
+	"apple.com":1,
 	"bit.ly":1,
 	"cdninstagram.com":1,
 	"cloudapp.net":1,
