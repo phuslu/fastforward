@@ -116,7 +116,7 @@ func main() {
 			PreferGo: true,
 		},
 		CacheDuration: 5 * time.Minute,
-		LRUCache:      lru.NewTTLCache[string, []netip.Addr](32 * 1024),
+		LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 32*1024)),
 	}
 
 	if config.Global.DnsCacheDuration != "" {

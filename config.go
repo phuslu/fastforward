@@ -119,6 +119,7 @@ type Config struct {
 		DialWriteBuffer  int    `json:"dial_write_buffer" yaml:"dial_write_buffer"`
 		DnsServer        string `json:"dns_server" yaml:"dns_server"`
 		DnsCacheDuration string `json:"dns_cache_duration" yaml:"dns_cache_duration"`
+		DnsCacheSize     int    `json:"dns_cache_size" yaml:"dns_cache_size"`
 		IdleConnTimeout  int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
 		MaxIdleConns     int    `json:"max_idle_conns" yaml:"max_idle_conns"`
 	} `json:"global" yaml:"global"`
