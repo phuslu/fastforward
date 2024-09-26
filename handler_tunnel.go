@@ -219,6 +219,9 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 			case 3:
 				ech += "="
 			}
+			if strings.Contains(ech, " ") {
+				ech = strings.ReplaceAll(ech, " ", "+")
+			}
 			data, err := base64.StdEncoding.DecodeString(ech)
 			if err != nil {
 				log.Error().Err(err).Str("tunnel_host", hostport).Stringer("tunnel_url", u).Str("ech", ech).Msg("decode ech error")
