@@ -120,7 +120,7 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 	}
 	defer rconn.Close()
 
-	log.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("proxy_pass", h.Config.ProxyPass).Str("stream_dialer_name", h.Config.Dialer).Msg("forward stream")
+	log.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("proxy_pass", h.Config.ProxyPass).Str("stream_dialer_name", h.Config.Dialer).Msg("forward stream")
 
 	go io.Copy(rconn, conn)
 	_, err = io.Copy(conn, rconn)
