@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -50,7 +51,7 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 				if dialer == nil {
 					dialer = &net.Dialer{}
 				}
-				conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, d.Port))
+				conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, cmp.Or(d.Port, "443")))
 				if err != nil {
 					return nil, err
 				}

@@ -66,7 +66,7 @@ func (d *SSHDialer) DialContext(ctx context.Context, network, addr string) (net.
 		}
 		ctx, cancel := context.WithTimeout(ctx, config.Timeout)
 		defer cancel()
-		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, d.Port))
+		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(d.Host, cmp.Or(d.Port, "22")))
 		if err != nil {
 			return nil, err
 		}

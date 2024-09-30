@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
@@ -63,7 +64,7 @@ func (d *HTTP3Dialer) init() {
 			if err != nil {
 				return nil, err
 			}
-			raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(host, d.Port))
+			raddr, err := net.ResolveUDPAddr("udp", net.JoinHostPort(host, cmp.Or(d.Port, "443")))
 			if err != nil {
 				return nil, err
 			}
