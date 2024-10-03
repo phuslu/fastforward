@@ -395,9 +395,9 @@ func main() {
 		DeferAccept: true,
 	}
 
-	mls := make(map[string]*MemoryListener)
+	memoryListeners := xsync.NewMapOf[string, *MemoryListener]()
 	for _, tunnel := range config.Tunnel {
-		mls[tunnel.Listen[0]] = nil
+		memoryListeners.Store(tunnel.Listen[0], nil)
 	}
 
 	servers := make([]*http.Server, 0)
@@ -640,9 +640,10 @@ func main() {
 			ReadBufferSize:  32 * 1024,
 			WriteBufferSize: 32 * 1024,
 		}
-		if _, ok := mls[addr]; ok {
-			mls[addr] = &MemoryListener{Listener: ln}
-			ln = mls[addr]
+		if _, ok := memoryListeners.Load(addr); ok {
+			newln := &MemoryListener{Listener: ln}
+			memoryListeners.Store(addr, newln)
+			ln = newln
 		}
 
 		go server.Serve(ln)
@@ -728,11 +729,11 @@ func main() {
 	// tunnel handler
 	for _, tunnel := range config.Tunnel {
 		h := &TunnelHandler{
-			Config:      tunnel,
-			ProxyPass:   mls[tunnel.Listen[0]],
-			GeoResolver: geoResolver,
-			LocalDialer: dialer,
-			Dialers:     config.Dialer,
+			Config:          tunnel,
+			MemoryListeners: memoryListeners,
+			GeoResolver:     geoResolver,
+			LocalDialer:     dialer,
+			Dialers:         config.Dialer,
 		}
 
 		go h.Serve(context.Background())
