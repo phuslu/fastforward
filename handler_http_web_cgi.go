@@ -59,11 +59,7 @@ func (h *HTTPWebCgiHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	case strings.HasSuffix(filename, ".php") && h.phpcgi != "":
 		/*
 			sudo apt install -y php-cgi
-			echo '# for php-cgi
-				cgi.rfc2616_headers = 1
-				cgi.force_redirect = 0
-				force_cgi_redirect = 0
-			' | sudo tee /etc/php/?.?/cgi/conf.d/99-enable-headers.ini
+			cd /etc/php/?.? && echo -e 'cgi.rfc2616_headers = 1\ncgi.force_redirect = 0\nforce_cgi_redirect = 0\n' | sudo tee cgi/conf.d/99-enable-headers.ini
 		*/
 		(&cgi.Handler{
 			Path: h.phpcgi,
