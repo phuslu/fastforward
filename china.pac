@@ -24,7 +24,6 @@ var prelude = {
 	"gtimg.com":0,
 	"icloud-content.com":0,
 	"mzstatic.com":0,
-	"phus.lu":0,
 	"ykimg.com":0,
 	// proxy doamins
 	"amazon.com":1,
