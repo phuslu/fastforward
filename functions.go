@@ -81,6 +81,7 @@ func (f *Functions) Load() error {
 	f.FuncMap["greased"] = f.greased
 	f.FuncMap["host"] = f.host
 	f.FuncMap["ipRange"] = f.ipRange
+	f.FuncMap["ipInt"] = f.ipInt
 	f.FuncMap["isInNet"] = f.isInNet
 	f.FuncMap["isInFile"] = f.isInFile
 	f.FuncMap["readfile"] = f.readfile
@@ -280,6 +281,10 @@ func (f *Functions) fetch(ua string, timeout, ttl int, uri string) (response Fet
 func (f *Functions) ipRange(cidr string) (result IPRange) {
 	result, _ = GetIPRange(strings.TrimSpace(cidr))
 	return
+}
+
+func (f *Functions) ipInt(ipStr string) uint {
+	return uint(NewIPInt(ipStr))
 }
 
 func (f *Functions) isInFile(line, filename string) bool {
