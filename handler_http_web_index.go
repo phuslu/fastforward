@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -107,7 +108,13 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		defer bytebufferpool.Put(b)
 		b.Reset()
 
-		err := tmpl.Execute(b, struct {
+		var w io.Writer = b
+		if ae := req.Header.Get("accept-encoding"); ae == "gzip" || strings.Contains(ae, "gzip,") {
+			w = gzip.NewWriter(b)
+			rw.Header().Set("content-encoding", "gzip")
+		}
+
+		err := tmpl.Execute(w, struct {
 			ServerVersion string
 			ServerAddr    string
 			Request       *http.Request
@@ -118,6 +125,13 @@ func (h *HTTPWebIndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			log.Error().Context(ri.LogContext).Err(err).Str("index_file", h.File).Msg("execute index file error")
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		if closer, ok := w.(io.Closer); ok && closer != nil {
+			if err := closer.Close(); err != nil {
+				log.Error().Context(ri.LogContext).Err(err).Str("index_file", h.File).Msg("execute index file error")
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		rw.Write(b.Bytes())
