@@ -68,11 +68,8 @@ var blacklist = {"10.10.10.10":1,"127.0.0.2":1,"243.185.187.3":1,"243.185.187.30
 
 // see https://github.com/misakaio/chnroutes2
 var iplist = [
-	{{- range (fetch "" 15 86400 "https://cdn.jsdelivr.net/gh/misakaio/chnroutes2/chnroutes.txt").Lines }}
-	{{- with ipRange . }}
-	{{- if .Length }}{{ .StartInt }},{{ sub .Length 1 }},{{ end -}}
-	{{- end }}
-	{{- end -}}
+	{{- range (fetch "" 15 86400 "https://cdn.jsdelivr.net/gh/misakaio/chnroutes2/chnroutes.txt").Lines -}}
+	{{ with $a := split "/" . }}{{ with $b := ipInt $a._0 }}{{ $b }},{{ sub 32 $a._1 }},{{ end }}{{ end }}{{ end -}}
 ]
 
 function FindProxyForURL(_, host) {
@@ -127,7 +124,7 @@ function FindProxyForURL(_, host) {
 		}
 	}
 
-	if (i < iplist.length && ip <= iplist[i] + iplist[i+1])
+	if (i < iplist.length && ip < iplist[i] + (1<<iplist[i+1]))
 		return direct
 
 	return proxy
