@@ -114,82 +114,87 @@ func main() {
 	// resolver factory
 	resolvers := map[string]*Resolver{}
 	resolverof := func(addr string) *Resolver {
-		if addr == "" {
-			log.Fatal().Str("addr", addr).Msg("invalid dns_server addr")
-		}
 		r, _ := resolvers[addr]
-		if r == nil {
-			r = &Resolver{
-				Client: &fastdns.Client{
-					Addr: addr,
-				},
-				CacheDuration: 5 * time.Minute,
-				LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 32*1024)),
-			}
-			if config.Global.DnsCacheDuration != "" {
-				dur, err := time.ParseDuration(config.Global.DnsCacheDuration)
-				if dur == 0 || err != nil {
-					log.Fatal().Err(err).Str("dns_cache_duration", config.Global.DnsCacheDuration).Msg("invalid dns_cache_duration")
-				}
-				r.CacheDuration = dur
-			}
-			if strings.Contains(addr, "://") {
-				u, err := url.Parse(addr)
-				if err != nil {
-					log.Fatal().Err(err).Str("dns_server", addr).Msg("parse dns_server error")
-				}
-				switch u.Scheme {
-				case "https", "http2", "h2", "doh":
-					u.Scheme = "https"
-					r.Client.Dialer = &fastdns.HTTPDialer{
-						Endpoint:  u,
-						UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-						Transport: &http2.Transport{
-							TLSClientConfig: &tls.Config{
-								ServerName:         u.Hostname(),
-								ClientSessionCache: tls.NewLRUClientSessionCache(128),
-							},
-						},
-					}
-				case "quic", "http3", "h3", "doq":
-					u.Scheme = "https"
-					r.Client.Dialer = &fastdns.HTTPDialer{
-						Endpoint:  u,
-						UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-						Transport: &http3.RoundTripper{
-							DisableCompression: false,
-							EnableDatagrams:    true,
-							TLSClientConfig: &tls.Config{
-								NextProtos:         []string{"h3"},
-								InsecureSkipVerify: u.Query().Get("insecure") == "true",
-								ServerName:         u.Hostname(),
-								ClientSessionCache: tls.NewLRUClientSessionCache(128),
-							},
-							QUICConfig: &quic.Config{
-								DisablePathMTUDiscovery: false,
-								EnableDatagrams:         true,
-								MaxIncomingUniStreams:   200,
-								MaxIncomingStreams:      200,
-							},
-						},
-					}
-				default:
-					log.Fatal().Strs("support protocols", []string{"udp", "https", "http2", "http3"}).Msg("parse dns_server error")
-				}
-			} else {
-				host := addr
-				if _, _, err := net.SplitHostPort(host); err != nil {
-					host = net.JoinHostPort(host, "53")
-				}
-				r.Client.Dialer = &fastdns.UDPDialer{
-					Addr:     func() (u *net.UDPAddr) { u, _ = net.ResolveUDPAddr("udp", host); return }(),
-					Timeout:  3 * time.Second,
-					MaxConns: 1000,
-				}
-			}
-
-			resolvers[addr] = r
+		if r != nil {
+			return r
 		}
+		r = &Resolver{
+			Client: &fastdns.Client{
+				Addr: addr,
+			},
+			CacheDuration: 5 * time.Minute,
+			LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 32*1024)),
+		}
+		if config.Global.DnsCacheDuration != "" {
+			dur, err := time.ParseDuration(config.Global.DnsCacheDuration)
+			if dur == 0 || err != nil {
+				log.Fatal().Err(err).Str("dns_cache_duration", config.Global.DnsCacheDuration).Msg("invalid dns_cache_duration")
+			}
+			r.CacheDuration = dur
+		}
+		switch {
+		case addr == "":
+			log.Fatal().Str("addr", addr).Msg("invalid dns_server addr")
+		case strings.Contains(addr, "://"):
+			u, err := url.Parse(addr)
+			if err != nil {
+				log.Fatal().Err(err).Str("dns_server", addr).Msg("parse dns_server error")
+			}
+			switch u.Scheme {
+			case "https", "http2", "h2", "doh":
+				u.Scheme = "https"
+				r.Client.Dialer = &fastdns.HTTPDialer{
+					Endpoint:  u,
+					UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+					Transport: &http2.Transport{
+						TLSClientConfig: &tls.Config{
+							ServerName:         u.Hostname(),
+							ClientSessionCache: tls.NewLRUClientSessionCache(128),
+						},
+					},
+				}
+			case "quic", "http3", "h3", "doq":
+				u.Scheme = "https"
+				r.Client.Dialer = &fastdns.HTTPDialer{
+					Endpoint:  u,
+					UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+					Transport: &http3.RoundTripper{
+						DisableCompression: false,
+						EnableDatagrams:    true,
+						TLSClientConfig: &tls.Config{
+							NextProtos:         []string{"h3"},
+							InsecureSkipVerify: u.Query().Get("insecure") == "true",
+							ServerName:         u.Hostname(),
+							ClientSessionCache: tls.NewLRUClientSessionCache(128),
+						},
+						QUICConfig: &quic.Config{
+							DisablePathMTUDiscovery: false,
+							EnableDatagrams:         true,
+							MaxIncomingUniStreams:   200,
+							MaxIncomingStreams:      200,
+						},
+					},
+				}
+			default:
+				log.Fatal().Strs("support protocols", []string{"udp", "https", "http2", "http3"}).Msg("parse dns_server error")
+			}
+		default:
+			host := addr
+			if _, _, err := net.SplitHostPort(host); err != nil {
+				host = net.JoinHostPort(host, "53")
+			}
+			u, err := net.ResolveUDPAddr("udp", host)
+			if err != nil {
+				log.Fatal().Str("addr", addr).Msg("invalid dns_server addr")
+			}
+			r.Client.Dialer = &fastdns.UDPDialer{
+				Addr:     u,
+				Timeout:  3 * time.Second,
+				MaxConns: 1000,
+			}
+		}
+
+		resolvers[addr] = r
 		return r
 	}
 
