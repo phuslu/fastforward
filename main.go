@@ -193,9 +193,16 @@ func main() {
 		return r
 	}
 
-	// geoip resolver
+	// global resolver with geo support
+	if config.Global.DnsServer == "" {
+		if data, err := os.ReadFile("/etc/resolv.conf"); err == nil {
+			if m := regexp.MustCompile(`(^|\n)\s*nameserver\s+(\S+)`).FindAllStringSubmatch(string(data), -1); len(m) != 0 {
+				config.Global.DnsServer = cmp.Or(m[0][2], "https://1.1.1.1/dns-query")
+			}
+		}
+	}
 	geoResolver := &GeoResolver{
-		Resolver: resolverof(cmp.Or(config.Global.DnsServer, "https://1.1.1.1/dns-query")),
+		Resolver: resolverof(config.Global.DnsServer),
 	}
 	for _, name := range []string{"GeoIP2-City.mmdb", "GeoLite2-City.mmdb"} {
 		geoResolver.CityReader, err = maxminddb.Open(name)
