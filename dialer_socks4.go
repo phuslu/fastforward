@@ -54,8 +54,8 @@ func (d *Socks4Dialer) DialContext(ctx context.Context, network, addr string) (n
 	}
 
 	if d.Resolver != nil {
-		if hosts, err := d.Resolver.LookupHost(ctx, host); err == nil && len(hosts) > 0 {
-			host = hosts[0]
+		if ips, err := d.Resolver.LookupNetIP(ctx, "ip", host); err == nil && len(ips) > 0 {
+			host = ips[0].String()
 		}
 	}
 
