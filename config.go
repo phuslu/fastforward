@@ -101,6 +101,7 @@ type StreamConfig struct {
 type TunnelConfig struct {
 	Listen      []string `json:"listen" yaml:"listen"`
 	ProxyPass   string   `json:"proxy_pass" yaml:"proxy_pass"`
+	DnsServer   string   `json:"dns_server" yaml:"dns_server"`
 	DialTimeout int      `json:"dial_timeout" yaml:"dial_timeout"`
 	Dialer      string   `json:"dialer" yaml:"dialer"`
 	SpeedLimit  int64    `json:"speed_limit" yaml:"speed_limit"`
@@ -122,7 +123,6 @@ type Config struct {
 		DnsCacheSize     int    `json:"dns_cache_size" yaml:"dns_cache_size"`
 		IdleConnTimeout  int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
 		MaxIdleConns     int    `json:"max_idle_conns" yaml:"max_idle_conns"`
-		TunnelDnsServer  string `json:"tunnel_dns_server" yaml:"tunnel_dns_server"`
 	} `json:"global" yaml:"global"`
 	Cron []struct {
 		Spec    string `json:"spec" yaml:"spec"`

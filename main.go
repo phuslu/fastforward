@@ -111,89 +111,91 @@ func main() {
 
 	slog.SetDefault(log.DefaultLogger.Slog())
 
-	// global resolver
-	resolver := &Resolver{
-		Client: &fastdns.Client{
-			Addr: "1.1.1.1:53",
-		},
-		CacheDuration: 5 * time.Minute,
-		LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 32*1024)),
-	}
-
-	if config.Global.DnsCacheDuration != "" {
-		dur, err := time.ParseDuration(config.Global.DnsCacheDuration)
-		if dur == 0 || err != nil {
-			log.Fatal().Err(err).Str("dns_cache_duration", config.Global.DnsCacheDuration).Msg("invalid dns_cache_duration")
+	// resolver factory
+	resolvers := map[string]*Resolver{}
+	resolverof := func(addr string) *Resolver {
+		if addr == "" {
+			log.Fatal().Str("addr", addr).Msg("invalid dns_server addr")
 		}
-		resolver.CacheDuration = dur
-	}
-
-	if dnsServer := config.Global.DnsServer; dnsServer != "" {
-		if !strings.Contains(dnsServer, "://") {
-			dnsServer = "udp://" + dnsServer
-		}
-		u, err := url.Parse(dnsServer)
-		if err != nil {
-			log.Fatal().Err(err).Str("dns_server", config.Global.DnsServer).Msg("parse dns_server error")
-		}
-		if u.Scheme == "" || u.Host == "" {
-			log.Fatal().Err(errors.New("no scheme or host")).Str("dns_server", config.Global.DnsServer).Msg("parse dns_server error")
-		}
-
-		switch u.Scheme {
-		case "udp":
-			var addr *net.UDPAddr
-			if _, _, err := net.SplitHostPort(u.Host); err != nil {
-				addr, _ = net.ResolveUDPAddr("udp", net.JoinHostPort(u.Host, "53"))
+		r, _ := resolvers[addr]
+		if r == nil {
+			r = &Resolver{
+				Client: &fastdns.Client{
+					Addr: addr,
+				},
+				CacheDuration: 5 * time.Minute,
+				LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 32*1024)),
+			}
+			if config.Global.DnsCacheDuration != "" {
+				dur, err := time.ParseDuration(config.Global.DnsCacheDuration)
+				if dur == 0 || err != nil {
+					log.Fatal().Err(err).Str("dns_cache_duration", config.Global.DnsCacheDuration).Msg("invalid dns_cache_duration")
+				}
+				r.CacheDuration = dur
+			}
+			if strings.Contains(addr, "://") {
+				u, err := url.Parse(addr)
+				if err != nil {
+					log.Fatal().Err(err).Str("dns_server", addr).Msg("parse dns_server error")
+				}
+				switch u.Scheme {
+				case "https", "http2", "h2", "doh":
+					u.Scheme = "https"
+					r.Client.Dialer = &fastdns.HTTPDialer{
+						Endpoint:  u,
+						UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+						Transport: &http2.Transport{
+							TLSClientConfig: &tls.Config{
+								ServerName:         u.Hostname(),
+								ClientSessionCache: tls.NewLRUClientSessionCache(128),
+							},
+						},
+					}
+				case "quic", "http3", "h3", "doq":
+					u.Scheme = "https"
+					r.Client.Dialer = &fastdns.HTTPDialer{
+						Endpoint:  u,
+						UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+						Transport: &http3.RoundTripper{
+							DisableCompression: false,
+							EnableDatagrams:    true,
+							TLSClientConfig: &tls.Config{
+								NextProtos:         []string{"h3"},
+								InsecureSkipVerify: u.Query().Get("insecure") == "true",
+								ServerName:         u.Hostname(),
+								ClientSessionCache: tls.NewLRUClientSessionCache(128),
+							},
+							QUICConfig: &quic.Config{
+								DisablePathMTUDiscovery: false,
+								EnableDatagrams:         true,
+								MaxIncomingUniStreams:   200,
+								MaxIncomingStreams:      200,
+							},
+						},
+					}
+				default:
+					log.Fatal().Strs("support protocols", []string{"udp", "https", "http2", "http3"}).Msg("parse dns_server error")
+				}
 			} else {
-				addr, _ = net.ResolveUDPAddr("udp", u.Host)
+				host := addr
+				if _, _, err := net.SplitHostPort(host); err != nil {
+					host = net.JoinHostPort(host, "53")
+				}
+				r.Client.Dialer = &fastdns.UDPDialer{
+					Addr:     func() (u *net.UDPAddr) { u, _ = net.ResolveUDPAddr("udp", host); return }(),
+					Timeout:  3 * time.Second,
+					MaxConns: 1000,
+				}
 			}
-			resolver.Client.Dialer = &fastdns.UDPDialer{
-				Addr:     addr,
-				Timeout:  3 * time.Second,
-				MaxConns: 1000,
-			}
-		case "https", "http2", "h2", "doh":
-			u.Scheme = "https"
-			resolver.Client.Dialer = &fastdns.HTTPDialer{
-				Endpoint:  u,
-				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-				Transport: &http2.Transport{
-					TLSClientConfig: &tls.Config{
-						ServerName:         u.Hostname(),
-						ClientSessionCache: tls.NewLRUClientSessionCache(128),
-					},
-				},
-			}
-		case "quic", "http3", "h3", "doq":
-			u.Scheme = "https"
-			resolver.Client.Dialer = &fastdns.HTTPDialer{
-				Endpoint:  u,
-				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
-				Transport: &http3.RoundTripper{
-					DisableCompression: false,
-					EnableDatagrams:    true,
-					TLSClientConfig: &tls.Config{
-						NextProtos:         []string{"h3"},
-						InsecureSkipVerify: u.Query().Get("insecure") == "true",
-						ServerName:         u.Hostname(),
-						ClientSessionCache: tls.NewLRUClientSessionCache(128),
-					},
-					QUICConfig: &quic.Config{
-						DisablePathMTUDiscovery: false,
-						EnableDatagrams:         true,
-						MaxIncomingUniStreams:   200,
-						MaxIncomingStreams:      200,
-					},
-				},
-			}
-		default:
-			log.Fatal().Strs("support protocols", []string{"udp", "https", "http2", "http3"}).Msg("parse dns_server error")
+
+			resolvers[addr] = r
 		}
+		return r
 	}
 
+	// geoip resolver
 	geoResolver := &GeoResolver{
-		Resolver: resolver,
+		Resolver: resolverof(cmp.Or(config.Global.DnsServer, "https://1.1.1.1/dns-query")),
 	}
 	for _, name := range []string{"GeoIP2-City.mmdb", "GeoLite2-City.mmdb"} {
 		geoResolver.CityReader, err = maxminddb.Open(name)
@@ -226,7 +228,7 @@ func main() {
 
 	// global dialer
 	dialer := &LocalDialer{
-		Resolver:        resolver,
+		Resolver:        geoResolver.Resolver,
 		ResolveCache:    lru.NewTTLCache[string, []netip.Addr](8192),
 		Concurrency:     2,
 		PerferIPv6:      false,
@@ -250,7 +252,7 @@ func main() {
 		switch u.Scheme {
 		case "local":
 			dialers[name] = &LocalDialer{
-				Resolver:        resolver,
+				Resolver:        geoResolver.Resolver,
 				ResolveCache:    dialer.ResolveCache,
 				Interface:       u.Host,
 				PerferIPv6:      u.Query().Get("perfer_ipv6") == "true",
@@ -300,7 +302,7 @@ func main() {
 				Port:      u.Port(),
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Websocket: strings.HasSuffix(u.Scheme, "+wss"),
-				Resolver:  resolver,
+				Resolver:  geoResolver.Resolver,
 			}
 		case "socks", "socks5", "socks5h":
 			dialers[name] = &Socks5Dialer{
@@ -309,7 +311,7 @@ func main() {
 				Host:     u.Hostname(),
 				Port:     u.Port(),
 				Socks5H:  u.Scheme == "socks5h",
-				Resolver: resolver,
+				Resolver: geoResolver.Resolver,
 				Dialer:   dialer,
 			}
 		case "socks4", "socks4a":
@@ -319,7 +321,7 @@ func main() {
 				Host:     u.Hostname(),
 				Port:     u.Port(),
 				Socks4A:  u.Scheme == "socks4a",
-				Resolver: resolver,
+				Resolver: geoResolver.Resolver,
 				Dialer:   dialer,
 			}
 		case "ssh", "ssh2":
@@ -716,25 +718,16 @@ func main() {
 	}
 
 	// tunnel handler
-	tunnelResolver := resolver
-	if addr := config.Global.TunnelDnsServer; addr != "" {
-		tunnelResolver = &Resolver{
-			Client: &fastdns.Client{
-				Addr: addr,
-				Dialer: &fastdns.HTTPDialer{
-					Endpoint:  func() (u *url.URL) { u, _ = url.Parse(addr); return }(),
-					UserAgent: DefaultUserAgent,
-				},
-			},
-		}
-	}
 	for _, tunnel := range config.Tunnel {
 		h := &TunnelHandler{
 			Config:          tunnel,
 			MemoryListeners: memoryListeners,
-			Resolver:        tunnelResolver,
+			Resolver:        geoResolver.Resolver,
 			LocalDialer:     dialer,
 			Dialers:         config.Dialer,
+		}
+		if tunnel.DnsServer != "" {
+			h.Resolver = resolverof(tunnel.DnsServer)
 		}
 
 		go h.Serve(context.Background())
