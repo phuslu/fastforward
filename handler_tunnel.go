@@ -213,7 +213,7 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 		}
 		if ech := u.Query().Get("ech"); ech == "1" || ech == "true" {
 			https, err := h.Resolver.LookupHTTPS(ctx1, u.Hostname())
-			log.Debug().Interface("https", https).AnErr("error", err).Msg("look https records")
+			log.Debug().Str("dns_server", h.Resolver.Addr).Interface("https", https).AnErr("error", err).Msg("lookup https records")
 			if err != nil {
 				log.Error().Err(err).Str("tunnel_host", hostport).Stringer("tunnel_url", u).Str("ech", ech).Msg("lookup https error")
 				return nil, err

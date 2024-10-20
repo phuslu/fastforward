@@ -122,6 +122,7 @@ type Config struct {
 		DnsCacheSize     int    `json:"dns_cache_size" yaml:"dns_cache_size"`
 		IdleConnTimeout  int    `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
 		MaxIdleConns     int    `json:"max_idle_conns" yaml:"max_idle_conns"`
+		TunnelDnsServer  string `json:"tunnel_dns_server" yaml:"tunnel_dns_server"`
 	} `json:"global" yaml:"global"`
 	Cron []struct {
 		Spec    string `json:"spec" yaml:"spec"`

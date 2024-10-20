@@ -44,6 +44,6 @@ func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]net
 		r.LRUCache.Set(host, ips, r.CacheDuration)
 	}
 
-	log.Debug().Msgf("lookupIP(%#v) return %+v", host, ips)
+	log.Debug().Msgf("LookupNetIP(%#v) @%s return %+v", host, r.Client.Addr, ips)
 	return ips, nil
 }

@@ -716,11 +716,23 @@ func main() {
 	}
 
 	// tunnel handler
+	tunnelResolver := resolver
+	if addr := config.Global.TunnelDnsServer; addr != "" {
+		tunnelResolver = &Resolver{
+			Client: &fastdns.Client{
+				Addr: addr,
+				Dialer: &fastdns.HTTPDialer{
+					Endpoint:  func() (u *url.URL) { u, _ = url.Parse(addr); return }(),
+					UserAgent: DefaultUserAgent,
+				},
+			},
+		}
+	}
 	for _, tunnel := range config.Tunnel {
 		h := &TunnelHandler{
 			Config:          tunnel,
 			MemoryListeners: memoryListeners,
-			Resolver:        resolver,
+			Resolver:        tunnelResolver,
 			LocalDialer:     dialer,
 			Dialers:         config.Dialer,
 		}
