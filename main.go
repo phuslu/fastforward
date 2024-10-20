@@ -720,7 +720,7 @@ func main() {
 		h := &TunnelHandler{
 			Config:          tunnel,
 			MemoryListeners: memoryListeners,
-			GeoResolver:     geoResolver,
+			Resolver:        resolver,
 			LocalDialer:     dialer,
 			Dialers:         config.Dialer,
 		}

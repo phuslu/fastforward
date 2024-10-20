@@ -25,7 +25,7 @@ import (
 type TunnelHandler struct {
 	Config          TunnelConfig
 	MemoryListeners *xsync.MapOf[string, *MemoryListener]
-	GeoResolver     *GeoResolver
+	Resolver        *Resolver
 	LocalDialer     Dialer
 	Dialers         map[string]string
 }
@@ -211,25 +211,15 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 			InsecureSkipVerify: u.Query().Get("insecure") == "true",
 			ServerName:         u.Hostname(),
 		}
-		if ech := u.Query().Get("ech"); ech != "" {
-			switch len(ech) % 4 {
-			case 1:
-				ech += "==="
-			case 2:
-				ech += "=="
-			case 3:
-				ech += "="
-			}
-			if strings.Contains(ech, " ") {
-				ech = strings.ReplaceAll(ech, " ", "+")
-			}
-			data, err := base64.StdEncoding.DecodeString(ech)
+		if ech := u.Query().Get("ech"); ech == "1" || ech == "true" {
+			https, err := h.Resolver.LookupHTTPS(ctx1, u.Hostname())
+			log.Debug().Interface("https", https).AnErr("error", err).Msg("look https records")
 			if err != nil {
-				log.Error().Err(err).Str("tunnel_host", hostport).Stringer("tunnel_url", u).Str("ech", ech).Msg("decode ech error")
+				log.Error().Err(err).Str("tunnel_host", hostport).Stringer("tunnel_url", u).Str("ech", ech).Msg("lookup https error")
 				return nil, err
 			}
 			tlsConfig.MinVersion = tls.VersionTLS13
-			tlsConfig.EncryptedClientHelloConfigList = data
+			tlsConfig.EncryptedClientHelloConfigList = https[0].ECH
 		}
 		tlsConn := tls.Client(conn, tlsConfig)
 		err = tlsConn.HandshakeContext(ctx1)
