@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"reflect"
@@ -158,7 +159,7 @@ func (h *TunnelHandler) sshtunnel(ctx context.Context, dialer string) (net.Liste
 func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listener, error) {
 	log.Info().Str("dialer", dialer).Msg("connecting tunnel host")
 
-	ctx1, cancel := context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(h.Config.DialTimeout)*time.Second)
 	defer cancel()
 
 	u, err := url.Parse(dialer)
@@ -169,21 +170,49 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 		return nil, fmt.Errorf("no user info in dialer: %s", dialer)
 	}
 
-	hostport := u.Host
-	if _, _, err := net.SplitHostPort(hostport); err != nil {
-		switch u.Scheme {
-		case "http,", "ws":
-			hostport = net.JoinHostPort(hostport, "80")
-		default:
-			hostport = net.JoinHostPort(hostport, "443")
+	host, port, ech := u.Hostname(), u.Port(), []byte{}
+	if u.Query().Get("ech") == "true" {
+		https, err := h.Resolver.LookupHTTPS(ctx, host)
+		log.Debug().Str("dns_server", h.Resolver.Addr).Interface("https", https).AnErr("error", err).Msg("lookup https records")
+		if len(https) == 0 && err == nil {
+			err = fmt.Errorf("lookup https %v error: emtpy record", host)
+		}
+		if err != nil {
+			log.Error().Err(err).Str("tunnel_host", host).Stringer("tunnel_url", u).Msg("lookup https error")
+			return nil, err
+		}
+		if len(https[0].ECH) > 0 {
+			ech = https[0].ECH
+		}
+		switch {
+		case len(https[0].IPv4Hint) > 0:
+			host = https[0].IPv4Hint[0].String()
+		case len(https[0].IPv6Hint) > 0:
+			host = https[0].IPv6Hint[0].String()
 		}
 	}
 	if resolve := u.Query().Get("resolve"); resolve != "" {
-		_, port, _ := net.SplitHostPort(hostport)
-		hostport = net.JoinHostPort(resolve, port)
+		host = resolve
+	}
+	if _, err := netip.ParseAddr(host); err != nil {
+		ips, err := h.Resolver.LookupNetIP(ctx, "ip", host)
+		if err != nil {
+			return nil, err
+		}
+		host = ips[0].String()
+	}
+	if port == "" {
+		switch u.Scheme {
+		case "http,", "ws":
+			port = "80"
+		default:
+			port = "443"
+		}
 	}
 
-	conn, err := h.LocalDialer.DialContext(ctx1, "tcp", hostport)
+	hostport := net.JoinHostPort(host, port)
+
+	conn, err := h.LocalDialer.DialContext(ctx, "tcp", hostport)
 	if err != nil {
 		log.Error().Err(err).Str("tunnel_host", hostport).Msg("connect tunnel host error")
 		return nil, err
@@ -211,18 +240,12 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 			InsecureSkipVerify: u.Query().Get("insecure") == "true",
 			ServerName:         u.Hostname(),
 		}
-		if ech := u.Query().Get("ech"); ech == "1" || ech == "true" {
-			https, err := h.Resolver.LookupHTTPS(ctx1, u.Hostname())
-			log.Debug().Str("dns_server", h.Resolver.Addr).Interface("https", https).AnErr("error", err).Msg("lookup https records")
-			if err != nil {
-				log.Error().Err(err).Str("tunnel_host", hostport).Stringer("tunnel_url", u).Str("ech", ech).Msg("lookup https error")
-				return nil, err
-			}
+		if len(ech) > 0 {
 			tlsConfig.MinVersion = tls.VersionTLS13
-			tlsConfig.EncryptedClientHelloConfigList = https[0].ECH
+			tlsConfig.EncryptedClientHelloConfigList = ech
 		}
 		tlsConn := tls.Client(conn, tlsConfig)
-		err = tlsConn.HandshakeContext(ctx1)
+		err = tlsConn.HandshakeContext(ctx)
 		if err != nil {
 			_ = conn.Close()
 			log.Error().Err(err).Str("tunnel_host", hostport).Msg("handshake tunnel host error")
