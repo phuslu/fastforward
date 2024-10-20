@@ -25,6 +25,7 @@ require (
 require (
 	github.com/google/pprof v0.0.0-20240925223930-fa3061bff0bc // indirect
 	github.com/onsi/ginkgo/v2 v2.20.2 // indirect
+	github.com/phuslu/fastdns v0.10.3 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect

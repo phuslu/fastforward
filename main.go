@@ -25,6 +25,7 @@ import (
 	"github.com/apernet/quic-go/http3"
 	"github.com/mileusna/useragent"
 	"github.com/oschwald/maxminddb-golang"
+	"github.com/phuslu/fastdns"
 	"github.com/phuslu/geosite"
 	"github.com/phuslu/log"
 	"github.com/phuslu/lru"
@@ -112,8 +113,8 @@ func main() {
 
 	// global resolver
 	resolver := &Resolver{
-		Resolver: &net.Resolver{
-			PreferGo: true,
+		Client: &fastdns.Client{
+			Addr: "1.1.1.1:53",
 		},
 		CacheDuration: 5 * time.Minute,
 		LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 32*1024)),
@@ -140,37 +141,22 @@ func main() {
 		}
 
 		switch u.Scheme {
-		case "udp", "tcp":
-			var addr = u.Host
+		case "udp":
+			var addr *net.UDPAddr
 			if _, _, err := net.SplitHostPort(u.Host); err != nil {
-				addr = net.JoinHostPort(addr, "53")
+				addr, _ = net.ResolveUDPAddr("udp", net.JoinHostPort(u.Host, "53"))
+			} else {
+				addr, _ = net.ResolveUDPAddr("udp", u.Host)
 			}
-			dnsDialer := &net.Dialer{
-				Timeout: 2 * time.Second,
-			}
-			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return dnsDialer.DialContext(ctx, u.Scheme, addr)
-			}
-		case "tls", "dot":
-			var addr = u.Host
-			if _, _, err := net.SplitHostPort(u.Host); err != nil {
-				addr = net.JoinHostPort(addr, "853")
-			}
-			tlsDialer := &tls.Dialer{
-				NetDialer: &net.Dialer{
-					Timeout: 2 * time.Second,
-				},
-				Config: &tls.Config{
-					ServerName:         u.Hostname(),
-					ClientSessionCache: tls.NewLRUClientSessionCache(128),
-				},
-			}
-			resolver.Resolver.Dial = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return tlsDialer.DialContext(ctx, "tcp", addr)
+			resolver.Client.Dialer = &fastdns.UDPDialer{
+				Addr:     addr,
+				Timeout:  3 * time.Second,
+				MaxConns: 1000,
 			}
 		case "https", "http2", "h2", "doh":
-			resolver.Resolver.Dial = (&DoHResolverDialer{
-				EndPoint:  strings.NewReplacer("http2", "https", "h2", "https", "doh", "https").Replace(config.Global.DnsServer),
+			u.Scheme = "https"
+			resolver.Client.Dialer = &fastdns.HTTPDialer{
+				Endpoint:  u,
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Transport: &http2.Transport{
 					TLSClientConfig: &tls.Config{
@@ -178,10 +164,11 @@ func main() {
 						ClientSessionCache: tls.NewLRUClientSessionCache(128),
 					},
 				},
-			}).DialContext
-		case "http3", "h3":
-			resolver.Resolver.Dial = (&DoHResolverDialer{
-				EndPoint:  strings.NewReplacer("http3", "https", "h3", "https").Replace(config.Global.DnsServer),
+			}
+		case "quic", "http3", "h3", "doq":
+			u.Scheme = "https"
+			resolver.Client.Dialer = &fastdns.HTTPDialer{
+				Endpoint:  u,
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
 				Transport: &http3.RoundTripper{
 					DisableCompression: false,
@@ -199,7 +186,9 @@ func main() {
 						MaxIncomingStreams:      200,
 					},
 				},
-			}).DialContext
+			}
+		default:
+			log.Fatal().Strs("support protocols", []string{"udp", "https", "http2", "http3"}).Msg("parse dns_server error")
 		}
 	}
 
