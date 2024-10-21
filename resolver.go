@@ -19,7 +19,7 @@ type Resolver struct {
 	LRUCache *lru.TTLCache[string, []netip.Addr]
 }
 
-func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
+func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) (ips []netip.Addr, err error) {
 	if r.LRUCache != nil {
 		if v, ok := r.LRUCache.Get(host); ok {
 			return v, nil
@@ -30,7 +30,7 @@ func (r *Resolver) LookupNetIP(ctx context.Context, network, host string) ([]net
 		return []netip.Addr{ip}, nil
 	}
 
-	ips, err := r.Client.LookupNetIP(ctx, network, host)
+	ips, err = r.Client.AppendLookupNetIP(ips, ctx, network, host)
 	if err != nil {
 		return nil, err
 	}
