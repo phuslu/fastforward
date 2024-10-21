@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apernet/quic-go"
-	"github.com/apernet/quic-go/http3"
 	"github.com/phuslu/fastdns"
 	"github.com/phuslu/lru"
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 )
 
 func TestResolver(t *testing.T) {
@@ -71,7 +71,7 @@ func TestDoQResolver(t *testing.T) {
 		Dialer: &fastdns.HTTPDialer{
 			Endpoint:  func() (u *url.URL) { u, _ = url.Parse(doh); return }(),
 			UserAgent: "fastdns/0.9",
-			Transport: &http3.RoundTripper{
+			Transport: &http3.Transport{
 				DisableCompression: false,
 				EnableDatagrams:    true,
 				TLSClientConfig: &tls.Config{

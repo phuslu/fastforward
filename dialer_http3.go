@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apernet/quic-go"
-	"github.com/apernet/quic-go/http3"
 	"github.com/phuslu/log"
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 	"github.com/smallnest/ringbuffer"
 )
 
@@ -34,7 +34,7 @@ type HTTP3Dialer struct {
 	Resolver  *Resolver
 
 	mu        sync.Mutex
-	transport *http3.RoundTripper
+	transport *http3.Transport
 }
 
 func (d *HTTP3Dialer) init() {
@@ -49,7 +49,7 @@ func (d *HTTP3Dialer) init() {
 		return
 	}
 
-	d.transport = &http3.RoundTripper{
+	d.transport = &http3.Transport{
 		DisableCompression: false,
 		EnableDatagrams:    false,
 		Dial: func(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (quic.EarlyConnection, error) {
