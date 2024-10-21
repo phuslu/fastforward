@@ -122,8 +122,8 @@ func main() {
 			Client: &fastdns.Client{
 				Addr: addr,
 			},
-			CacheDuration: 5 * time.Minute,
-			LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 32*1024)),
+			CacheDuration: 10 * time.Minute,
+			LRUCache:      lru.NewTTLCache[string, []netip.Addr](max(config.Global.DnsCacheSize, 64*1024)),
 		}
 		if config.Global.DnsCacheDuration != "" {
 			dur, err := time.ParseDuration(config.Global.DnsCacheDuration)
