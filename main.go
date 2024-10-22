@@ -553,7 +553,7 @@ func main() {
 		servers = append(servers, server)
 
 		// start http3 server
-		if config.Global.EnableHTTP3Server {
+		if !config.Global.DisableHttp3 {
 			go (&http3.Server{
 				Addr:      addr,
 				Handler:   server.Handler,
