@@ -10,10 +10,10 @@ require (
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/phuslu/fastdns v0.10.5
 	github.com/phuslu/geosite v1.0.20241001
-	github.com/phuslu/log v1.0.112
+	github.com/phuslu/log v1.0.113
 	github.com/phuslu/lru v1.0.16
 	github.com/puzpuzpuz/xsync/v3 v3.4.0
-	github.com/quic-go/quic-go v0.48.0
+	github.com/quic-go/quic-go v0.48.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/smallnest/ringbuffer v0.0.0-20240827114233-62e3c686e6c0
 	github.com/valyala/bytebufferpool v1.0.0
@@ -24,7 +24,7 @@ require (
 )
 
 require (
-	github.com/google/pprof v0.0.0-20241017200806-017d972448fc // indirect
+	github.com/google/pprof v0.0.0-20241021161924-4cf4322d492d // indirect
 	github.com/onsi/ginkgo/v2 v2.20.2 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	go.uber.org/mock v0.5.0 // indirect
