@@ -190,7 +190,7 @@ func main() {
 			r.Client.Dialer = &fastdns.UDPDialer{
 				Addr:     u,
 				Timeout:  3 * time.Second,
-				MaxConns: 1000,
+				MaxConns: 128,
 			}
 		}
 
