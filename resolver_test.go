@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net/http"
 	"net/netip"
 	"net/url"
 	"testing"
@@ -27,7 +28,7 @@ func TestResolver(t *testing.T) {
 	fmt.Println(r.LookupNetIP(context.Background(), "ip", "gmail.com"))
 }
 
-func TestDoHResolver(t *testing.T) {
+func TestResolverDoH(t *testing.T) {
 	cases := []struct {
 		Host string
 		IP   string
@@ -41,8 +42,7 @@ func TestDoHResolver(t *testing.T) {
 	client := &fastdns.Client{
 		Addr: doh,
 		Dialer: &fastdns.HTTPDialer{
-			Endpoint:  func() (u *url.URL) { u, _ = url.Parse(doh); return }(),
-			UserAgent: "fastdns/0.9",
+			Endpoint: func() (u *url.URL) { u, _ = url.Parse(doh); return }(),
 		},
 	}
 
@@ -55,7 +55,7 @@ func TestDoHResolver(t *testing.T) {
 	}
 }
 
-func TestDoQResolver(t *testing.T) {
+func TestResolverDoH3(t *testing.T) {
 	cases := []struct {
 		Host string
 		IP   string
@@ -69,8 +69,11 @@ func TestDoQResolver(t *testing.T) {
 	client := &fastdns.Client{
 		Addr: doh,
 		Dialer: &fastdns.HTTPDialer{
-			Endpoint:  func() (u *url.URL) { u, _ = url.Parse(doh); return }(),
-			UserAgent: "fastdns/0.9",
+			Endpoint: func() (u *url.URL) { u, _ = url.Parse(doh); return }(),
+			Header: http.Header{
+				"content-type": {"application/dns-message"},
+				"user-agent":   {"fastdns/1.0"},
+			},
 			Transport: &http3.Transport{
 				DisableCompression: false,
 				EnableDatagrams:    true,

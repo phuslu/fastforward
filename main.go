@@ -144,8 +144,11 @@ func main() {
 			case "https", "http2", "h2", "doh":
 				u.Scheme = "https"
 				r.Client.Dialer = &fastdns.HTTPDialer{
-					Endpoint:  u,
-					UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+					Endpoint: u,
+					Header: http.Header{
+						"content-type": {"application/dns-message"},
+						"user-agent":   {cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent)},
+					},
 					Transport: &http2.Transport{
 						TLSClientConfig: &tls.Config{
 							ServerName:         u.Hostname(),
@@ -156,8 +159,11 @@ func main() {
 			case "quic", "http3", "h3", "doq":
 				u.Scheme = "https"
 				r.Client.Dialer = &fastdns.HTTPDialer{
-					Endpoint:  u,
-					UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+					Endpoint: u,
+					Header: http.Header{
+						"content-type": {"application/dns-message"},
+						"user-agent":   {cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent)},
+					},
 					Transport: &http3.Transport{
 						DisableCompression: false,
 						EnableDatagrams:    true,
