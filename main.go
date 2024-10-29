@@ -273,7 +273,7 @@ func main() {
 				Resolver:        geoResolver.Resolver,
 				ResolveCache:    dialer.ResolveCache,
 				Interface:       u.Host,
-				PerferIPv6:      u.Query().Get("perfer_ipv6") == "true",
+				PerferIPv6:      u.Query().Get("prefer_ipv6") == "true",
 				Concurrency:     2,
 				ForbidLocalAddr: config.Global.ForbidLocalAddr,
 				DialTimeout:     time.Duration(cmp.Or(first(strconv.Atoi(u.Query().Get("dial_timeout"))), config.Global.DialTimeout, 30)) * time.Second,

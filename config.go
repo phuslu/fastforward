@@ -23,7 +23,7 @@ type HTTPConfig struct {
 		DisableHttp3   bool   `json:"disable_http3" yaml:"disable_http3"`
 		DisableTls11   bool   `json:"disable_tls11" yaml:"disable_tls11"`
 		DisableOcsp    bool   `json:"disable_ocsp" yaml:"disable_ocsp"`
-		PreferChacha20 bool   `json:"perfer_chacha20" yaml:"perfer_chacha20"`
+		PreferChacha20 bool   `json:"prefer_chacha20" yaml:"prefer_chacha20"`
 	} `json:"server_config" yaml:"server_config"`
 	Sniproxy []struct {
 		ServerName  string `json:"server_name" yaml:"server_name"`
@@ -140,14 +140,14 @@ type Config struct {
 func NewConfig(filename string) (*Config, error) {
 	if filename == "" {
 		var env = "development"
-		// perfer GOLANG_ENV
+		// prefer GOLANG_ENV
 		for _, name := range []string{"GOLANG_ENV", "ENV"} {
 			if s := os.Getenv(name); s != "" {
 				env = s
 				break
 			}
 		}
-		// perfer .json
+		// prefer .json
 		for _, ext := range []string{".json", ".yaml"} {
 			filename = env + ext
 			if _, err := os.Stat(filename); err == nil {
