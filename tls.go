@@ -257,13 +257,19 @@ func (m *TLSInspector) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Conf
 	hasChaCha20 := ecsdaCipher == tls.TLS_CHACHA20_POLY1305_SHA256
 
 	if preferChacha20 && !hasChaCha20 && hasTLS13 {
-		cs, i, j := hello.CipherSuites, 0, 2
-		if IsTLSGreaseCode(cs[0]) {
-			i, j = 1, 3
-		}
-		if len(cs) > j && cs[j] == tls.TLS_CHACHA20_POLY1305_SHA256 {
-			cs[i], cs[j] = cs[j], cs[i]
-			hasChaCha20 = true
+		i, j := -1, -1
+		for index, cipher := range hello.CipherSuites {
+			if !IsTLSGreaseCode(cipher) && i < 0 {
+				i = index
+			}
+			if cipher == tls.TLS_CHACHA20_POLY1305_SHA256 {
+				j = index
+			}
+			if 0 <= i && i < j {
+				hello.CipherSuites[i], hello.CipherSuites[j] = hello.CipherSuites[j], hello.CipherSuites[i]
+				hasChaCha20 = true
+				break
+			}
 		}
 	}
 
