@@ -156,7 +156,7 @@ func main() {
 						},
 					},
 				}
-			case "quic", "http3", "h3", "doq":
+			case "http3", "h3", "doh3":
 				u.Scheme = "https"
 				r.Client.Dialer = &fastdns.HTTPDialer{
 					Endpoint: u,
