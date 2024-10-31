@@ -64,7 +64,7 @@ https:
       - location: /$pacfile
         index:
           headers: "content-type: text/plain;charset=utf-8"
-          file: $(pwd)/$pacfile
+          file: $(pwd)/china.pac
       - location: /
         proxy:
           pass: 'http://127.0.0.1:80'
@@ -83,6 +83,12 @@ Restart=on-failure
 WorkingDirectory=$(pwd)
 EnvironmentFile=-$(pwd)/.env
 ExecStart=$(pwd)/liner
+StandardError=append:$(pwd)/liner.error.log
+User=${USER}
+Group=${USER}
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_SYS_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=no
 
 [Install]
 WantedBy=multi-user.target
@@ -99,5 +105,4 @@ else
   sudo ./liner.sh restart
 fi
 
-mv china.pac $pacfile
 echo "https://$domain/$pacfile"
