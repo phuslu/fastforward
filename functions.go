@@ -79,11 +79,12 @@ func (f *Functions) Load() error {
 	f.FuncMap["geoip"] = f.geoip
 	f.FuncMap["geosite"] = f.geosite
 	f.FuncMap["greased"] = f.greased
+	f.FuncMap["hasIPv6"] = f.hasIPv6
 	f.FuncMap["host"] = f.host
-	f.FuncMap["ipRange"] = f.ipRange
 	f.FuncMap["ipInt"] = f.ipInt
-	f.FuncMap["isInNet"] = f.isInNet
+	f.FuncMap["ipRange"] = f.ipRange
 	f.FuncMap["isInFile"] = f.isInFile
+	f.FuncMap["isInNet"] = f.isInNet
 	f.FuncMap["readfile"] = f.readfile
 
 	return nil
@@ -321,6 +322,25 @@ func (f *Functions) isInNet(host, cidr string) bool {
 	}
 
 	return prefix.Contains(ip)
+}
+
+func (f *Functions) hasIPv6(host string) bool {
+	if s, _, err := net.SplitHostPort(host); err == nil {
+		host = s
+	}
+
+	ips, err := f.GeoResolver.Resolver.LookupNetIP(context.Background(), "ip", host)
+	if err != nil {
+		return false
+	}
+
+	for _, ip := range ips {
+		if ip.Is6() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (f *Functions) geosite(domain string) string {
