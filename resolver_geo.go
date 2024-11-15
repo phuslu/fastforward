@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 
 	"github.com/oschwald/maxminddb-golang"
 )
@@ -14,6 +15,7 @@ type GeoResolver struct {
 	ISPReader            *maxminddb.Reader
 	DomainReader         *maxminddb.Reader
 	ConnectionTypeReader *maxminddb.Reader
+	LocalizedName        bool
 }
 
 func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {
@@ -34,6 +36,8 @@ func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string
 			GeoNameID uint `maxminddb:"geoname_id"`
 			Names     struct {
 				EN string `maxminddb:"en"`
+				JP string `maxminddb:"ja"`
+				CN string `maxminddb:"zh-CN"`
 			} `maxminddb:"names"`
 		} `maxminddb:"city"`
 		Subdivisions []struct {
@@ -47,12 +51,24 @@ func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string
 
 	err := r.CityReader.Lookup(ip, &record)
 
+	var code string = record.Country.ISOCode
+
 	var region string
 	if len(record.Subdivisions) != 0 {
 		region = record.Subdivisions[0].Names.EN
 	}
 
-	return record.Country.ISOCode, region, record.City.Names.EN, err
+	var name string = record.City.Names.EN
+	if r.LocalizedName {
+		switch code {
+		case "CN", "HK":
+			name = strings.TrimSuffix(record.City.Names.CN, "市")
+		case "JP":
+			name = record.City.Names.JP
+		}
+	}
+
+	return code, region, name, err
 }
 
 func (r *GeoResolver) LookupISP(ctx context.Context, ip net.IP) (string, uint, error) {

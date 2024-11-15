@@ -213,7 +213,8 @@ func main() {
 		}
 	}
 	geoResolver := &GeoResolver{
-		Resolver: resolverof(config.Global.DnsServer),
+		Resolver:      resolverof(config.Global.DnsServer),
+		LocalizedName: true,
 	}
 	for _, name := range []string{"GeoIP2-City.mmdb", "GeoLite2-City.mmdb"} {
 		geoResolver.CityReader, err = maxminddb.Open(name)
