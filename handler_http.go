@@ -125,7 +125,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	ri.UserAgent, _, _ = h.UserAgentMap.Get(req.Header.Get("User-Agent"))
 	if h.GeoResolver.CityReader != nil {
-		ri.GeoipInfo.Country, ri.GeoipInfo.Region, ri.GeoipInfo.City, _ = h.GeoResolver.LookupCity(context.Background(), net.ParseIP(ri.RemoteIP))
+		ri.GeoipInfo.Country, ri.GeoipInfo.City, _ = h.GeoResolver.LookupCity(context.Background(), net.ParseIP(ri.RemoteIP))
 	}
 
 	ri.ProxyUser = UserInfo{}
@@ -156,7 +156,6 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		Str("useragent_os", ri.UserAgent.OS+" "+ri.UserAgent.OSVersion).
 		Str("useragent_browser", ri.UserAgent.Name+" "+ri.UserAgent.Version).
 		Str("remote_country", ri.GeoipInfo.Country).
-		Str("remote_region", ri.GeoipInfo.Region).
 		Str("remote_city", ri.GeoipInfo.City).
 		Value()
 

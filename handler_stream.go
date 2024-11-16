@@ -126,11 +126,11 @@ func (h *StreamHandler) ServeConn(conn net.Conn) {
 	_, err = io.Copy(conn, rconn)
 
 	if h.Config.Log {
-		var country, region, city string
+		var country, city string
 		if h.GeoResolver.CityReader != nil {
-			country, region, city, _ = h.GeoResolver.LookupCity(ctx, net.ParseIP(req.RemoteIP))
+			country, city, _ = h.GeoResolver.LookupCity(ctx, net.ParseIP(req.RemoteIP))
 		}
-		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("stream_dialer_name", h.Config.Dialer).Msg("forward port request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_city", city).Str("stream_dialer_name", h.Config.Dialer).Msg("forward port request end")
 	}
 
 	return

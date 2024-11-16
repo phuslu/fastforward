@@ -249,11 +249,11 @@ func (h *SocksHandler) ServeConn(ctx context.Context, conn net.Conn) {
 	_, err = io.Copy(conn, rconn)
 
 	if h.Config.Forward.Log {
-		var country, region, city string
+		var country, city string
 		if h.GeoResolver.CityReader != nil {
-			country, region, city, _ = h.GeoResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
+			country, city, _ = h.GeoResolver.LookupCity(context.Background(), net.ParseIP(req.RemoteIP))
 		}
-		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_region", region).Str("remote_city", city).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_dialer_name", dialerName).Msg("forward socks request end")
+		h.ForwardLogger.Info().Stringer("trace_id", req.TraceID).Str("server_addr", req.ServerAddr).Str("remote_ip", req.RemoteIP).Str("remote_country", country).Str("remote_city", city).Str("forward_dialer_name", h.Config.Forward.Dialer).Str("socks_host", req.Host).Int("socks_port", req.Port).Int("socks_version", int(req.Version)).Str("forward_dialer_name", dialerName).Msg("forward socks request end")
 	}
 
 	return

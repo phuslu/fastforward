@@ -18,13 +18,13 @@ type GeoResolver struct {
 	LocalizedName        bool
 }
 
-func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, string, error) {
+func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string, error) {
 	if r.CityReader == nil {
-		return "", "", "", errors.New("no maxmind city database found")
+		return "", "", errors.New("no maxmind city database found")
 	}
 
 	if ip == nil {
-		return "", "", "", errors.New("invalid ip address")
+		return "", "", errors.New("invalid ip address")
 	}
 
 	var record struct {
@@ -40,25 +40,18 @@ func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string
 				CN string `maxminddb:"zh-CN"`
 			} `maxminddb:"names"`
 		} `maxminddb:"city"`
-		Subdivisions []struct {
-			GeoNameID uint   `maxminddb:"geoname_id"`
-			IsoCode   string `maxminddb:"iso_code"`
-			Names     struct {
-				EN string `maxminddb:"en"`
-			} `maxminddb:"names"`
-		} `maxminddb:"subdivisions"`
+		// Subdivisions []struct {
+		// 	GeoNameID uint   `maxminddb:"geoname_id"`
+		// 	IsoCode   string `maxminddb:"iso_code"`
+		// 	Names     struct {
+		// 		EN string `maxminddb:"en"`
+		// 	} `maxminddb:"names"`
+		// } `maxminddb:"subdivisions"`
 	}
 
 	err := r.CityReader.Lookup(ip, &record)
 
-	var code string = record.Country.ISOCode
-
-	var region string
-	if len(record.Subdivisions) != 0 {
-		region = record.Subdivisions[0].Names.EN
-	}
-
-	var name string = record.City.Names.EN
+	code, name := record.Country.ISOCode, record.City.Names.EN
 	if r.LocalizedName {
 		switch code {
 		case "CN", "HK":
@@ -68,7 +61,7 @@ func (r *GeoResolver) LookupCity(ctx context.Context, ip net.IP) (string, string
 		}
 	}
 
-	return code, region, name, err
+	return code, name, err
 }
 
 func (r *GeoResolver) LookupISP(ctx context.Context, ip net.IP) (string, uint, error) {

@@ -448,7 +448,6 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("username", ri.ProxyUser.Username).
 					Str("remote_ip", ri.RemoteIP).
 					Str("remote_country", ri.GeoipInfo.Country).
-					Str("remote_region", ri.GeoipInfo.Region).
 					Str("remote_city", ri.GeoipInfo.City).
 					Str("http_method", req.Method).
 					Str("http_host", host).
@@ -545,7 +544,6 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 					Str("username", ri.ProxyUser.Username).
 					Str("remote_ip", ri.RemoteIP).
 					Str("remote_country", ri.GeoipInfo.Country).
-					Str("remote_region", ri.GeoipInfo.Region).
 					Str("remote_city", ri.GeoipInfo.City).
 					Str("http_method", req.Method).
 					Str("http_host", host).
