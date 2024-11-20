@@ -116,7 +116,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 	h.setHeaders(req, ri)
 
 	if req.ProtoAtLeast(3, 0) && req.Method == http.MethodGet {
-		req.Body = nil
+		req.Body, req.ContentLength = nil, 0
 	}
 
 	resp, err := tr.RoundTrip(req)
