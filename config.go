@@ -108,6 +108,11 @@ type TunnelConfig struct {
 	Log         bool     `json:"log" yaml:"log"`
 }
 
+type DnsConfig struct {
+	Listen []string `json:"listen" yaml:"listen"`
+	Log    bool     `json:"log" yaml:"log"`
+}
+
 type Config struct {
 	Global struct {
 		LogLevel         string `json:"log_level" yaml:"log_level"`
@@ -135,6 +140,7 @@ type Config struct {
 	Socks  []SocksConfig     `json:"socks" yaml:"socks"`
 	Tunnel []TunnelConfig    `json:"tunnel" yaml:"tunnel"`
 	Stream []StreamConfig    `json:"stream" yaml:"stream"`
+	Dns    []DnsConfig       `json:"dns" yaml:"dns"`
 }
 
 func NewConfig(filename string) (*Config, error) {
