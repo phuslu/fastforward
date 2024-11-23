@@ -141,6 +141,28 @@ func main() {
 				log.Fatal().Err(err).Str("dns_server", addr).Msg("parse dns_server error")
 			}
 			switch u.Scheme {
+			case "tcp":
+				hostport := u.Host
+				if _, _, err := net.SplitHostPort(hostport); err != nil {
+					hostport = net.JoinHostPort(hostport, "53")
+				}
+				r.Client.Dialer = &fastdns.TCPDialer{
+					Addr:     func() (u *net.TCPAddr) { u, _ = net.ResolveTCPAddr("tcp", hostport); return }(),
+					MaxConns: 16,
+				}
+			case "tls", "dot":
+				hostport := u.Host
+				if _, _, err := net.SplitHostPort(hostport); err != nil {
+					hostport = net.JoinHostPort(hostport, "853")
+				}
+				r.Client.Dialer = &fastdns.TCPDialer{
+					Addr: func() (ua *net.TCPAddr) { ua, _ = net.ResolveTCPAddr("tcp", hostport); return }(),
+					TLSConfig: &tls.Config{
+						ServerName:         u.Hostname(),
+						ClientSessionCache: tls.NewLRUClientSessionCache(128),
+					},
+					MaxConns: 16,
+				}
 			case "https", "http2", "h2", "doh":
 				u.Scheme = "https"
 				r.Client.Dialer = &fastdns.HTTPDialer{

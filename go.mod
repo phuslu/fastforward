@@ -8,7 +8,7 @@ require (
 	github.com/mileusna/useragent v1.3.5
 	github.com/nathanaelle/password/v2 v2.0.1
 	github.com/oschwald/maxminddb-golang v1.13.1
-	github.com/phuslu/fastdns v0.11.6
+	github.com/phuslu/fastdns v0.12.0
 	github.com/phuslu/geosite v1.0.20241101
 	github.com/phuslu/log v1.0.113
 	github.com/phuslu/lru v1.0.16
@@ -24,8 +24,8 @@ require (
 )
 
 require (
-	github.com/google/pprof v0.0.0-20241101162523-b92577c0c142 // indirect
-	github.com/onsi/ginkgo/v2 v2.21.0 // indirect
+	github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b // indirect
+	github.com/onsi/ginkgo/v2 v2.22.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f // indirect
