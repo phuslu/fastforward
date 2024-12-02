@@ -16,7 +16,6 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
-	"golang.org/x/crypto/cryptobyte"
 )
 
 type HTTPWebProxyHandler struct {
@@ -267,18 +266,16 @@ func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo, raw []byte
 	}
 	sb.WriteByte(',')
 
-	if exts, err := getTlsExtensions(raw); err == nil {
-		i = 0
-		for _, c := range exts {
-			if IsTLSGreaseCode(c) || c == 0x0015 {
-				continue
-			}
-			if i > 0 {
-				sb.WriteByte('-')
-			}
-			fmt.Fprintf(&sb, "%d", c)
-			i++
+	i = 0
+	for _, c := range info.Extensions {
+		if IsTLSGreaseCode(c) || c == 0x0015 {
+			continue
 		}
+		if i > 0 {
+			sb.WriteByte('-')
+		}
+		fmt.Fprintf(&sb, "%d", c)
+		i++
 	}
 	sb.WriteByte(',')
 
@@ -305,63 +302,4 @@ func getTlsFingerprint(version TLSVersion, info *tls.ClientHelloInfo, raw []byte
 	}
 
 	return sb.String()
-}
-
-// from https://github.com/Jigsaw-Code/getsni
-func getTlsExtensions(clienthello []byte) ([]uint16, error) {
-	if len(clienthello) == 0 {
-		return nil, errors.New("Bad TLSClientHello")
-	}
-
-	plaintext := cryptobyte.String(clienthello)
-
-	var s cryptobyte.String
-	// Skip uint8 ContentType and uint16 ProtocolVersion
-	if !plaintext.Skip(1+2) || !plaintext.ReadUint16LengthPrefixed(&s) {
-		return nil, errors.New("Bad TLSPlaintext")
-	}
-
-	// Skip uint8 message type, uint24 length, uint16 version, and 32 byte random.
-	var sessionID cryptobyte.String
-	if !s.Skip(1+3+2+32) ||
-		!s.ReadUint8LengthPrefixed(&sessionID) {
-		return nil, errors.New("Bad Handshake message")
-	}
-
-	var cipherSuites cryptobyte.String
-	if !s.ReadUint16LengthPrefixed(&cipherSuites) {
-		return nil, errors.New("Bad ciphersuites")
-	}
-
-	var compressionMethods cryptobyte.String
-	if !s.ReadUint8LengthPrefixed(&compressionMethods) {
-		return nil, errors.New("Bad compression methods")
-	}
-
-	if s.Empty() {
-		// ClientHello is optionally followed by extension data
-		return nil, errors.New("Short hello")
-	}
-
-	var extensions cryptobyte.String
-	if !s.ReadUint16LengthPrefixed(&extensions) || !s.Empty() {
-		return nil, errors.New("Bad extensions")
-	}
-
-	exts := []uint16{}
-	for !extensions.Empty() {
-		var extension uint16
-		var extData cryptobyte.String
-		if !extensions.ReadUint16(&extension) ||
-			!extensions.ReadUint16LengthPrefixed(&extData) {
-			return nil, errors.New("Bad extension")
-		}
-		exts = append(exts, extension)
-	}
-
-	if len(exts) == 0 {
-		return nil, errors.New("No Extensions")
-	}
-
-	return exts, nil
 }
