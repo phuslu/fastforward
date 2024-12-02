@@ -50,6 +50,4 @@ func (h *DnsHandler) ServeConn(ctx context.Context, conn net.Conn) {
 			continue
 		}
 	}
-
-	return
 }
