@@ -11,7 +11,7 @@ require (
 	github.com/phuslu/fastdns v0.12.0
 	github.com/phuslu/geosite v1.0.20241201
 	github.com/phuslu/log v1.0.113
-	github.com/phuslu/lru v1.0.16
+	github.com/phuslu/lru v1.0.17
 	github.com/puzpuzpuz/xsync/v3 v3.4.0
 	github.com/quic-go/quic-go v0.48.2
 	github.com/robfig/cron/v3 v3.0.1
