@@ -80,7 +80,7 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		}
 	}
 	if len(ips) == 0 {
-		return nil, net.InvalidAddrError("invaid dns record: " + address)
+		return nil, net.InvalidAddrError("empty dns record: " + host)
 	}
 
 	var ipv6only []netip.Addr
