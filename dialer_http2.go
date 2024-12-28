@@ -30,6 +30,7 @@ type HTTP2Dialer struct {
 	Host       string
 	Port       string
 	UserAgent  string
+	Insecure   bool
 	CACert     string
 	ClientKey  string
 	ClientCert string
@@ -58,7 +59,7 @@ func (d *HTTP2Dialer) DialContext(ctx context.Context, network, addr string) (ne
 
 				tlsConfig := &tls.Config{
 					NextProtos:         []string{"h2"},
-					InsecureSkipVerify: false,
+					InsecureSkipVerify: d.Insecure,
 					ServerName:         d.Host,
 					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
 				}

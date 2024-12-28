@@ -329,6 +329,7 @@ func main() {
 				Host:       u.Hostname(),
 				Port:       u.Port(),
 				UserAgent:  cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+				Insecure:   u.Query().Get("insecure") == "true",
 				CACert:     u.Query().Get("cacert"),
 				ClientKey:  u.Query().Get("key"),
 				ClientCert: u.Query().Get("cert"),
