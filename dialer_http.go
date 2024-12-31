@@ -135,7 +135,7 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 	if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {
 		for key, values := range header {
 			for _, value := range values {
-				fmt.Appendf(buf, "%s: %s\r\n", key, value)
+				buf = fmt.Appendf(buf, "%s: %s\r\n", key, value)
 			}
 		}
 	}
