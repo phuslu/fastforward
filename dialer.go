@@ -83,13 +83,10 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 		return nil, net.InvalidAddrError("empty dns record: " + host)
 	}
 
-	var ipv6only []netip.Addr
-	if i := slices.IndexFunc(ips, func(a netip.Addr) bool { return a.Is6() }); i > 0 {
-		if d.PerferIPv6 || ctx.Value(DialerPreferIPv6ContextKey) != nil {
-			ips = ips[i:]
-			ipv6only = ips[:len(ips)-i]
-		} else {
-			ips = ips[:len(ips)-i]
+	var ip4 []netip.Addr
+	if d.PerferIPv6 || ctx.Value(DialerPreferIPv6ContextKey) != nil {
+		if i := slices.IndexFunc(ips, func(a netip.Addr) bool { return a.Is6() }); i > 0 {
+			ips, ip4 = ips[i:], ips[:i]
 		}
 	}
 
@@ -108,17 +105,18 @@ func (d *LocalDialer) dialContext(ctx context.Context, network, address string, 
 
 	concurrency := max(d.Concurrency, 1)
 	dial := d.dialParallel
-	if concurrency <= 1 || len(ipv6only) == 1 || len(ips) == 1 {
+	if concurrency <= 1 || len(ips) == 1 {
 		dial = d.dialSerial
 	}
 
 	conn, err := dial(ctx, network, host, ips, uint16(port), tlsConfig)
-	if err != nil && strings.Contains(err.Error(), "connect: network is unreachable") && len(ips) > concurrency {
-		news := ips[len(ips)-concurrency:]
-		log.Warn().Err(err).Str("network", network).Str("host", host).Interface("ips", ips).Interface("new_ips", news).Msg("retry dialing")
-		conn, err = dial(ctx, network, host, news, uint16(port), tlsConfig)
-		if err == nil {
-			d.ResolveCache.Set(host, news, d.Resolver.CacheDuration)
+	if err != nil && ip4 != nil {
+		if errmsg := err.Error(); strings.Contains(errmsg, "connect: network is unreachable") || (strings.HasPrefix(errmsg, "dial tcp ") && strings.HasSuffix(errmsg, ": i/o timeout")) {
+			log.Warn().Err(err).Str("network", network).Str("host", host).Interface("ips", ips).Interface("ip4", ip4).Msg("retry dialing to ip4")
+			conn, err = dial(ctx, network, host, ip4, uint16(port), tlsConfig)
+			if err == nil {
+				d.ResolveCache.Set(host, ip4, d.Resolver.CacheDuration)
+			}
 		}
 	}
 	return conn, err

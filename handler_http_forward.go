@@ -359,7 +359,7 @@ func (h *HTTPForwardHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request
 		}
 
 		ctx := req.Context()
-		if preferIPv6 && dialer == h.LocalDialer {
+		if preferIPv6 {
 			ctx = context.WithValue(ctx, DialerPreferIPv6ContextKey, struct{}{})
 		}
 		if header, _ := ctx.Value(DialerHTTPHeaderContextKey).(http.Header); header != nil {

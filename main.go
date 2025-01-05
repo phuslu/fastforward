@@ -276,7 +276,7 @@ func main() {
 		ForbidLocalAddr: config.Global.ForbidLocalAddr,
 		ReadBuffSize:    config.Global.DialReadBuffer,
 		WriteBuffSize:   config.Global.DialWriteBuffer,
-		DialTimeout:     time.Duration(cmp.Or(config.Global.DialTimeout, 30)) * time.Second,
+		DialTimeout:     time.Duration(cmp.Or(config.Global.DialTimeout, 15)) * time.Second,
 		TCPKeepAlive:    30 * time.Second,
 		TLSConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -299,7 +299,7 @@ func main() {
 				PerferIPv6:      u.Query().Get("prefer_ipv6") == "true",
 				Concurrency:     2,
 				ForbidLocalAddr: config.Global.ForbidLocalAddr,
-				DialTimeout:     time.Duration(cmp.Or(first(strconv.Atoi(u.Query().Get("dial_timeout"))), config.Global.DialTimeout, 30)) * time.Second,
+				DialTimeout:     time.Duration(cmp.Or(first(strconv.Atoi(u.Query().Get("dial_timeout"))), config.Global.DialTimeout, 15)) * time.Second,
 				TCPKeepAlive:    30 * time.Second,
 				TLSConfig: &tls.Config{
 					InsecureSkipVerify: u.Query().Get("insecure") == "true",
