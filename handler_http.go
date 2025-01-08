@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/rc4"
 	"crypto/tls"
 	_ "embed"
 	"encoding/base64"
 	"mime"
 	"net"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -66,6 +68,7 @@ var riPool = sync.Pool{
 }
 
 const (
+	HTTPTunnelEncryptedPathPrefix  = "/t/20151012/"
 	HTTPTunnelConnectTCPPathPrefix = "/.well-known/masque/tcp/"
 	HTTPTunnelReverseTCPPathPrefix = "/.well-known/reverse/tcp/"
 )
@@ -134,6 +137,19 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		case "Basic":
 			if b, err := base64.StdEncoding.DecodeString(s); err == nil {
 				ri.ProxyUser.Username, ri.ProxyUser.Password, _ = strings.Cut(string(b), ":")
+			}
+		}
+	}
+
+	// decode encrypted url
+	if strings.HasPrefix(req.URL.Path, HTTPTunnelEncryptedPathPrefix) {
+		key, payload := req.URL.Path[3:len(HTTPTunnelEncryptedPathPrefix)-1], req.URL.Path[len(HTTPTunnelEncryptedPathPrefix):]
+		if b, err := base64.StdEncoding.AppendDecode(make([]byte, 0, 1024), s2b(payload)); err == nil {
+			if cipher, err := rc4.NewCipher(s2b(key)); err == nil {
+				cipher.XORKeyStream(b, b)
+				if u, err := url.Parse(b2s(b)); err == nil {
+					req.URL = u
+				}
 			}
 		}
 	}

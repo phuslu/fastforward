@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/rc4"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -122,7 +123,15 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		// see https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-connect-tcp-05
 		host, port, _ := net.SplitHostPort(addr)
 		key := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1))))
-		buf = fmt.Appendf(buf, "GET /.well-known/masque/tcp/%s/%s/ HTTP/1.1\r\n", host, port)
+		if d.TLS {
+			buf = fmt.Appendf(buf, "GET /.well-known/masque/tcp/%s/%s/ HTTP/1.1\r\n", host, port)
+		} else {
+			payload := fmt.Appendf(make([]byte, 0, 1024), "/.well-known/masque/tcp/%s/%s/", host, port)
+			cipher, _ := rc4.NewCipher(s2b(HTTPTunnelEncryptedPathPrefix[3 : len(HTTPTunnelEncryptedPathPrefix)-1]))
+			cipher.XORKeyStream(payload, payload)
+			payload = base64.StdEncoding.AppendEncode(make([]byte, 0, 1024), payload)
+			buf = fmt.Appendf(buf, "GET %s%s HTTP/1.1\r\n", HTTPTunnelEncryptedPathPrefix, payload)
+		}
 		buf = fmt.Appendf(buf, "Host: %s\r\n", d.Host)
 		buf = fmt.Appendf(buf, "Connection: Upgrade\r\n")
 		buf = fmt.Appendf(buf, "Upgrade: websocket\r\n")
