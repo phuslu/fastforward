@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/yamux"
+	"github.com/libp2p/go-yamux"
 	"github.com/phuslu/log"
 )
 
@@ -154,14 +154,16 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	session, err := yamux.Client(conn, &yamux.Config{
-		AcceptBacklog:          1024,
-		EnableKeepAlive:        false,
-		KeepAliveInterval:      60 * time.Second,
-		ConnectionWriteTimeout: 15 * time.Second,
-		MaxStreamWindowSize:    1024 * 1024,
-		StreamOpenTimeout:      8 * time.Second,
-		StreamCloseTimeout:     8 * time.Second,
-		Logger:                 log.DefaultLogger.Std("tunnel", 0),
+		AcceptBacklog:          256,
+		PingBacklog:            32,
+		EnableKeepAlive:        true,
+		KeepAliveInterval:      30 * time.Second,
+		ConnectionWriteTimeout: 10 * time.Second,
+		MaxStreamWindowSize:    256 * 1024,
+		LogOutput:              SlogWriter{Logger: log.DefaultLogger.Slog()},
+		ReadBufSize:            4096,
+		MaxMessageSize:         64 * 1024, // Means 64KiB/10s = 52kbps minimum speed.
+		WriteCoalesceDelay:     100 * time.Microsecond,
 	})
 	if err != nil {
 		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open yamux session error")

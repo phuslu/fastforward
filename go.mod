@@ -4,12 +4,12 @@ go 1.23
 
 require (
 	github.com/go-task/slim-sprig/v3 v3.0.0
-	github.com/hashicorp/yamux v0.1.2
+	github.com/libp2p/go-yamux v1.4.1
 	github.com/mileusna/useragent v1.3.5
 	github.com/nathanaelle/password/v2 v2.0.1
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/phuslu/fastdns v0.12.1
-	github.com/phuslu/geosite v1.0.20250101
+	github.com/phuslu/geosite v1.0.20250201
 	github.com/phuslu/log v1.0.113
 	github.com/phuslu/lru v1.0.17
 	github.com/puzpuzpuz/xsync/v3 v3.5.0
@@ -25,6 +25,7 @@ require (
 
 require (
 	github.com/google/pprof v0.0.0-20250128161936-077ca0a936bf // indirect
+	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.22.2 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	go.uber.org/mock v0.5.0 // indirect

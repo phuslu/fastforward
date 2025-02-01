@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
@@ -830,6 +831,17 @@ checkPattern:
 	}
 
 	return patternIndex == patternLen
+}
+
+type SlogWriter struct {
+	Logger *slog.Logger
+}
+
+func (w SlogWriter) Write(b []byte) (int, error) {
+	if w.Logger != nil {
+		w.Logger.Info(b2s(b))
+	}
+	return len(b), nil
 }
 
 type FileLoader[T any] struct {

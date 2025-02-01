@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/yamux"
+	"github.com/libp2p/go-yamux"
 	"github.com/phuslu/log"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/crypto/ssh"
@@ -329,14 +329,16 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 	}
 
 	ln, err := yamux.Server(conn, &yamux.Config{
-		AcceptBacklog:          1024,
-		EnableKeepAlive:        false,
-		KeepAliveInterval:      180 * time.Second,
-		ConnectionWriteTimeout: 15 * time.Second,
-		MaxStreamWindowSize:    1024 * 1024,
-		StreamOpenTimeout:      10 * time.Second,
-		StreamCloseTimeout:     10 * time.Second,
-		Logger:                 log.DefaultLogger.Std("tunnel", 0),
+		AcceptBacklog:          256,
+		PingBacklog:            32,
+		EnableKeepAlive:        true,
+		KeepAliveInterval:      30 * time.Second,
+		ConnectionWriteTimeout: 10 * time.Second,
+		MaxStreamWindowSize:    256 * 1024,
+		LogOutput:              SlogWriter{Logger: log.DefaultLogger.Slog()},
+		ReadBufSize:            4096,
+		MaxMessageSize:         64 * 1024, // Means 64KiB/10s = 52kbps minimum speed.
+		WriteCoalesceDelay:     100 * time.Microsecond,
 	})
 	if err != nil {
 		_ = conn.Close()
