@@ -343,6 +343,7 @@ func main() {
 				Host:      u.Hostname(),
 				Port:      u.Port(),
 				UserAgent: cmp.Or(u.Query().Get("user_agent"), DefaultUserAgent),
+				Insecure:  u.Query().Get("insecure") == "true",
 				Websocket: strings.HasSuffix(u.Scheme, "+wss"),
 				Resolver:  geoResolver.Resolver,
 			}

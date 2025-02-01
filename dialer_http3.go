@@ -30,6 +30,7 @@ type HTTP3Dialer struct {
 	Host      string
 	Port      string
 	UserAgent string
+	Insecure  bool
 	Websocket bool
 	Resolver  *Resolver
 
@@ -73,7 +74,7 @@ func (d *HTTP3Dialer) init() {
 				raddr,
 				&tls.Config{
 					NextProtos:         []string{"h3"},
-					InsecureSkipVerify: false,
+					InsecureSkipVerify: d.Insecure,
 					ServerName:         d.Host,
 					ClientSessionCache: tls.NewLRUClientSessionCache(1024),
 				},
