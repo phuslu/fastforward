@@ -16,7 +16,7 @@ case $(uname -m) in
 esac
 
 domain=$(curl -sS whatismyip.akamai.com | tr . -).nip.io
-checksum=$(curl https://phus.lu/liner/checksums.txt | grep -E "liner_linux_${arch}-[0-9]+.tar.xz")
+checksum=$(curl -L https://github.com/phuslu/liner/releases/download/v0.0.0/checksums.txt | grep -E "liner_linux_${arch}-[0-9]+.tar.xz")
 filename=$(echo $checksum | awk '{print $2}')
 pacfile=$(head /dev/urandom | tr -dc '1-9' | head -c 6).pac
 
@@ -28,7 +28,7 @@ else
   mkdir liner && cd liner
 fi
 
-curl http://phus.lu/liner/$filename > $filename
+curl -L https://github.com/phuslu/liner/releases/download/v0.0.0/$filename > $filename
 if test "$(sha1sum $filename)" != "$checksum"; then
   echo "$filename sha1sum mismatched, please check your network!"
   rm -rf $filename

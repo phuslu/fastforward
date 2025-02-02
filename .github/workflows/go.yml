@@ -4,10 +4,12 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:latest
     steps:
       - uses: actions/checkout@v1
       - run: ./build.bash setup
       - run: ./build.bash build
       - run: ./build.bash release
         env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GOTIP_TOKEN }}
