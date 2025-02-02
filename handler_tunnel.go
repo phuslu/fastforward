@@ -261,7 +261,7 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 
 	// see https://www.ietf.org/archive/id/draft-kazuho-httpbis-reverse-tunnel-00.html
 	buf := make([]byte, 0, 2048)
-	buf = fmt.Appendf(buf, "GET /.well-known/reverse/tcp/%s/%s/ HTTP/1.1\r\n", targetHost, targetPort)
+	buf = fmt.Appendf(buf, "GET "+HTTPTunnelReverseTCPPathPrefix+"%s/%s/ HTTP/1.1\r\n", targetHost, targetPort)
 	buf = fmt.Appendf(buf, "Host: %s\r\n", u.Hostname())
 	buf = fmt.Appendf(buf, "Authorization: Basic %s\r\n", base64.StdEncoding.EncodeToString([]byte(u.User.Username()+":"+first(u.User.Password()))))
 	buf = fmt.Appendf(buf, "User-Agent: %s\r\n", DefaultUserAgent)

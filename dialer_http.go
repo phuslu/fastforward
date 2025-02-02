@@ -124,9 +124,9 @@ func (d *HTTPDialer) DialContext(ctx context.Context, network, addr string) (net
 		host, port, _ := net.SplitHostPort(addr)
 		key := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%x%x\n", fastrandn(1<<32-1), fastrandn(1<<32-1))))
 		if d.TLS {
-			buf = fmt.Appendf(buf, "GET /.well-known/masque/tcp/%s/%s/ HTTP/1.1\r\n", host, port)
+			buf = fmt.Appendf(buf, "GET "+HTTPTunnelConnectTCPPathPrefix+"%s/%s/ HTTP/1.1\r\n", host, port)
 		} else {
-			payload := fmt.Appendf(make([]byte, 0, 1024), "/.well-known/masque/tcp/%s/%s/", host, port)
+			payload := fmt.Appendf(make([]byte, 0, 1024), HTTPTunnelConnectTCPPathPrefix+"%s/%s/", host, port)
 			cipher, _ := rc4.NewCipher(s2b(HTTPTunnelEncryptedPathPrefix[3 : len(HTTPTunnelEncryptedPathPrefix)-1]))
 			cipher.XORKeyStream(payload, payload)
 			payload = base64.StdEncoding.AppendEncode(make([]byte, 0, 1024), payload)
