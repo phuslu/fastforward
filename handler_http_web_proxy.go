@@ -16,6 +16,7 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
+	"github.com/valyala/bytebufferpool"
 )
 
 type HTTPWebProxyHandler struct {
@@ -167,13 +168,6 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		}
 		defer conn.Close()
 
-		for k, vv := range resp.Header {
-			for _, v := range vv {
-				rw.Header().Add(k, v)
-			}
-		}
-		rw.WriteHeader(resp.StatusCode)
-
 		if req.ProtoAtLeast(2, 0) {
 			flusher, ok := rw.(http.Flusher)
 			if !ok {
@@ -204,6 +198,18 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			w = lconn
 			r = lconn
 		}
+
+		b := bytebufferpool.Get()
+		defer bytebufferpool.Put(b)
+
+		fmt.Fprintf(w, "HTTP/1.1 %d %s\r\n", resp.StatusCode, resp.Status)
+		for k, vv := range resp.Header {
+			for _, v := range vv {
+				fmt.Fprintf(w, "%s: %s\r\n", k, v)
+			}
+		}
+		fmt.Fprintf(w, "\r\n")
+		w.Write(b.Bytes())
 
 		go io.Copy(w, conn)
 		io.Copy(conn, r)
