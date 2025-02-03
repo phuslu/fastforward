@@ -118,6 +118,13 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		req.Body, req.ContentLength = nil, 0
 	}
 
+	if req.Header.Get("Upgrade") == "" {
+		switch {
+		case req.Header.Get("Sec-WebSocket-Key") != "":
+			req.Header.Set("Upgrade", "websocket")
+		}
+	}
+
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
 		if h.proxypass != nil {
