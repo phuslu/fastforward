@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
@@ -13,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/libp2p/go-yamux"
+	"github.com/libp2p/go-yamux/v4"
 	"github.com/phuslu/log"
 )
 
@@ -154,17 +155,20 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	session, err := yamux.Client(conn, &yamux.Config{
-		AcceptBacklog:          256,
-		PingBacklog:            32,
-		EnableKeepAlive:        true,
-		KeepAliveInterval:      30 * time.Second,
-		ConnectionWriteTimeout: 10 * time.Second,
-		MaxStreamWindowSize:    256 * 1024,
-		LogOutput:              SlogWriter{Logger: log.DefaultLogger.Slog()},
-		ReadBufSize:            4096,
-		MaxMessageSize:         64 * 1024, // Means 64KiB/10s = 52kbps minimum speed.
-		WriteCoalesceDelay:     100 * time.Microsecond,
-	})
+		AcceptBacklog:           256,
+		PingBacklog:             32,
+		EnableKeepAlive:         true,
+		KeepAliveInterval:       30 * time.Second,
+		MeasureRTTInterval:      30 * time.Second,
+		ConnectionWriteTimeout:  10 * time.Second,
+		MaxIncomingStreams:      1000,
+		InitialStreamWindowSize: 256 * 1024,
+		MaxStreamWindowSize:     16 * 1024 * 1024,
+		LogOutput:               SlogWriter{Logger: log.DefaultLogger.Slog()},
+		ReadBufSize:             4096,
+		MaxMessageSize:          64 * 1024,
+		WriteCoalesceDelay:      100 * time.Microsecond,
+	}, nil)
 	if err != nil {
 		log.Error().Err(err).Context(ri.LogContext).Str("username", user.Username).Msg("tunnel open yamux session error")
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -176,7 +180,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 
 	exit := make(chan error, 2)
 
-	go func() {
+	go func(ctx context.Context) {
 		for {
 			rconn, err := ln.Accept()
 			if err != nil {
@@ -191,7 +195,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				continue
 			}
 
-			lconn, err := session.Open()
+			lconn, err := session.Open(ctx)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to open local session")
 				exit <- err
@@ -217,13 +221,13 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				}
 			}(lconn, rconn)
 		}
-	}()
+	}(req.Context())
 
-	go func() {
+	go func(ctx context.Context) {
 		count, duration := 0, 10*time.Second
 		for {
 			time.Sleep(duration)
-			stream, err := session.OpenStream()
+			stream, err := session.OpenStream(ctx)
 			if err != nil {
 				count, duration = count+1, 5*time.Second
 				if count == 3 {
@@ -235,7 +239,7 @@ func (h *HTTPTunnelHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 				count, duration = 0, 10*time.Second
 			}
 		}
-	}()
+	}(req.Context())
 
 	err = <-exit
 	log.Info().Err(err).Msg("tunnel forwarding exit.")

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/libp2p/go-yamux"
+	"github.com/libp2p/go-yamux/v4"
 	"github.com/phuslu/log"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/crypto/ssh"
@@ -329,17 +329,20 @@ func (h *TunnelHandler) wstunnel(ctx context.Context, dialer string) (net.Listen
 	}
 
 	ln, err := yamux.Server(conn, &yamux.Config{
-		AcceptBacklog:          256,
-		PingBacklog:            32,
-		EnableKeepAlive:        true,
-		KeepAliveInterval:      30 * time.Second,
-		ConnectionWriteTimeout: 10 * time.Second,
-		MaxStreamWindowSize:    256 * 1024,
-		LogOutput:              SlogWriter{Logger: log.DefaultLogger.Slog()},
-		ReadBufSize:            4096,
-		MaxMessageSize:         64 * 1024, // Means 64KiB/10s = 52kbps minimum speed.
-		WriteCoalesceDelay:     100 * time.Microsecond,
-	})
+		AcceptBacklog:           256,
+		PingBacklog:             32,
+		EnableKeepAlive:         true,
+		KeepAliveInterval:       30 * time.Second,
+		MeasureRTTInterval:      30 * time.Second,
+		ConnectionWriteTimeout:  10 * time.Second,
+		MaxIncomingStreams:      1000,
+		InitialStreamWindowSize: 256 * 1024,
+		MaxStreamWindowSize:     16 * 1024 * 1024,
+		LogOutput:               SlogWriter{Logger: log.DefaultLogger.Slog()},
+		ReadBufSize:             4096,
+		MaxMessageSize:          64 * 1024,
+		WriteCoalesceDelay:      100 * time.Microsecond,
+	}, nil)
 	if err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("tunnel: open yamux server on remote %s: %w", h.Config.Listen[0], err)
