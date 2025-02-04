@@ -684,6 +684,39 @@ func HtpasswdVerify(htpasswdFile string, req *http.Request) error {
 	return fmt.Errorf("wrong username or password: %+v", parts)
 }
 
+func SetHTTP2ResponseWriterSentHeader(rw http.ResponseWriter, sent bool) error {
+	if rw == nil {
+		return errors.New("SetHTTP2ResponseWriterSentHeader got an empty http.ResponseWriter interface")
+	}
+
+	data := (*[2]unsafe.Pointer)(unsafe.Pointer(&rw))[1]
+	if data == nil {
+		return errors.New("SetHTTP2ResponseWriterSentHeader got an empty http.ResponseWriter data")
+	}
+
+	type responseWriter struct {
+		rws *struct {
+			stream        uintptr
+			req           *http.Request
+			conn          uintptr
+			bw            *bufio.Writer // writing to a chunkWriter{this *responseWriterState}
+			handlerHeader http.Header   // nil until called
+			snapHeader    http.Header   // snapshot of handlerHeader at WriteHeader time
+			trailers      []string      // set in writeChunk
+			status        int           // status code passed to WriteHeader
+			wroteHeader   bool          // WriteHeader called (explicitly or implicitly). Not necessarily sent to user yet.
+			sentHeader    bool          // have we sent the header frame?
+			handlerDone   bool          // handler has finished
+		}
+	}
+
+	(*responseWriter)(data).rws.wroteHeader = sent
+	(*responseWriter)(data).rws.sentHeader = sent
+	(*responseWriter)(data).rws.handlerDone = !sent
+
+	return nil
+}
+
 func GetOCSPStaple(ctx context.Context, transport http.RoundTripper, cert *x509.Certificate) ([]byte, error) {
 	if cert == nil {
 		return nil, errors.New("Nil x509 certificate")

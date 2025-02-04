@@ -178,6 +178,11 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 
 			w = FlushWriter{rw}
 			r = req.Body
+
+			// if err := SetHTTP2ResponseWriterSentHeader(rw, true); err != nil {
+			// 	http.Error(rw, fmt.Sprintf("%#v cannot be SetHTTP2ResponseWriterSentHeader", rw), http.StatusBadGateway)
+			// 	return
+			// }
 		} else {
 			hijacker, ok := rw.(http.Hijacker)
 			if !ok {
@@ -202,7 +207,7 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		b := bytebufferpool.Get()
 		defer bytebufferpool.Put(b)
 
-		fmt.Fprintf(w, "HTTP/1.1 %d %s\r\n", resp.StatusCode, resp.Status)
+		fmt.Fprintf(w, "HTTP/1.1 %s\r\n", resp.Status)
 		for k, vv := range resp.Header {
 			for _, v := range vv {
 				fmt.Fprintf(w, "%s: %s\r\n", k, v)
