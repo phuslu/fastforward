@@ -38,6 +38,7 @@ type Functions struct {
 	FetchCache     *lru.TTLCache[string, *FetchResponse]
 
 	RegexpCache *xsync.MapOf[string, *regexp.Regexp]
+	FileCache   *xsync.MapOf[string, *FileLoader[[]string]]
 
 	FuncMap template.FuncMap
 }
@@ -83,8 +84,10 @@ func (f *Functions) Load() error {
 	f.FuncMap["host"] = f.host
 	f.FuncMap["ipInt"] = f.ipInt
 	f.FuncMap["ipRange"] = f.ipRange
-	f.FuncMap["isInFile"] = f.isInFile
 	f.FuncMap["isInNet"] = f.isInNet
+
+	// file related
+	f.FuncMap["infile"] = f.infile
 	f.FuncMap["readfile"] = f.readfile
 
 	return nil
@@ -286,16 +289,6 @@ func (f *Functions) ipInt(ipStr string) uint {
 	return uint(NewIPInt(ipStr))
 }
 
-func (f *Functions) isInFile(line, filename string) bool {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		log.Error().Err(err).Str("line", line).Str("filename", filename).Msg("isInFile error")
-		return false
-	}
-
-	return slices.Contains(AppendSplitLines(make([]string, 0, 1024), b2s(data)), line)
-}
-
 func (f *Functions) isInNet(host, cidr string) bool {
 	if s, _, err := net.SplitHostPort(host); err == nil {
 		host = s
@@ -420,6 +413,37 @@ func (f *Functions) wildcardMatch(pattern, s string) bool {
 		}
 	}
 	return false
+}
+
+func (f *Functions) infile(line, filename string) bool {
+	loader, _ := f.FileCache.LoadOrCompute(filename, func() *FileLoader[[]string] {
+		return &FileLoader[[]string]{
+			Filename: filename,
+			Unmarshal: func(data []byte, v any) error {
+				lines, ok := v.(*[]string)
+				if !ok {
+					return fmt.Errorf("*[]string required, found %T", v)
+				}
+				*lines = AppendSplitLines(make([]string, 0, strings.Count(b2s(data), "\n")), string(data))
+				slices.Sort(*lines)
+				return nil
+			},
+			PollDuration: 2 * time.Minute,
+			ErrorLogger:  log.DefaultLogger.Std("", 0),
+		}
+	})
+	if loader == nil {
+		return false
+	}
+
+	lines := loader.Load()
+	if lines == nil {
+		return false
+	}
+
+	_, found := slices.BinarySearch(*lines, line)
+
+	return found
 }
 
 func (f *Functions) regexMatch(pattern, s string) bool {

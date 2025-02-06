@@ -417,6 +417,7 @@ func main() {
 		FetchClient:    &http.Client{Transport: transport},
 		FetchCache:     lru.NewTTLCache[string, *FetchResponse](8192),
 		RegexpCache:    xsync.NewMapOf[string, *regexp.Regexp](),
+		FileCache:      xsync.NewMapOf[string, *FileLoader[[]string]](),
 	}
 	if err := functions.Load(); err != nil {
 		log.Fatal().Err(err).Msgf("%T.Load() fatal", functions)
