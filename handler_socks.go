@@ -65,7 +65,7 @@ func (h *SocksHandler) Load() error {
 			Filename:     h.Config.Forward.AuthTable,
 			Unmarshal:    UserCsvUnmarshal,
 			PollDuration: 30 * time.Second,
-			ErrorLogger:  log.DefaultLogger.Std("", 0),
+			Logger:       log.DefaultLogger.Slog(),
 		}
 		records := h.csvloader.Load()
 		if records == nil {

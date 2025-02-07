@@ -434,7 +434,7 @@ func (f *Functions) infile(line, filename string) bool {
 				return nil
 			},
 			PollDuration: 2 * time.Minute,
-			ErrorLogger:  log.DefaultLogger.Std("", 0),
+			Logger:       log.DefaultLogger.Slog(),
 		}
 	})
 	if loader == nil {

@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -881,7 +880,7 @@ type FileLoader[T any] struct {
 	Filename     string
 	Unmarshal    func([]byte, any) error
 	PollDuration time.Duration
-	ErrorLogger  *log.Logger
+	Logger       *slog.Logger
 
 	once  sync.Once
 	mtime int64
@@ -890,23 +889,23 @@ type FileLoader[T any] struct {
 
 func (f *FileLoader[T]) load() {
 	if f.Unmarshal == nil {
-		if f.ErrorLogger != nil {
-			f.ErrorLogger.Printf("FileLoader: empty unmarshal for %+v", f.Filename)
+		if f.Logger != nil {
+			f.Logger.Error("FileLoader: empty unmarshal", "filename", f.Filename)
 		}
 		return
 	}
 	data, err := os.ReadFile(f.Filename)
 	if err != nil {
-		if f.ErrorLogger != nil {
-			f.ErrorLogger.Printf("FileLoader: read file %+v error: %v", f.Filename, err)
+		if f.Logger != nil {
+			f.Logger.Error("FileLoader: read file failed", "filename", f.Filename, "error", err)
 		}
 		return
 	}
 	v := new(T)
 	err = f.Unmarshal(data, v)
 	if err != nil {
-		if f.ErrorLogger != nil {
-			f.ErrorLogger.Printf("FileLoader: unmarshal data of %+v error: %v", f.Filename, err)
+		if f.Logger != nil {
+			f.Logger.Error("FileLoader: unmarshal data failed", "filename", f.Filename, "error", err)
 		}
 		return
 	}
@@ -924,8 +923,8 @@ func (f *FileLoader[T]) Load() *T {
 			for range time.Tick(dur) {
 				fi, err := os.Stat(f.Filename)
 				if err != nil {
-					if f.ErrorLogger != nil {
-						f.ErrorLogger.Printf("FileLoader: stat %+v error: %v", f.Filename, err)
+					if f.Logger != nil {
+						f.Logger.Error("FileLoader: stat file error", "filename", f.Filename, "error", err)
 					}
 					continue
 				}
