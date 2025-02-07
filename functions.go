@@ -88,6 +88,7 @@ func (f *Functions) Load() error {
 
 	// file related
 	f.FuncMap["infile"] = f.infile
+	f.FuncMap["infile2"] = f.infile2
 	f.FuncMap["readfile"] = f.readfile
 
 	return nil
@@ -448,6 +449,10 @@ func (f *Functions) infile(line, filename string) bool {
 	_, found := slices.BinarySearch(*lines, line)
 
 	return found
+}
+
+func (f *Functions) infile2(line, filename1, filename2 string) bool {
+	return f.infile(line, filename1) || f.infile(line, filename2)
 }
 
 func (f *Functions) regexMatch(pattern, s string) bool {
