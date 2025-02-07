@@ -204,6 +204,10 @@ func (f *Functions) domain(domain string) string {
 		domain = s
 	}
 
+	if net.ParseIP(domain) != nil {
+		return domain
+	}
+
 	s, _ := publicsuffix.EffectiveTLDPlusOne(domain)
 	return s
 }
