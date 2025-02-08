@@ -3,7 +3,7 @@
 function setup() {
 	export DEBIAN_FRONTEND=noninteractive
 	apt update -y
-	apt install -yq git curl jq zip bzip2 xz-utils
+	apt install -yq git curl jq zip bzip2 xz-utils gh
 
 	git config --global --add safe.directory '*'
 
@@ -57,15 +57,9 @@ function release() {
 	sha1sum liner_* >checksums.txt
 	git log --oneline --pretty=format:"%h %s" -5 | tee changelog.txt
 
-	curl -L https://github.com/github-release/github-release/releases/download/v0.10.0/linux-amd64-github-release.bz2 | bzip2 -d >/usr/bin/github-release
-	chmod +x /usr/bin/github-release
-
-	github-release delete --user phuslu --repo liner --tag v0.0.0 || true
-	cat changelog.txt | github-release release --user phuslu --repo liner --tag v0.0.0 --name v0.0.0 --description -
-	sleep 5
-	for file in liner_* checksums.txt changelog.txt; do
-		github-release upload --replace --user phuslu --repo liner --tag v0.0.0 --name $file --file $file
-	done
+	gh release view v0.0.0 --json assets --jq .assets[].name | grep ^liner_ | xargs -i gh release delete-asset v0.0.0 {} --yes
+	gh release upload v0.0.0 liner_* checksums.txt --clobber
+	gh release edit v0.0.0 --notes-file changelog.txt
 
 	popd
 }
