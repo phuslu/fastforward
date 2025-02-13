@@ -135,7 +135,7 @@ func (d *HTTP3Dialer) DialContext(ctx context.Context, network, addr string) (ne
 		req.URL.Path = fmt.Sprintf(HTTPTunnelConnectTCPPathPrefix+"%s/%s/", addr[:i], addr[i+1:])
 		req.URL.Host = d.Host
 		req.Host = d.Host
-		req.Method = http.MethodGet
+		req.Method = http.MethodConnect
 		req.Header.Set("Connection", "Upgrade")
 		req.Header.Set("Upgrade", "websocket")
 		req.Header.Set("Sec-WebSocket-Version", "13")
