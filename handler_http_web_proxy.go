@@ -16,7 +16,6 @@ import (
 
 	"github.com/mileusna/useragent"
 	"github.com/phuslu/log"
-	"github.com/valyala/bytebufferpool"
 )
 
 type HTTPWebProxyHandler struct {
@@ -119,10 +118,11 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		req.Body, req.ContentLength = nil, 0
 	}
 
-	if req.Header.Get("Upgrade") == "" {
-		switch {
-		case req.Header.Get("Sec-WebSocket-Key") != "":
-			req.Header.Set("Upgrade", "websocket")
+	if req.Header.Get(":protocol") == "websocket" {
+		req.Header.Set("Upgrade", "websocket")
+		req.Header.Del(":protocol")
+		if req.Method == http.MethodConnect {
+			req.Method = http.MethodGet
 		}
 	}
 
@@ -168,6 +168,13 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 		}
 		defer conn.Close()
 
+		for k, vv := range resp.Header {
+			for _, v := range vv {
+				rw.Header().Add(k, v)
+			}
+		}
+		rw.WriteHeader(resp.StatusCode)
+
 		if req.ProtoAtLeast(2, 0) {
 			flusher, ok := rw.(http.Flusher)
 			if !ok {
@@ -179,10 +186,6 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			w = FlushWriter{rw}
 			r = req.Body
 
-			// if err := SetHTTP2ResponseWriterSentHeader(rw, true); err != nil {
-			// 	http.Error(rw, fmt.Sprintf("%#v cannot be SetHTTP2ResponseWriterSentHeader", rw), http.StatusBadGateway)
-			// 	return
-			// }
 		} else {
 			hijacker, ok := rw.(http.Hijacker)
 			if !ok {
@@ -203,18 +206,6 @@ func (h *HTTPWebProxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Reques
 			w = lconn
 			r = lconn
 		}
-
-		b := bytebufferpool.Get()
-		defer bytebufferpool.Put(b)
-
-		fmt.Fprintf(w, "HTTP/1.1 %s\r\n", resp.Status)
-		for k, vv := range resp.Header {
-			for _, v := range vv {
-				fmt.Fprintf(w, "%s: %s\r\n", k, v)
-			}
-		}
-		fmt.Fprintf(w, "\r\n")
-		w.Write(b.Bytes())
 
 		go io.Copy(w, conn)
 		io.Copy(conn, r)

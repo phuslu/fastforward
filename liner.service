@@ -8,6 +8,7 @@ Type=simple
 KillMode=process
 Restart=on-failure
 WorkingDirectory=/home/phuslu/liner
+Environment=GODEBUG=http2xconnect=1
 EnvironmentFile=-/home/phuslu/liner/.env
 ExecStart=/home/phuslu/liner/liner
 StandardError=append:/home/phuslu/liner/liner.error.log

@@ -190,7 +190,7 @@ func (h *HTTPServerHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		h.ForwardHandler.ServeHTTP(rw, req)
 	case containsHostname && h.Config.Tunnel.Enabled && strings.HasPrefix(req.URL.Path, HTTPTunnelReverseTCPPathPrefix):
 		h.TunnelHandler.ServeHTTP(rw, req)
-	case req.Method == http.MethodConnect:
+	case req.Method == http.MethodConnect && req.RequestURI[0] != '/':
 		h.ForwardHandler.ServeHTTP(rw, req)
 	default:
 		h.WebHandler.ServeHTTP(rw, req)
