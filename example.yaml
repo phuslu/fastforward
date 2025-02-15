@@ -63,8 +63,8 @@ https:
           bypass_auth
         {{else if contains " YaBrowser/" .Request.UserAgent}}
           bypass_auth
-        {{else if contains "ip.phus.lu" .Request.Host}}
-          allow_ip
+        {{else if infile (domain .Request.Host) "domainblacklist.txt"}}
+          reject
         {{else if .Request.Header.Get "proxy-authorization"}}
           verify_auth
         {{else if all (.Request.ProtoAtLeast 2 0) (eq .Request.TLS.Version 0x0304) (greased .ClientHelloInfo)}}
@@ -113,8 +113,8 @@ http:
           bypass_auth
         {{else if contains " YaBrowser/" .Request.UserAgent}}
           bypass_auth
-        {{else if contains "ip.phus.lu" .Request.Host}}
-          allow_ip
+        {{else if infile (domain .Request.Host) "domainblacklist.txt"}}
+          reject
         {{else if .Request.Header.Get "proxy-authorization"}}
           verify_auth
         {{else if hasPrefix "Mozilla/" .Request.UserAgent}}
