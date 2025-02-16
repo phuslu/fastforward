@@ -88,8 +88,11 @@ func (f *Functions) Load() error {
 
 	// file related
 	f.FuncMap["infile"] = f.infile
+	f.FuncMap["inFile"] = f.infile
 	f.FuncMap["infile2"] = f.infile2
+	f.FuncMap["inFile2"] = f.infile2
 	f.FuncMap["readfile"] = f.readfile
+	f.FuncMap["readFile"] = f.readfile
 
 	return nil
 }
